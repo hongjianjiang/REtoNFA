@@ -32,23 +32,25 @@ inductive_cases LTS_Step_cases[elim!]:"LTS_is_reachable \<Delta> q (a # w) q'"
 inductive_cases LTS_Epi_cases[elim!]:"LTS_is_reachable \<Delta> q l q'"
 inductive_cases LTS_Empty_cases[elim!]:"LTS_is_reachable \<Delta> q [] q"
 
+thm LTS_is_reachable.simps
 
 
-lemma DeltLTSlemma1:"LTS_is_reachable {(q,v,y)} q x y \<Longrightarrow> LTS_is_reachable {(f u, v, f w)| u v w. (u,v,w)\<in> {(q,v,y)} } (f q) x (f y)"
-  apply(cases x, cases \<open>tl x\<close>)
-    apply simp
-    apply blast
-   apply blast
+lemma DeltLTSlemma1:"LTS_is_reachable \<Delta> q l q'\<Longrightarrow> LTS_is_reachable {(f u, v, f w)| u v w. (u,v,w)\<in> \<Delta>} (f q) l (f q')"
+  apply(induct l)
+  subgoal
+    apply(rule LTS_is_reachable.cases)
+       apply simp
+      apply (simp add: LTS_Empty)
+     apply force
+    sorry
   sorry
-  
 
 
-
-(*lemma subLTSlemma[simp]:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reachable (l1 \<union> l2) q x y"
-  apply (induct x  arbitrary:q)
+lemma subLTSlemma[simp]:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reachable (l1 \<union> l2) q x y"
+  apply (rule LTS_is_reachable.cases)
+     apply simp
+    apply (simp add: LTS_Empty)
   sledgehammer
-  sorry
-
 
 
 primrec LTS_is_reachable_set :: "('q, 'a) LTS ⇒ 'q ⇒ 'a list ⇒ 'q set" where    

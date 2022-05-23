@@ -146,32 +146,12 @@ primrec reg2nfa :: "'v regexp \<Rightarrow> 'v set\<Rightarrow> ('v state,'v) NF
                   \<F> = {\<epsilon>}\<rparr> " 
 
 
-lemma l1:"(Node Dot, {v}, ε) \<in> star_state {(Node Dot, {v}, ε)} Dot" 
-  by (simp add: star_state.Node2Star)
-
-
-lemma "renameState1  (Node Dot, {v}, ε) (Node (Star Dot)) \<in> star_state {(Node Dot, {v}, ε)} Dot" 
-  by (meson l1 star_state.StepStar)
-
-lemma "renameState1 (renameState1  (Node Dot, {v}, ε) (Node (Star Dot))) (Node (Star Dot)) \<in> star_state {(Node Dot, {v}, ε)} Dot" 
-  by (meson l1 star_state.StepStar)
-
-lemma "LTS_is_reachable (trans2Del1 Dot {v}) (Node Dot) [v] \<epsilon>"
-  apply auto
-  by (meson LTS_Empty LTS_Step singletonI)
-
-lemma "LTS_is_reachable (renameState (trans2Del1 Dot {v}) (Node Dot)) (pairState (Node Dot) (Node Dot)) [v] (pairState \<epsilon> (Node Dot))"
-  apply auto
-  by (meson LTS_Empty LTS_Step singletonI)
-
-
 lemma transEqDel : "trans2Del1 r1 v = Δ (reg2nfa r1 v)"
   apply (induct r1)
   apply auto
   done
 
-lemma subLTSlemma:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reachable (l1 \<union> l2) q x y"
-  sorry
+
 (*lemma set_set_to_list[simp]:
    "finite s ⟹ set (set_to_list s) = s"
   unfolding set_to_list_def by (metis (mono_tags) finite_list some_eq_ex)*)
@@ -196,19 +176,6 @@ lemma [simp]:"q ∈ ℐ (reg2nfa r1 v) \<Longrightarrow> q = (Node r1)"
 
 lemma [simp]:"xa ∈ ℱ (reg2nfa r1 v) \<Longrightarrow> xa = \<epsilon>"
   apply (induct r1)
-  by auto
-
-lemma [simp]:"LTS_is_reachable {} y [] y"
-  by (simp add: LTS_Empty)
-
-
-lemma UnionE: "¬ LTS_is_reachable (Δ (reg2nfa r1 v) ∪ Δ (reg2nfa r2 v)) (Node r1) x \<epsilon> \<Longrightarrow> ¬ LTS_is_reachable (Δ (reg2nfa r1 v)) (Node r1) x \<epsilon>"
-  by auto 
-
-lemma " (LTS_is_reachable ({(Node (LChr a), {a}, Node (LChr a))}) (Node (LChr a)) [] (Node (LChr a)))"
-  by auto
-
-lemma " (LTS_is_reachable ({(Node (LChr a), {a}, Node (LChr a))}) (Node (LChr a)) [a] (Node (LChr a)))"
   by auto
 
 
@@ -242,19 +209,11 @@ lemma l11:"⋀x q xa.
   qed
  done
 
-lemma [simp]:"(λa. (Node (LChr x), {x}, Node r2)) ` {xa. xa = (Node (LChr x), {x}, \<epsilon>) ∧ snd (snd xa) = \<epsilon>} = {(Node (LChr x), {x}, Node r2)}"
-  apply auto
-  done
 
 
 lemma [simp]:"{xa. xa = (Node (LChr x), {x}, \<epsilon>) ∧ snd (snd xa) ≠ \<epsilon>} ∪ trans2Del1 r2 v =  trans2Del1 r2 v"
   apply auto
   done
-
-
-
-
-
 
 lemma [simp]:"x \<in> fs \<Longrightarrow> renameState1 x r \<in> renameState fs r"
   apply auto
@@ -264,10 +223,6 @@ lemma [simp]:"renameState1 x r  = (pairState (fst x) r, fst (snd x), pairState (
   apply auto
   done
 
-lemma renameLTSlemma: "LTS_is_reachable (Δ (reg2nfa r v)) (Node r) a ε \<Longrightarrow> LTS_is_reachable (renameState (Δ (reg2nfa (r) v)) (Node (r1)) )
- (pairState (Node r) (Node r1)) a (pairState ε (Node r1))"
-  apply auto
-  using DeltLTSlemma sorry
 
 lemma LTSConcatFromNode1: "LTS_is_reachable (Δ (reg2nfa r1 v)) (Node r1) a ε \<Longrightarrow>
     LTS_is_reachable (Δ (reg2nfa r2 v)) (Node r2) b ε \<Longrightarrow>
