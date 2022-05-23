@@ -23,7 +23,8 @@ that @{term "LTS_is_reachable \<Delta>"} is the reflexive, transitive closure of
 
 inductive LTS_is_reachable :: "('q, 'a) LTS  \<Rightarrow> 'q \<Rightarrow> 'a list \<Rightarrow> 'q \<Rightarrow> bool"  where 
    LTS_Empty:"LTS_is_reachable \<Delta> q [] q"|
-   LTS_Step:"(\<exists>q'' \<sigma>. a \<in> \<sigma> \<and> (q, \<sigma>, q'') \<in> \<Delta> \<and> LTS_is_reachable \<Delta> q'' w q') \<Longrightarrow> LTS_is_reachable \<Delta> q (a # w) q'"
+   LTS_Step:"(\<exists>q'' \<sigma>. a \<in> \<sigma> \<and> (q, \<sigma>, q'') \<in> \<Delta> \<and> LTS_is_reachable \<Delta> q'' w q') \<Longrightarrow> LTS_is_reachable \<Delta> q (a # w) q'"|
+   LTS_Epi:"(\<exists>q''. (q,{},q'') \<in> \<Delta> \<and>  LTS_is_reachable \<Delta> q'' l q') \<Longrightarrow> LTS_is_reachable \<Delta> q l q'"  
 
 declare LTS_is_reachable.intros[intro]
 
