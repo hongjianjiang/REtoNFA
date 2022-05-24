@@ -36,7 +36,7 @@ primrec trans2Del1 :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> ('v state ×
     "trans2Del1 (ESet) alp_set= {(Node ESet,{},\<epsilon>)}"|
     (*"trans2Del1 (EString) alp_set = {}"|*)
     "trans2Del1 (Dot) alp_set =(\<lambda>x.(Node Dot ,{x}, \<epsilon>)) ` alp_set"|
-    "trans2Del1 (Concat r1 r2) alp_set = (let r1StateSet = trans2Del1 r1 alp_set in
+    "trans2Del1 (Concat r1 r2) alp_set = {(Node (Concat r1 r2), {}, Pair (Node r1) (Node r2))} \<union> (let r1StateSet = trans2Del1 r1 alp_set in
                                    renameState (r1StateSet) (Node r2)) \<union> trans2Del1 r2 alp_set \<union> {(Pair \<epsilon> (Node r2),{},Node r2)}"|
     "trans2Del1 (Alter r1 r2) alp_set = trans2Del1 r1 alp_set \<union> trans2Del1 r2 alp_set"|
     "trans2Del1 (Star r) alp_set = star_state (trans2Del1 r alp_set) r "|
@@ -250,24 +250,50 @@ next
            then show ?case apply auto 
              by (smt (verit, ccfv_threshold) LTS_is_reachable.LTS_Epi1 UnCI Un_insert_right mem_Collect_eq)
          qed
+         have ee:"LTS_is_reachable  (insert (state.Pair ε (Node r2), {}, Node r2)
+       (insert (Node (Concat r1 r2), {}, state.Pair (Node r1) (Node r2))
+         ({(state.Pair a (Node r2), aa, state.Pair b (Node r2)) |a aa b. (a, aa, b) ∈ trans2Del1 r1 v} ∪ trans2Del1 r2 v))) (pairState (Node r1) (Node r2)) (a) (pairState ε (Node r2))"
+           by (smt (verit, best) Collect_cong Un_insert_left e3 insert_is_Un pairState.simps subLTSlemma sup_commute)
       have e4:"LTS_is_reachable (Δ (reg2nfa (Concat r1 r2) v)) (pairState (Node r1) (Node r2)) (a) (pairState ε (Node r2))"
-        using e3  by auto
+         using ee by auto
       have e5:"LTS_is_reachable (Δ (reg2nfa (Concat r1 r2) v)) (Node r2) b ε"
         by (metis e2 subLTSlemma sup_commute trans2Del1.simps(4) transEqDel)
-      have e6:"Δ (reg2nfa (Concat r1 r2) v) =  {(state.Pair ε (Node r2), {}, Node r2)} \<union> ({(state.Pair a (Node r2), aa, state.Pair b (Node r2)) |a aa b. (a, aa, b) ∈ trans2Del1 r1 v} ∪ trans2Del1 r2 v)"
+      have e6:"Δ (reg2nfa (Concat r1 r2) v) = (insert (state.Pair ε (Node r2), {}, Node r2)
+       (insert (Node (Concat r1 r2), {}, state.Pair (Node r1) (Node r2))
+         ({(state.Pair a (Node r2), aa, state.Pair b (Node r2)) |a aa b. (a, aa, b) ∈ trans2Del1 r1 v} ∪ trans2Del1 r2 v)))"
         by auto
+      have ee1:"LTS_is_reachable (insert (state.Pair ε (Node r2), {}, Node r2)
+       (insert (Node (Concat r1 r2), {}, state.Pair (Node r1) (Node r2))
+         ({(state.Pair a (Node r2), aa, state.Pair b (Node r2)) |a aa b. (a, aa, b) ∈ trans2Del1 r1 v} ∪ trans2Del1 r2 v))) (Node (Concat r1 r2)) [] (state.Pair (Node r1) (Node r2))"
+        by (meson LTS_Empty LTS_Epi insertCI)
       have e7:"LTS_is_reachable ({(pairState ε (Node r2), {}, Node r2)} \<union> ({(pairState a (Node r2), aa, pairState b (Node r2)) |a aa b. (a, aa, b) ∈ trans2Del1 r1 v}))
         (pairState ε (Node r2)) [] (Node r2)"
         by (meson LTS_Empty LTS_Epi UnCI singletonI)
-      from e5 e6 e7 have "LTS_is_reachable ({(pairState ε (Node r2), {}, Node r2)} \<union> ({(pairState a (Node r2), aa, pairState b (Node r2)) |a aa b. (a, aa, b) ∈ trans2Del1 r1 v}))
-      (pairState (Node r1) (Node r2)) (a@b) ε" 
-        sorry
-      then show "LTS_is_reachable
-     (insert (state.Pair ε (Node r2), {}, Node r2) ({(state.Pair a (Node r2), aa, state.Pair b (Node r2)) |a aa b. (a, aa, b) ∈ trans2Del1 r1 v} ∪ trans2Del1 r2 v))
-     (Node (Concat r1 r2)) (a @ b) ε"
-        sorry
+      have e8:"LTS_is_reachable (Δ (reg2nfa (Concat r1 r2) v)) (pairState (Node r1) (Node r2)) (a@b) ε" 
+        by (metis (no_types, lifting) LTS_Epi1 e4 e5 e6 insertI1 joinLTSlemma pairState.simps)      
+      have e9:"LTS_is_reachable (Δ (reg2nfa (Concat r1 r2) v)) (Node (Concat r1 r2)) (a@b) ε"
+        using e8 ee1 joinLTSlemma by fastforce
+      have e10:"LTS_is_reachable
+     (insert (state.Pair ε (Node r2), {}, Node r2)
+       (insert (Node (Concat r1 r2), {}, state.Pair (Node r1) (Node r2))
+         ({(state.Pair a (Node r2), aa, state.Pair b (Node r2)) |a aa b. (a, aa, b) ∈ trans2Del1 r1 v} ∪ trans2Del1 r2 v)))
+     (Node (Concat r1 r2)) (a @ b) ε " 
+        using e6 e9 by presburger
+      from b1 b2 show "LTS_is_reachable
+     (insert (state.Pair ε (Node r2), {}, Node r2)
+       (insert (Node (Concat r1 r2), {}, state.Pair (Node r1) (Node r2))
+         ({(state.Pair a (Node r2), aa, state.Pair b (Node r2)) |a aa b. (a, aa, b) ∈ trans2Del1 r1 v} ∪ trans2Del1 r2 v)))
+     (Node (Concat r1 r2)) (a @ b) ε" 
+        using e10 by blast
     qed
-   
+    from c7 have "LTS_is_reachable
+     (insert (state.Pair ε (Node r2), {}, Node r2)
+       (insert (Node (Concat r1 r2), {}, state.Pair (Node r1) (Node r2))
+         ({(state.Pair a (Node r2), aa, state.Pair b (Node r2)) |a aa b. (a, aa, b) ∈ trans2Del1 r1 v} ∪ trans2Del1 r2 v)))
+     (Node (Concat r1 r2)) (a @ b) ε" by auto
+    then show ?thesis by auto
+  qed
+
 next
   case (Star r)
   then show ?case sorry

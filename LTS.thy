@@ -56,7 +56,6 @@ next
     by (metis (mono_tags, lifting) CollectI LTS_is_reachable.LTS_Epi1)
 qed
 
-
 lemma subLTSlemma:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reachable (l1 \<union> l2) q x y"
 proof (induction rule: LTS_is_reachable.induct)
   case (LTS_Empty Δ q)
@@ -76,6 +75,25 @@ next
     by (meson LTS_is_reachable.LTS_Epi1 UnI1)
 qed
 
+
+lemma joinLTSlemma:"LTS_is_reachable l1 q a y \<Longrightarrow> LTS_is_reachable l1 y b z \<Longrightarrow> LTS_is_reachable l1 q (a@b) z"
+proof (induction rule: LTS_is_reachable.induct)
+  case (LTS_Empty Δ q)
+  then show ?case 
+    by simp
+next
+  case (LTS_Step a q Δ w q')
+  then show ?case 
+    by (metis LTS_is_reachable.LTS_Step append_Cons)
+next
+  case (LTS_Epi q Δ q')
+  then show ?case sledgehammer
+    by (meson LTS_Epi1)
+next
+  case (LTS_Epi1 q Δ l q')
+  then show ?case 
+    by (meson LTS_is_reachable.LTS_Epi1)
+qed
 
 
 (*primrec LTS_is_reachable_set :: "('q, 'a) LTS ⇒ 'q ⇒ 'a list ⇒ 'q set" where    
