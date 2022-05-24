@@ -157,11 +157,7 @@ lemma FinalState:"xa ∈ ℱ (reg2nfa r1 v) \<Longrightarrow> xa = \<epsilon>"
 lemma trans2Del :"trans2Del1 r v =(Δ (reg2nfa r v))"
   by (simp add: transEqDel)
 
-lemma "LTS_is_reachable {(Node Dot, v, ε)} (Node Dot) x ε ⟹ x ∈ (λu. [u]) ` v"
-  sorry
 
-lemma "[] \<in> (\<lambda>u. [u]) ` {}"
-  apply auto
 
 theorem tranl_eq :
   fixes r v  
@@ -196,23 +192,12 @@ next
     apply (unfold \<L>_def  NFA_accept_def)
     apply auto
      apply (simp add: LTS_Empty LTS_Step)
-sledgehammer
+    sorry
 next
   case (Alter r1 r2)
   then show ?case     
     apply(unfold \<L>_def NFA_accept_def)
     apply auto
-    subgoal for x q xa
-    proof -
-    assume a1:"sem_reg r1 v = {w. ∃q∈ℐ (reg2nfa r1 v). ∃x∈ℱ (reg2nfa r1 v). LTS_is_reachable (Δ (reg2nfa r1 v)) q w x}" 
-    assume a2:"sem_reg r2 v = {w. ∃q∈ℐ (reg2nfa r2 v). ∃x∈ℱ (reg2nfa r2 v). LTS_is_reachable (Δ (reg2nfa r2 v)) q w x}"
-    assume a3:"q ∈ ℐ (reg2nfa r1 v)"
-    assume a4:"xa ∈ ℱ (reg2nfa r1 v)"
-    assume a5:"LTS_is_reachable (Δ (reg2nfa r1 v)) q x xa"
-    show a6:"LTS_is_reachable (insert (Node (r1 || r2), {}, Node r1) (insert (Node (r1 || r2), {}, Node r2) (trans2Del1 r1 v ∪ trans2Del1 r2 v))) (Node (r1 || r2)) x ε"
-    proof -
-      have c1 :"q = Node r1" 
-        using a3 by (simp add: InitState)
     sorry
 next
   case (Concat r1 r2)
