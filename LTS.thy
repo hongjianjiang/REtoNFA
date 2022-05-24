@@ -23,37 +23,53 @@ that @{term "LTS_is_reachable \<Delta>"} is the reflexive, transitive closure of
 
 inductive LTS_is_reachable :: "('q, 'a) LTS  \<Rightarrow> 'q \<Rightarrow> 'a list \<Rightarrow> 'q \<Rightarrow> bool"  where 
    LTS_Empty:"LTS_is_reachable \<Delta> q [] q"|
-   LTS_Step:"(\<exists>q'' \<sigma>. a \<in> \<sigma> \<and> (q, \<sigma>, q'') \<in> \<Delta> \<and> LTS_is_reachable \<Delta> q'' w q') \<Longrightarrow> LTS_is_reachable \<Delta> q (a # w) q'"|
-   LTS_Epi:"(\<exists>q''. (q,{},q'') \<in> \<Delta> \<and>  LTS_is_reachable \<Delta> q'' l q') \<Longrightarrow> LTS_is_reachable \<Delta> q l q'"  
+   LTS_Step:"(\<exists>q'' \<sigma>. a \<in> \<sigma> \<and> (q, \<sigma>, q'') \<in> \<Delta> \<and> LTS_is_reachable \<Delta> q'' w q') \<Longrightarrow> 
+              LTS_is_reachable \<Delta> q (a # w) q'"|
+   LTS_Epi:"(\<exists>q''. (q,{},q'') \<in> \<Delta> \<and>  LTS_is_reachable \<Delta> q'' (a # w) q') \<Longrightarrow>   LTS_is_reachable \<Delta> q (a # w) q'"
 
 declare LTS_is_reachable.intros[intro]
 
 inductive_cases LTS_Step_cases[elim!]:"LTS_is_reachable \<Delta> q (a # w) q'"
+
 inductive_cases LTS_Epi_cases[elim!]:"LTS_is_reachable \<Delta> q l q'"
+
 inductive_cases LTS_Empty_cases[elim!]:"LTS_is_reachable \<Delta> q [] q"
 
-thm LTS_is_reachable.simps
 
-
-lemma DeltLTSlemma1:"LTS_is_reachable \<Delta> q l q'\<Longrightarrow> LTS_is_reachable {(f u, v, f w)| u v w. (u,v,w)\<in> \<Delta>} (f q) l (f q')"
-  apply(induct l)
-  subgoal
-    apply(rule LTS_is_reachable.cases)
-       apply simp
-      apply (simp add: LTS_Empty)
-     apply force
-    sorry
-  sorry
+lemma DeltLTSlemma1:"LTS_is_reachable Δ q al y \<Longrightarrow>LTS_is_reachable {(f u, v, f w)| u v w. (u,v,w)\<in> Δ } (f q) al (f y)"
+  using proof (induction rule: LTS_is_reachable.induct)
+  case (LTS_Empty Δ q)
+  then show ?case 
+    by blast
+next
+  case (LTS_Step a q Δ w q')
+  then show ?case 
+    by (smt CollectI LTS_is_reachable.LTS_Step)
+next
+  case (LTS_Epi q Δ a w q')
+  then show ?case
+    by (smt LTS_is_reachable.LTS_Epi mem_Collect_eq)
+qed
 
 
 lemma subLTSlemma[simp]:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reachable (l1 \<union> l2) q x y"
-  apply (rule LTS_is_reachable.cases)
-     apply simp
-    apply (simp add: LTS_Empty)
-  sledgehammer
+  using proof (induction rule: LTS_is_reachable.induct)
+  case (LTS_Empty Δ q)
+  then show ?case 
+    by blast
+next
+  case (LTS_Step a q Δ w q')
+  then show ?case 
+    by (meson LTS_is_reachable.LTS_Step UnI1)
+next
+  case (LTS_Epi q Δ a w q')
+  then show ?case 
+    by (meson LTS_is_reachable.LTS_Epi UnCI)
+qed
 
 
-primrec LTS_is_reachable_set :: "('q, 'a) LTS ⇒ 'q ⇒ 'a list ⇒ 'q set" where    
+
+(*primrec LTS_is_reachable_set :: "('q, 'a) LTS ⇒ 'q ⇒ 'a list ⇒ 'q set" where    
   "LTS_is_reachable_set Δ q [] = {q}"|
   "LTS_is_reachable_set Δ q (a # w) = ⋃ ((λ(q', σ, q''). if a ∈ σ ∧ q' = q then LTS_is_reachable_set Δ q'' w else {}) ` Δ)"
 

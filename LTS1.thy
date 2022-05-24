@@ -1,5 +1,5 @@
 
-theory LTS
+theory LTS1
 imports Main "HOL.Option"
 begin
 
@@ -29,6 +29,8 @@ primrec LTS_is_reachable :: "('q, 'a) LTS \<Rightarrow> 'q \<Rightarrow> 'a list
 
 lemma DeltLTSlemma:"LTS_is_reachable Δ q x y \<Longrightarrow>LTS_is_reachable {(f a, b, f c)| a b c. (a,b,c)\<in> Δ } (f q) x (f y)"
   apply(induct x arbitrary:q)
+   apply simp
+  apply simp
    apply auto
   done
 
