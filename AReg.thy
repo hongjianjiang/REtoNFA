@@ -14,7 +14,7 @@ zero[intro!]:"[] \<in> star r"|
 step[intro!]:"x \<in> r \<and> y \<in> star r \<Longrightarrow> x@y \<in> star r"
 
 primrec sem_reg :: "('v) regexp => 'v set\<Rightarrow> 'v list set" where 
-"sem_reg ESet v = {}"| (*Empty Set*)
+"sem_reg ESet v = {[]}"| (*Empty Set*)
 (*"sem_reg EString v = {[]}"| (*Empty String*)*)
 "sem_reg (Dot) vset = (λu. [u]) ` vset" | 
 "sem_reg (Concat r1 r2) v =(λu. fst u @ snd u) ` (sem_reg r1 v × sem_reg r2 v)"|
