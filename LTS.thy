@@ -27,21 +27,20 @@ inductive LTS_is_reachable :: "('q, 'a) LTS  \<Rightarrow> 'q \<Rightarrow> 'a l
               LTS_is_reachable \<Delta> q (a # w) q'"|
    LTS_Epi:"(\<exists>q''. (q,{},q'') \<in> \<Delta> \<and>  LTS_is_reachable \<Delta> q'' (a # w) q') \<Longrightarrow>   LTS_is_reachable \<Delta> q (a # w) q'"
 
-declare LTS_is_reachable.intros[intro]
 
-inductive_cases LTS_Step_cases[elim!]:"LTS_is_reachable \<Delta> q (a # w) q'"
+inductive_cases LTS_Step_cases:"LTS_is_reachable \<Delta> q (a # w) q'"
 
-inductive_cases LTS_Epi_cases[elim!]:"LTS_is_reachable \<Delta> q l q'"
+inductive_cases LTS_Epi_cases:"LTS_is_reachable \<Delta> q l q'"
 
-inductive_cases LTS_Empty_cases[elim!]:"LTS_is_reachable \<Delta> q [] q"
+inductive_cases LTS_Empty_cases:"LTS_is_reachable \<Delta> q [] q"
 
 
 lemma DeltLTSlemma1:"LTS_is_reachable Δ q al y \<Longrightarrow>LTS_is_reachable {(f u, v, f w)| u v w. (u,v,w)\<in> Δ } (f q) al (f y)"
 proof (induction rule: LTS_is_reachable.induct)
   case (LTS_Empty Δ q)
   then show ?case 
-    by blast
-next
+    by (simp add: LTS_is_reachable.LTS_Empty)
+  next
   case (LTS_Step a q Δ w q')
   then show ?case 
     by (smt CollectI LTS_is_reachable.LTS_Step)
@@ -52,11 +51,11 @@ next
 qed
 
 
-lemma subLTSlemma[simp]:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reachable (l1 \<union> l2) q x y"
+lemma subLTSlemma:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reachable (l1 \<union> l2) q x y"
 proof (induction rule: LTS_is_reachable.induct)
   case (LTS_Empty Δ q)
   then show ?case 
-    by blast
+    by (simp add: LTS_is_reachable.LTS_Empty)
 next
   case (LTS_Step a q Δ w q')
   then show ?case 
