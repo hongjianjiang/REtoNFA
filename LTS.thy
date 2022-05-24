@@ -37,7 +37,7 @@ inductive_cases LTS_Empty_cases[elim!]:"LTS_is_reachable \<Delta> q [] q"
 
 
 lemma DeltLTSlemma1:"LTS_is_reachable Δ q al y \<Longrightarrow>LTS_is_reachable {(f u, v, f w)| u v w. (u,v,w)\<in> Δ } (f q) al (f y)"
-  using proof (induction rule: LTS_is_reachable.induct)
+proof (induction rule: LTS_is_reachable.induct)
   case (LTS_Empty Δ q)
   then show ?case 
     by blast
@@ -53,7 +53,7 @@ qed
 
 
 lemma subLTSlemma[simp]:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reachable (l1 \<union> l2) q x y"
-  using proof (induction rule: LTS_is_reachable.induct)
+proof (induction rule: LTS_is_reachable.induct)
   case (LTS_Empty Δ q)
   then show ?case 
     by blast
