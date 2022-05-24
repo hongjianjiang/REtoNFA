@@ -157,8 +157,6 @@ lemma FinalState:"xa ∈ ℱ (reg2nfa r1 v) \<Longrightarrow> xa = \<epsilon>"
 lemma trans2Del :"trans2Del1 r v =(Δ (reg2nfa r v))"
   by (simp add: transEqDel)
 
-
-
 theorem tranl_eq :
   fixes r v  
   shows l1: "sem_reg r v = \<L> (reg2nfa r v)"
@@ -189,10 +187,14 @@ next
 next
   case Dot
   then show ?case 
-    apply (unfold \<L>_def  NFA_accept_def)
-    apply auto
-     apply (simp add: LTS_Empty LTS_Step)
-    sorry
+      apply (unfold \<L>_def  NFA_accept_def)
+      apply auto
+      apply (meson LTS_Empty LTS_Epi singletonI)
+      apply (smt (verit, best) LTS_Step_cases equals0D list.exhaust old.prod.inject singletonD state.distinct(2))
+      apply (simp add: LTS_Empty LTS_Step)
+      apply(rule LTS_is_reachable.cases)
+      apply auto
+      by (metis (no_types, lifting) LTS_Epi1_cases Pair_inject rev_image_eqI singleton_iff state.distinct(2))      
 next
   case (Alter r1 r2)
   then show ?case     
