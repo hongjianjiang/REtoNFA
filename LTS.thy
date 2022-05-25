@@ -96,26 +96,4 @@ next
 qed
 
 
-(*primrec LTS_is_reachable_set :: "('q, 'a) LTS ⇒ 'q ⇒ 'a list ⇒ 'q set" where    
-  "LTS_is_reachable_set Δ q [] = {q}"|
-  "LTS_is_reachable_set Δ q (a # w) = ⋃ ((λ(q', σ, q''). if a ∈ σ ∧ q' = q then LTS_is_reachable_set Δ q'' w else {}) ` Δ)"
-
-
-lemma "LTS_is_reachable Δ q1 w q2 ⟹ q2 ∈ LTS_is_reachable_set Δ q1 w"
-proof (induction w arbitrary: q1)
-  case Nil
-  then show ?case
-    by simp
-next
-  case (Cons a w)
-  from `LTS_is_reachable Δ q1 (a # w) q2`
-  obtain q'' and σ
-  where "a ∈ σ" and "(q1, σ, q'') ∈ Δ" and "LTS_is_reachable Δ q'' w q2"
-    by auto
-  moreover from `LTS_is_reachable Δ q'' w q2` and Cons.IH
-  have "q2 ∈ LTS_is_reachable_set Δ q'' w"
-    by simp
-  ultimately show ?case
-    by fastforce
-qed*)
 end

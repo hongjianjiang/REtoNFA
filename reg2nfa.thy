@@ -40,9 +40,10 @@ primrec trans2Del1 :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> ('v state ×
                                    renameState (r1StateSet) (Node r2)) \<union> trans2Del1 r2 alp_set \<union> {(Pair \<epsilon> (Node r2),{},Node r2)}"|
     "trans2Del1 (Alter r1 r2) alp_set = trans2Del1 r1 alp_set \<union> trans2Del1 r2 alp_set \<union> {(Node (Alter r1 r2), {}, Node r1), (Node (Alter r1 r2),{}, Node r2)}"|
     "trans2Del1 (Star r) alp_set = star_state (trans2Del1 r alp_set) r "|
-    "trans2Del1 (Plus r) alp_set = {(Node (Plus r),{},Node (Concat r (Star r))),(Node (Concat r (Star r)), {}, Pair (Node r) (Node (Star r)))} \<union> (let rStateSet = trans2Del1 r alp_set in
-                                   renameState (rStateSet) (Node (Star r))) \<union> star_state (trans2Del1 r alp_set) r \<union> {(Pair \<epsilon> (Node (Star r)),{},Node (Star r))}"|
-    "trans2Del1 (Ques r) alp_set = trans2Del1 r alp_set \<union> {(Node (Ques r), {} , \<epsilon>),(Node (Ques r),{},Node r)}"
+    "trans2Del1 (Plus r) alp_set = {(Node (Plus r),{},Node (Concat r (Star r))),(Node (Concat r (Star r)), {}, Pair (Node r) (Node (Star r)))} \<union> 
+                                   (let rStateSet = trans2Del1 r alp_set in renameState (rStateSet) (Node (Star r))) 
+                                   \<union> star_state (trans2Del1 r alp_set) r"|
+    "trans2Del1 (Ques r) alp_set = {(Node (Ques r), {} , \<epsilon>)} \<union> trans2Del1 r alp_set \<union> {(Node (Ques r),{},Node r)}"
 
 
 (*primrec trans2Del2 :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> ('v state × 'v state) set" where (*regexp to epsilon*)
@@ -78,8 +79,6 @@ primrec reg2q :: "'v regexp \<Rightarrow> 'v set\<Rightarrow>  ('v state) set" w
     "reg2q ESet a = {Node ESet, \<epsilon>}"|
     "reg2q (Concat r1 r2) a = {pairState \<epsilon> (Node r2)}\<union> {pairState x (Node r2)| x. x\<in> (reg2q r1 a)}  \<union> reg2q r2 a"
 
-
-value "reg2q (Concat Dot Dot) {v}"
 
 primrec reg2nfa :: "'v regexp \<Rightarrow> 'v set\<Rightarrow> ('v state,'v) NFA_rec" where 
     "reg2nfa (Concat r1 r2) a= \<lparr> 
@@ -153,9 +152,20 @@ lemma FinalState:"xa ∈ ℱ (reg2nfa r1 v) \<Longrightarrow> xa = \<epsilon>"
   apply (induct r1)
   by auto
 
+lemma initalSet:"ℐ (reg2nfa r1 v) = {Node r1}"
+  apply (induct r1)
+  apply auto
+  done
+
+lemma finalSet:"ℱ (reg2nfa r1 v) = {\<epsilon>}"
+  apply(induct r1)
+  apply auto
+  done
+
 
 lemma trans2Del :"trans2Del1 r v =(Δ (reg2nfa r v))"
   by (simp add: transEqDel)
+
 
 theorem tranl_eq :
   fixes r v  
@@ -200,8 +210,95 @@ next
   then show ?case     
     apply(unfold \<L>_def NFA_accept_def)
     apply auto
-    sorry
-next
+    subgoal for x q xa
+    proof -
+      assume a1:"sem_reg r1 v = {w. ∃q∈ℐ (reg2nfa r1 v). ∃x∈ℱ (reg2nfa r1 v). LTS_is_reachable (Δ (reg2nfa r1 v)) q w x}"
+      assume a2:"sem_reg r2 v = {w. ∃q∈ℐ (reg2nfa r2 v). ∃x∈ℱ (reg2nfa r2 v). LTS_is_reachable (Δ (reg2nfa r2 v)) q w x}"
+      assume a3:"q ∈ ℐ (reg2nfa r1 v)"
+      assume a4:"xa ∈ ℱ (reg2nfa r1 v)"
+      assume a5:"LTS_is_reachable (Δ (reg2nfa r1 v)) q x xa"
+      then show "LTS_is_reachable (insert (Node (r1 || r2), {}, Node r1) (insert (Node (r1 || r2), {}, Node r2) (trans2Del1 r1 v ∪ trans2Del1 r2 v))) (Node (r1 || r2)) x ε"
+      proof -
+         have c1:"q = Node r1" 
+           using InitState a3 by blast
+         have c2:"xa =\<epsilon>"
+           using FinalState a4 by blast
+         have c3:"LTS_is_reachable (Δ (reg2nfa r1 v)) (Node r1) x \<epsilon>"
+           using a5 c1 c2 by blast
+         have c4:"LTS_is_reachable (Δ (reg2nfa (Alter r1 r2) v)) (Node (Alter r1 r2)) [] (Node r1)"
+           apply auto
+           by (meson LTS_Empty LTS_Epi1 insertI1)
+         have c5:"LTS_is_reachable (Δ (reg2nfa (Alter r1 r2) v)) (Node (Alter r1 r2)) x \<epsilon>"
+           apply auto
+           by (metis LTS_Epi1 Un_insert_right c3 insertI1 subLTSlemma trans2Del)
+         then show "LTS_is_reachable (insert (Node (r1 || r2), {}, Node r1) (insert (Node (r1 || r2), {}, Node r2) (trans2Del1 r1 v ∪ trans2Del1 r2 v))) (Node (r1 || r2)) x ε"
+           by force
+       qed
+     qed
+     subgoal for x q xa
+      proof -
+      assume a1:"sem_reg r1 v = {w. ∃q∈ℐ (reg2nfa r1 v). ∃x∈ℱ (reg2nfa r1 v). LTS_is_reachable (Δ (reg2nfa r1 v)) q w x}"
+      assume a2:"sem_reg r2 v = {w. ∃q∈ℐ (reg2nfa r2 v). ∃x∈ℱ (reg2nfa r2 v). LTS_is_reachable (Δ (reg2nfa r2 v)) q w x}"
+      assume a3:"q ∈ ℐ (reg2nfa r2 v)"
+      assume a4:"xa ∈ ℱ (reg2nfa r2 v)"
+      assume a5:"LTS_is_reachable (Δ (reg2nfa r2 v)) q x xa"
+      then show "LTS_is_reachable (insert (Node (r1 || r2), {}, Node r1) (insert (Node (r1 || r2), {}, Node r2) (trans2Del1 r1 v ∪ trans2Del1 r2 v))) (Node (r1 || r2)) x ε"
+      proof -
+         have c1:"q = Node r2" 
+           using InitState a3 by blast
+         have c2:"xa =\<epsilon>"
+           using FinalState a4 by blast
+         have c3:"LTS_is_reachable (Δ (reg2nfa r2 v)) (Node r2) x \<epsilon>"
+           using a5 c1 c2 by blast
+         have c4:"LTS_is_reachable (Δ (reg2nfa (Alter r1 r2) v)) (Node (Alter r1 r2)) [] (Node r1)"
+           apply auto
+           by (meson LTS_Empty LTS_Epi1 insertI1)
+         have c5:"LTS_is_reachable (Δ (reg2nfa (Alter r1 r2) v)) (Node (Alter r1 r2)) x \<epsilon>"
+           apply auto
+           by (metis LTS_Epi1 c3 inf_sup_aci(5) insertI1 insert_is_Un subLTSlemma transEqDel)
+         then show "LTS_is_reachable (insert (Node (r1 || r2), {}, Node r1) (insert (Node (r1 || r2), {}, Node r2) (trans2Del1 r1 v ∪ trans2Del1 r2 v))) (Node (r1 || r2)) x ε"
+           by force
+       qed
+     qed
+     subgoal for x
+     proof -
+       assume a1:"sem_reg r1 v = {w. ∃q∈ℐ (reg2nfa r1 v). ∃x∈ℱ (reg2nfa r1 v). LTS_is_reachable (Δ (reg2nfa r1 v)) q w x}"
+       assume a2:"sem_reg r2 v = {w. ∃q∈ℐ (reg2nfa r2 v). ∃x∈ℱ (reg2nfa r2 v). LTS_is_reachable (Δ (reg2nfa r2 v)) q w x}"
+       assume a3:"LTS_is_reachable (insert (Node (r1 || r2), {}, Node r1) (insert (Node (r1 || r2), {}, Node r2) (trans2Del1 r1 v ∪ trans2Del1 r2 v))) (Node (r1 || r2)) x ε"
+       assume a4:"∀q∈ℐ (reg2nfa r2 v). ∀xa∈ℱ (reg2nfa r2 v). ¬ LTS_is_reachable (Δ (reg2nfa r2 v)) q x xa"
+       show "∃q∈ℐ (reg2nfa r1 v). ∃xa∈ℱ (reg2nfa r1 v). LTS_is_reachable (Δ (reg2nfa r1 v)) q x xa"
+       proof -
+         have c1: "LTS_is_reachable  (Δ (reg2nfa (Alter r1 r2) v)) (Node (r1 || r2)) x ε"
+           using a3 by force
+         have c2: "LTS_is_reachable (Δ (reg2nfa (Alter r1 r2) v)) (Node (r1 || r2)) [] (Node r2)"
+           by (metis LTS_Empty LTS_Epi1 Un_insert_right insertI1 insertI2 reg2lts.simps(3) reg2nfa.simps(5) simps(3) trans2Del1.simps(5))
+         have c3: "LTS_is_reachable (Δ (reg2nfa (Alter r1 r2) v)) (Node (r1 || r2)) [] (Node r1)"
+           by (metis LTS_Empty LTS_Epi1 Un_insert_right insertI1 reg2lts.simps(3) reg2nfa.simps(5) simps(3) trans2Del1.simps(5))
+         have c4:"¬ LTS_is_reachable (Δ (reg2nfa r2 v)) (Node r2) x \<epsilon>"
+           using a4 finalSet initalSet by blast
+         have c5:"LTS_is_reachable (Δ (reg2nfa r1 v) \<union> Δ (reg2nfa r2 v) \<union> {(Node (Alter r1 r2),{}, Node r1)} \<union>{(Node (Alter r1 r2),{}, Node r2)} ) (Node (r1||r2)) x \<epsilon>"
+           by (metis Un_empty_right Un_insert_right a3 insert_commute trans2Del)
+         have c6:"LTS_is_reachable (Δ (reg2nfa r1 v)) (Node r1) x \<epsilon>"
+           using c1 c2 c3 c4 apply auto
+           proof (induction rule: LTS_is_reachable.induct)
+             case (LTS_Empty Δ q)
+             then show ?case sorry
+           next
+             case (LTS_Step a q Δ w q')
+             then show ?case sorry
+           next
+             case (LTS_Epi q Δ q')
+             then show ?case sorry
+           next
+             case (LTS_Epi1 q Δ l q')
+             then show ?case sorry
+           qed
+           show c7:"∃q∈ℐ (reg2nfa r1 v). ∃xa∈ℱ (reg2nfa r1 v). LTS_is_reachable (Δ (reg2nfa r1 v)) q x xa"
+             using c6 finalSet initalSet by blast
+         qed
+       qed
+     done
+ next
   case (Concat r1 r2)
   then show ?case 
     apply(unfold \<L>_def NFA_accept_def)
@@ -321,132 +418,5 @@ next
   case (Ques r)
   then show ?case sorry
 qed
-
-(*
-lemma [simp]:"a \<in> (transition r1 v) \<Longrightarrow> a \<in> (transition r1 v ∪ transition r2 v)"
-  apply auto
-  done
-
-lemma [simp]:"a \<in> (transition r2 v) \<Longrightarrow> a \<in> (transition r1 v ∪ transition r2 v)"
-  apply auto
-  done
-
-lemma lts2del: " \<Delta> (reg2nfa r v) = reg2lts r v"
-  apply (induct r)
-  apply (unfold reg2nfa_def)
-  apply auto
-  done
-
-lemma lts2transition: "reg2lts r1 v = transition r1 v"
-  apply (induct r1)
-  sorry  
-
-lemma ltsrewrite: "LTS_is_reachable (Δ (reg2nfa r1 v)) q x xa = LTS_is_reachable (transition r1 v) q x xa"
-  by (simp add: lts2del lts2transition)
-
-lemma nfa2trans: "Δ (reg2nfa r1 v) = transition r1 v"
-  by (simp add: lts2del lts2transition)
- 
-lemma lts2trans: "LTS_is_reachable (Δ (reg2nfa r1 v)) q x xa = LTS_is_reachable (transition r1 v) q x xa"
-  by (simp add: nfa2trans)
-
-lemma [simp]:"LTS_is_reachable ((λx. ([], v, x)) ` (λu. [u]) ` v) [] x [xa] ⟹ x ∈ (λu. [u]) ` v"
-  apply (cases x; cases ‹tl x›)
-     apply auto
-  done
-
-lemma initqlem[simp]:"q ∈ ℐ (reg2nfa r v) \<Longrightarrow> q = []"
-  apply (induct r)
-  apply auto
- done
-
-
-
-lemma inistate:"ℐ (reg2nfa r2 v) = {[]}"
-  apply (induct r2)
-  apply auto
-  done
-
-lemma l2:"u ∈ v ⟹ ∃x∈v. ∃σ. u ∈ σ ∧ ([], σ, [x]) ∈ (λx. ([], v, x)) ` (λu. [u]) ` v" 
-  apply auto
-  done
-
-lemma "r1 = LChr a \<Longrightarrow> v = {a} \<Longrightarrow> xa ∈ ℱ (reg2nfa r1 v) \<Longrightarrow> LTS_is_reachable (Δ (reg2nfa r1 v)) [] xa xa "
-  apply auto
-  done
-
-lemma "r1 = Dot \<Longrightarrow> v = {a} \<Longrightarrow> xa ∈ ℱ (reg2nfa r1 v) \<Longrightarrow> LTS_is_reachable (Δ (reg2nfa r1 v)) [] xa xa "
-  apply auto
-  done
-
-lemma "r1 = EString \<Longrightarrow> v = {a} \<Longrightarrow> xa ∈ ℱ (reg2nfa r1 v) \<Longrightarrow> LTS_is_reachable (Δ (reg2nfa r1 v)) [] xa xa "
-  apply auto
-  done
-
-lemma "r1 = ESet \<Longrightarrow> v = {a} \<Longrightarrow> xa ∈ ℱ (reg2nfa r1 v) \<Longrightarrow> LTS_is_reachable (Δ (reg2nfa r1 v)) [] xa xa "
-  apply auto
-  done
-
-lemma "r1 = LChr a ||  LChr b \<Longrightarrow> v = {c} \<Longrightarrow> xa ∈ ℱ (reg2nfa r1 v) \<Longrightarrow> LTS_is_reachable (Δ (reg2nfa r1 v)) [] xa xa "
-  apply auto
-  done
-
-lemma "LTS_is_reachable (star_lts {[a]} {a}) [] [a] [a]"
-  apply auto
-  apply(rule star_lts.induct)
-  apply auto
-done
-
-lemma "r1 = Dot* \<Longrightarrow> v = {a} \<Longrightarrow> xa ∈ ℱ (reg2nfa r1 v) \<Longrightarrow> LTS_is_reachable (Δ (reg2nfa r1 v)) [] xa xa "
-  apply auto
-  apply(induct xa)
-  apply auto
-  
-
-
-lemma "       xa ∈ ℱ (reg2nfa r1 v) ⟹ LTS_is_reachable (Δ (reg2nfa r1 v)) [] xa xa"
-  apply (cases xa, cases \<open>tl xa\<close>)
-    apply simp     apply simp 
-
-lemma [simp]:"LTS_is_reachable (Δ (reg2nfa (LChr a⇩1) {a⇩1})) []  [a⇩1]  []  ⟹
-        []  ∈ ℱ (reg2nfa (LChr a⇩1) {a⇩1}) ⟹
-       LTS_is_reachable (Δ (reg2nfa (LChr a⇩1) {a⇩1})) []  []   [a⇩1]"
-  apply auto
-  done
-
-
-lemma "LTS_is_reachable (Δ (reg2nfa (LChr a1) {a1})) [] [a1] [] == False"
-  by auto
-
-lemma "[] \<in> ℱ (reg2nfa (LChr a1) {a1}) == False"
-  by auto
-
-lemma "LTS_is_reachable (Δ (reg2nfa (LChr a⇩1) {a⇩1})) []  []   [a⇩1] == False"
-  by auto
-*)
-
-(*
-definition allStates :: "'v regexp  \<Rightarrow> 'v set \<Rightarrow>'v list list " where 
-"allStates r a == set_to_list (sem_reg r a)"
-
-definition initState :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> 'v list set" where 
-"initState r a = {}"
-
-definition finalState :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> 'v list set" where 
-"finalState r a= sem_reg r a"
-
-definition allAlpha :: "'v regexp \<Rightarrow> 'v set \<Rightarrow>  'v set" where 
-"allAlpha r a == alp_reg r a"
-
-definition "maxlen vset ≡ Max (length ` vset)"
-
-definition finalstate1 ::"'a list set \<Rightarrow> 'a list set" where 
-    "finalstate1 vset = {x. x∈vset ∧ length x = maxlen vset}"
-
-definition "minlen vset ≡ Min (length ` vset)"
-
-definition initialstate ::"'a list set \<Rightarrow> 'a list set" where 
-    "initialstate vset = {x. x∈vset ∧ length x = minlen vset}"
-*)
 
 end
