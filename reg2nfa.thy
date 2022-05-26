@@ -166,7 +166,6 @@ lemma finalSet:"ℱ (reg2nfa r1 v) = {\<epsilon>}"
 lemma trans2Del :"trans2Del1 r v =(Δ (reg2nfa r v))"
   by (simp add: transEqDel)
 
-
 theorem tranl_eq :
   fixes r v  
   shows l1: "sem_reg r v = \<L> (reg2nfa r v)"
@@ -192,8 +191,7 @@ next
       apply auto
       apply (simp add: LTS_Empty LTS_Step)
       apply (rule LTS_is_reachable.cases)
-      apply auto
-      using LTS_Epi1_cases by fastforce
+      by auto
 next
   case Dot
   then show ?case 
@@ -203,8 +201,7 @@ next
       apply (smt (verit, best) LTS_Step_cases equals0D list.exhaust old.prod.inject singletonD state.distinct(2))
       apply (simp add: LTS_Empty LTS_Step)
       apply(rule LTS_is_reachable.cases)
-      apply auto
-      by (metis (no_types, lifting) LTS_Epi1_cases Pair_inject rev_image_eqI singleton_iff state.distinct(2))      
+      by auto
 next
   case (Alter r1 r2)
   then show ?case     
@@ -275,24 +272,18 @@ next
          have c3: "LTS_is_reachable (Δ (reg2nfa (Alter r1 r2) v)) (Node (r1 || r2)) [] (Node r1)"
            by (metis LTS_Empty LTS_Epi1 Un_insert_right insertI1 reg2lts.simps(3) reg2nfa.simps(5) simps(3) trans2Del1.simps(5))
          have c4:"¬ LTS_is_reachable (Δ (reg2nfa r2 v)) (Node r2) x \<epsilon>"
-           using a4 finalSet initalSet by blast
+           by (simp add: a4 finalSet initalSet)
          have c5:"LTS_is_reachable (Δ (reg2nfa r1 v) \<union> Δ (reg2nfa r2 v) \<union> {(Node (Alter r1 r2),{}, Node r1)} \<union>{(Node (Alter r1 r2),{}, Node r2)} ) (Node (r1||r2)) x \<epsilon>"
            by (metis Un_empty_right Un_insert_right a3 insert_commute trans2Del)
          have c6:"LTS_is_reachable (Δ (reg2nfa r1 v)) (Node r1) x \<epsilon>"
-           using c1 c2 c3 c4 apply auto
-           proof (induction rule: LTS_is_reachable.induct)
-             case (LTS_Empty Δ q)
-             then show ?case sorry
-           next
-             case (LTS_Step a q Δ w q')
-             then show ?case sorry
-           next
-             case (LTS_Epi q Δ q')
-             then show ?case sorry
-           next
-             case (LTS_Epi1 q Δ l q')
-             then show ?case sorry
-           qed
+           using c1 c2 c3 c4 c5  apply auto
+           apply(erule LTS_is_reachable.induct)
+              apply auto 
+           subgoal for q 
+             sorry
+           subgoal for a q Δ' w q' q'' σ
+             sorry
+           done
            show c7:"∃q∈ℐ (reg2nfa r1 v). ∃xa∈ℱ (reg2nfa r1 v). LTS_is_reachable (Δ (reg2nfa r1 v)) q x xa"
              using c6 finalSet initalSet by blast
          qed
@@ -410,13 +401,30 @@ next
 done
 next
   case (Star r)
-  then show ?case sorry
+  then show ?case apply auto 
+     apply(unfold \<L>_def NFA_accept_def)
+     apply auto 
+     subgoal for x  sorry
+     subgoal for x sorry
+    done
 next
   case (Plus r)
-  then show ?case sorry
+  then show ?case  
+    apply(unfold \<L>_def NFA_accept_def)
+    apply auto 
+    subgoal for x q xa sorry
+    subgoal for x sorry
+    subgoal for x sorry
+    done
 next
   case (Ques r)
-  then show ?case sorry
+  then show ?case     
+    apply(unfold \<L>_def NFA_accept_def)
+    apply auto 
+    subgoal sorry
+    subgoal for x q xa sorry
+    subgoal for x sorry
+    done
 qed
 
 end
