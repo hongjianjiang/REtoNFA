@@ -3,148 +3,143 @@ theory reg2nfa
 begin
 
 
+fun ConcatState::"'v regexp \<Rightarrow> 'v regexp\<Rightarrow> 'v regexp" where
+  "ConcatState r1 r2 = Concat r2 r1"
 
-datatype 'v state =  Node "'v regexp" | \<epsilon> | Pair "'v state" "'v state" 
+fun renameState :: "('v regexp * 'v set * 'v regexp) set \<Rightarrow> ('v regexp => 'v regexp)  \<Rightarrow> ('v regexp *'v set *'v regexp) set" where 
+    "renameState ss f = (\<lambda>(q,v,q'). (f q, v, f q')) ` ss"
 
-primrec L :: "'v state \<Rightarrow> 'v set \<Rightarrow> 'v list set"  where 
-  "L (Node r) v = sem_reg r v"|
-  "L (Pair n1 n2) v = L n1 v \<union> L  n2 v"|
-  "L \<epsilon> v = {[]}"
+fun renameState1 :: "('v regexp * 'v regexp) set \<Rightarrow> ('v regexp => 'v regexp)  \<Rightarrow> ('v regexp  *'v regexp) set" where  
+    "renameState1 ss f = (\<lambda>(q,q'). (f q, f q')) ` ss"
 
-fun getEpsilon :: "('v state * 'v set * 'v state) set \<Rightarrow> ('v state * 'v set * 'v state) set" where (*get the triple set which the third state is \<epsilon>*)
-    "getEpsilon ss = {x. snd (snd x) = \<epsilon> \<and> x \<in> ss}"
-
-fun renameState :: "('v state * 'v set * 'v state) set \<Rightarrow> 'v state \<Rightarrow>('v state *'v set *'v state) set" where  (*change the whole state in the triple set into new state*)
-    "renameState ss newstate = {(Pair (fst x) (newstate), fst (snd x), Pair (snd (snd x)) newstate)| x. x\<in> ss}"
-
-fun renameState1 :: "('v state * 'v set * 'v state)  \<Rightarrow> 'v state \<Rightarrow>('v state *'v set *'v state) " where  (*change the state in the triple into new state*)
-    "renameState1 s newstate = (Pair (fst s) (newstate), fst (snd s), Pair (snd (snd s)) newstate)"
-
-fun pairState :: "'v state \<Rightarrow> 'v state \<Rightarrow> 'v state" where
-    "pairState ss newstate = Pair ss newstate"
-
-inductive_set star_state :: " ('v state * 'v set * 'v state) set \<Rightarrow> 'v regexp \<Rightarrow> ('v state * 'v set * 'v state) set" 
-  for tr :: "('v state * 'v set * 'v state) set" and r::"'v regexp" 
-  where (* For star r, tr is the transition of regexp r, r is the regexp*)
-  Star2Node:"(Node (Star r), {},Node r) \<in> (star_state tr r)" | (* a* \<rightarrow> a*)
-  Epi2Star:"(\<epsilon>,{},Node (Star r)) \<in> star_state tr r" |  (* \<epsilon> \<rightarrow> a**)
-  Node2Star:"x \<in> tr \<Longrightarrow> x \<in> (star_state tr r)" |(* a \<rightarrow> \<epsilon>*)
-  StepStar:"x \<in> star_state tr r \<Longrightarrow> (renameState1 x (Node (Star r)) \<in> star_state tr r)" (* repeat like a.a* \<rightarrow> \<epsilon>.a* *)
-
-primrec trans2Del1 :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> ('v state × 'v set × 'v state) set" where (*regexp to LTS*)
-    "trans2Del1 (LChr v) alp_set= {(Node (LChr v),{v},\<epsilon>)}"|
-    "trans2Del1 (ESet) alp_set= {(Node ESet,{},\<epsilon>)}"|
-    (*"trans2Del1 (EString) alp_set = {}"|*)
-    "trans2Del1 (Dot) alp_set = {(Node Dot ,alp_set, \<epsilon>)}"|
-    "trans2Del1 (Concat r1 r2) alp_set = {(Node (Concat r1 r2), {}, Pair (Node r1) (Node r2))} \<union> (let r1StateSet = trans2Del1 r1 alp_set in
-                                   renameState (r1StateSet) (Node r2)) \<union> trans2Del1 r2 alp_set \<union> {(Pair \<epsilon> (Node r2),{},Node r2)}"|
-    "trans2Del1 (Alter r1 r2) alp_set = trans2Del1 r1 alp_set \<union> trans2Del1 r2 alp_set \<union> {(Node (Alter r1 r2), {}, Node r1), (Node (Alter r1 r2),{}, Node r2)}"|
-    "trans2Del1 (Star r) alp_set = star_state (trans2Del1 r alp_set) r "|
-    "trans2Del1 (Plus r) alp_set = {(Node (Plus r),{},Node (Concat r (Star r))),(Node (Concat r (Star r)), {}, Pair (Node r) (Node (Star r)))} \<union> 
-                                   (let rStateSet = trans2Del1 r alp_set in renameState (rStateSet) (Node (Star r))) 
-                                   \<union> star_state (trans2Del1 r alp_set) r"|
-    "trans2Del1 (Ques r) alp_set = {(Node (Ques r), {} , \<epsilon>)} \<union> trans2Del1 r alp_set \<union> {(Node (Ques r),{},Node r)}"
+inductive_set Delta1_State :: " ('v regexp * 'v set * 'v regexp) set \<Rightarrow> 'v regexp \<Rightarrow> ('v regexp * 'v set * 'v regexp) set" 
+  for tr :: "('v regexp * 'v set * 'v regexp) set" and r::"'v regexp" 
+  where
+  Node2Del1:"x \<in> tr \<Longrightarrow> x \<in> (Delta1_State tr r)" |(* a \<rightarrow> \<epsilon>*)
+  StepDel1:"x \<in> Delta1_State tr r \<Longrightarrow> (Concat (fst x) (Star r), fst (snd x), Concat (snd (snd x)) (Star r)) ∈ Delta1_State tr r"
 
 
-(*primrec trans2Del2 :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> ('v state × 'v state) set" where (*regexp to epsilon*)
-    "trans2Del2 (LChr v) alp_set= {}"|
-    "trans2Del2 (ESet) alp_set= {}"|
-    "trans2Del2 (Dot) alp_set ={}"|
-    "trans2Del2 (Concat r1 r2) alp_set ={}"|
-    "trans2Del2 (Alter r1 r2) alp_set = {(Node (Alter r1 r2),  Node r1)} \<union> {(Node (Alter r1 r2),Node r2)}"|
-    "trans2Del2 (Star r) alp_set ={(Node (Star r), Node r),(Node (Star r),\<epsilon>)}"|
-    "trans2Del2 (Plus r) alp_set ={(Node (Star r), Node r),(Node (Star r),\<epsilon>)}"|
-    "trans2Del2 (Ques r) alp_set ={(Node (Ques r), Node r)}"*)
+inductive_set Delta2_State :: " ('v regexp  * 'v regexp) set \<Rightarrow> 'v regexp \<Rightarrow> ('v regexp  * 'v regexp) set" 
+  for tr :: "('v regexp * 'v regexp) set" and r::"'v regexp" 
+  where 
+  Node2Del2:"x \<in> tr \<Longrightarrow> x \<in> (Delta2_State tr r)" |
+  StepDel2:"x \<in> Delta2_State tr r \<Longrightarrow> (Concat (fst x) (Star r), Concat (snd x) (Star r)) ∈ Delta2_State tr r"
 
 
-primrec reg2lts :: "'v regexp \<Rightarrow> 'v set\<Rightarrow>  ('v state, 'v) LTS" where
+inductive_set Node_State :: "'v regexp set \<Rightarrow> 'v regexp \<Rightarrow> 'v regexp set" 
+  for tr :: "('v regexp) set" and r::"'v regexp" 
+  where
+  Node2Star:"x \<in> tr \<Longrightarrow> x \<in> (Node_State tr r)" |
+  StepStar:"x \<in> Node_State tr r \<Longrightarrow> Concat x r ∈ Node_State tr r"
+
+primrec trans2Del1 :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp × 'v set × 'v regexp) set * ('v regexp * 'v regexp) set)" where 
+    "trans2Del1 (LChr v) alp_set= ({(LChr v,{v},\<epsilon>)},{})"|
+    "trans2Del1 (ESet) alp_set= ({(ESet,{},\<epsilon>)},{})"|
+    "trans2Del1 (\<epsilon>) alp_set = ({},{(\<epsilon>,\<epsilon>)})"|
+    "trans2Del1 (Dot) alp_set = ({(Dot ,alp_set, \<epsilon>)},{})"|
+    "trans2Del1 (Concat r1 r2) alp_set =((renameState (fst (trans2Del1 r1 alp_set)) (ConcatState r2)) \<union> (fst (trans2Del1 r2 alp_set)),{(Concat r1 r2, r1),(Concat \<epsilon> r2, r2)} \<union> renameState1 (snd (trans2Del1 r1 alp_set)) (ConcatState r2) \<union> snd (trans2Del1 r2 alp_set))"|
+    "trans2Del1 (Alter r1 r2) alp_set = ((fst (trans2Del1 r1 alp_set) \<union> fst (trans2Del1 r2 alp_set)), (snd (trans2Del1 r1 alp_set)) \<union> (snd (trans2Del1 r2 alp_set)) \<union> {(Alter r1 r2, r1),(Alter r1 r2, r2)})"|
+    "trans2Del1 (Star r) alp_set = (Delta1_State (fst (trans2Del1 r alp_set)) r, Delta2_State (snd (trans2Del1 r alp_set) \<union> {(Star r, \<epsilon>), (Star r, r)}) (Star r))"|
+    "trans2Del1 (Plus r) alp_set = (let starTrans =  (Delta1_State (fst (trans2Del1 r alp_set)) r, Delta2_State (snd (trans2Del1 r alp_set) \<union> {(Star r, \<epsilon>), (Star r, r)}) (Star r)) in
+             (renameState (fst (trans2Del1 r alp_set)) (ConcatState (Star r)) \<union> fst starTrans, {(Plus r, r)} \<union> snd starTrans))" |
+    "trans2Del1 (Ques r) alp_set = (fst (trans2Del1 r alp_set),{(Ques r,\<epsilon>), (Ques r, r)}\<union> snd(trans2Del1 r alp_set))"
+
+primrec reg2lts :: "'v regexp \<Rightarrow> 'v set\<Rightarrow>  ((('v regexp, 'v) LTS) * ('v regexp * 'v regexp) set)" where
     "reg2lts Dot a = trans2Del1 Dot a"|
     "reg2lts (LChr p) a = trans2Del1 (LChr p) a"|
     "reg2lts (r1||r2) a = trans2Del1 (r1||r2) a"|
     "reg2lts (Star r) a = trans2Del1 (Star r) a" |
     "reg2lts (r+) a = trans2Del1 (r+) a" | 
     "reg2lts (r?) a = trans2Del1 (r?) a" |
-    (*"reg2lts EString a = trans2Del1 EString a"|*)
+    "reg2lts (\<epsilon>) a = trans2Del1 (\<epsilon>) a"|
     "reg2lts ESet a = trans2Del1 ESet a"|
     "reg2lts (Concat r1 r2) a = trans2Del1 (Concat r1 r2) a"
 
-primrec reg2q :: "'v regexp \<Rightarrow> 'v set\<Rightarrow>  ('v state) set" where
-    "reg2q Dot a = {Node Dot, \<epsilon>}"|
-    "reg2q (LChr p) a =  {Node (LChr p), \<epsilon>}"|
-    "reg2q (r1||r2) a = {Node (r1||r2),\<epsilon>} \<union> reg2q r1 a \<union> reg2q r2 a"|
-    "reg2q (Star r) a = {Node (Star r), \<epsilon>} \<union> reg2q r a" |
-    "reg2q (r+) a = {Node (Plus r), \<epsilon>} \<union> reg2q r a" |
-    "reg2q (r?) a = {Node (Ques r), \<epsilon>} \<union> reg2q r a" |
-    (*"reg2q EString a = {Node EString, \<epsilon>}"|*)
-    "reg2q ESet a = {Node ESet, \<epsilon>}"|
-    "reg2q (Concat r1 r2) a = {pairState \<epsilon> (Node r2)}\<union> {pairState x (Node r2)| x. x\<in> (reg2q r1 a)}  \<union> reg2q r2 a"
+primrec reg2q :: "'v regexp \<Rightarrow> 'v set\<Rightarrow>  ('v regexp) set" where
+    "reg2q Dot a = {Dot, \<epsilon>}"|
+    "reg2q (LChr p) a =  {(LChr p), \<epsilon>}"|
+    "reg2q (r1||r2) a = {(r1||r2),\<epsilon>} \<union> reg2q r1 a \<union> reg2q r2 a"|
+    "reg2q (Star r) a = Node_State (reg2q r a) (Star r)" |
+    "reg2q (r+) a =  Node_State (reg2q r a) (Star r) \<union> {r}" |
+    "reg2q (r?) a = {(Ques r), \<epsilon>} \<union> reg2q r a" |
+    "reg2q ESet a = {ESet, \<epsilon>}"|
+    "reg2q \<epsilon> a = {\<epsilon>}"|
+    "reg2q (Concat r1 r2) a = {Concat r1 r2, r1, r2, \<epsilon>, (Concat \<epsilon> r2)}"
 
 
-primrec reg2nfa :: "'v regexp \<Rightarrow> 'v set\<Rightarrow> ('v state,'v) NFA_rec" where 
+primrec reg2nfa :: "'v regexp \<Rightarrow> 'v set\<Rightarrow> ('v regexp,'v) NFA_rec" where 
     "reg2nfa (Concat r1 r2) a= \<lparr> 
                   \<Q> = reg2q (Concat r1 r2) a,
                   \<Sigma> = alp_reg  (Concat r1 r2) a,
-                  \<Delta> = reg2lts  (Concat r1 r2) a,
-                  \<I> ={Node (Concat r1 r2)}, 
+                  \<Delta> = fst (reg2lts  (Concat r1 r2) a),
+                  \<Delta>' = snd (reg2lts  (Concat r1 r2) a),
+                  \<I> ={(Concat r1 r2)}, 
                   \<F> ={\<epsilon>}\<rparr> " |
-   (* "reg2nfa (EString) a= \<lparr>
-                  \<Q> = reg2q EString a,
-                  \<Sigma> = alp_reg (EString) a,
-                  \<Delta> = reg2lts (EString) a,
-                  \<Delta>' = trans2Del2 (EString) a,
-                  \<I> = {Node EString}, 
-                  \<F> = {\<epsilon>}\<rparr> " |*)
     "reg2nfa (ESet) a= \<lparr>
                   \<Q> = reg2q ESet a,
                   \<Sigma> = alp_reg (ESet) a,
-                  \<Delta> = reg2lts (ESet) a,
-                  \<I> = {Node ESet}, 
+                  \<Delta> = fst (reg2lts (ESet) a),
+                  \<Delta>' = snd (reg2lts (ESet) a),
+                  \<I> = {ESet}, 
+                  \<F> = {\<epsilon>}\<rparr> " |
+    "reg2nfa (\<epsilon>) a= \<lparr>
+                  \<Q> = reg2q \<epsilon> a,
+                  \<Sigma> = alp_reg (\<epsilon>) a,
+                  \<Delta> = fst (reg2lts (\<epsilon>) a),
+                  \<Delta>' = snd (reg2lts (\<epsilon>) a),
+                  \<I> = {\<epsilon>}, 
                   \<F> = {\<epsilon>}\<rparr> " |
     "reg2nfa (Dot) a= \<lparr> 
                   \<Q> = reg2q (Dot) a,
                   \<Sigma> = alp_reg (Dot) a,
-                  \<Delta> = reg2lts (Dot) a,
-                  \<I> = {Node Dot}, 
+                  \<Delta> = fst (reg2lts (Dot) a),
+                  \<Delta>' = snd (reg2lts (Dot) a),
+                  \<I> = {Dot}, 
                   \<F> = {\<epsilon>}\<rparr> " |
     "reg2nfa (LChr v) a=  \<lparr> 
                   \<Q> = reg2q (LChr v) a,
                   \<Sigma> = alp_reg (LChr v) a,
-                  \<Delta> = reg2lts (LChr v) a,
-                  \<I> = {Node (LChr v)}, 
+                  \<Delta> = fst (reg2lts (LChr v) a),
+                  \<Delta>' = snd (reg2lts (LChr v) a),
+                  \<I> = {(LChr v)}, 
                   \<F> = {\<epsilon>}\<rparr> " |
     "reg2nfa (r1||r2) a =  \<lparr> 
                   \<Q> = reg2q (r1||r2) a,
                   \<Sigma> = alp_reg (r1||r2) a,
-                  \<Delta> = reg2lts (r1||r2) a,
-                  \<I> = {Node (Alter r1 r2)}, 
+                  \<Delta> = fst (reg2lts (r1||r2) a),
+                  \<Delta>' = snd (reg2lts (r1||r2) a),
+                  \<I> = {(Alter r1 r2)}, 
                   \<F> = {\<epsilon>}\<rparr> " |
     "reg2nfa (Star r) a = \<lparr> 
                   \<Q> = reg2q  (Star r) a,
                   \<Sigma> = alp_reg (Star r) a,
-                  \<Delta> = reg2lts (Star r) a,
-                  \<I> = {Node (Star r)}, 
+                  \<Delta> = fst (reg2lts (Star r) a),
+                  \<Delta>' = snd (reg2lts (Star r) a),
+                  \<I> = {(Star r)}, 
                   \<F> = {\<epsilon>}\<rparr> " |
     "reg2nfa (r+) a= \<lparr> 
                   \<Q> = reg2q  (r+) a,
                   \<Sigma> = alp_reg (r+) a,
-                  \<Delta> = reg2lts  (r+) a,
-                  \<I> = {Node (Plus r)}, 
+                  \<Delta> = fst (reg2lts  (r+) a),
+                  \<Delta>' = snd (reg2lts  (r+) a),
+                  \<I> = {(Plus r)}, 
                   \<F> = {\<epsilon>}\<rparr> " |
     "reg2nfa (r?) a = \<lparr> 
                   \<Q> = reg2q  (r?) a,
                   \<Sigma> = alp_reg (r?) a,
-                  \<Delta> = reg2lts  (r?) a,
-                  \<I> = {Node (Ques r)}, 
+                  \<Delta> = fst (reg2lts  (r?) a),
+                  \<Delta>' = snd (reg2lts  (r?) a),
+                  \<I> = {(Ques r)}, 
                   \<F> = {\<epsilon>}\<rparr> " 
 
 
-lemma transEqDel : "trans2Del1 r1 v = Δ (reg2nfa r1 v)"
+lemma transEqDel : "fst (trans2Del1 r1 v) = Δ (reg2nfa r1 v)"
   apply (induct r1)
   apply auto
   done
 
 
-lemma InitState:"q ∈ ℐ (reg2nfa r1 v) \<Longrightarrow> q = (Node r1)"
+lemma InitState:"q ∈ ℐ (reg2nfa r1 v) \<Longrightarrow> q = (r1)"
   apply (induct r1)
   by auto
 
@@ -152,7 +147,7 @@ lemma FinalState:"xa ∈ ℱ (reg2nfa r1 v) \<Longrightarrow> xa = \<epsilon>"
   apply (induct r1)
   by auto
 
-lemma initalSet:"ℐ (reg2nfa r1 v) = {Node r1}"
+lemma initalSet:"ℐ (reg2nfa r1 v) = {r1}"
   apply (induct r1)
   apply auto
   done
@@ -163,7 +158,7 @@ lemma finalSet:"ℱ (reg2nfa r1 v) = {\<epsilon>}"
   done
 
 
-lemma trans2Del :"trans2Del1 r v =(Δ (reg2nfa r v))"
+lemma trans2Del :"fst (trans2Del1 r v) =(Δ (reg2nfa r v))"
   by (simp add: transEqDel)
 
 theorem tranl_eq :
@@ -174,34 +169,23 @@ case ESet
   then show ?case 
     apply (unfold \<L>_def NFA_accept_def)
     apply auto
-     apply (meson LTS_Empty LTS_Epi singletonI)
-    subgoal for x
-    proof-
-      assume a1:"LTS_is_reachable {(Node ESet, {}, ε)} (Node ESet) x ε"
-      have c1:"LTS_is_reachable {(Node ESet, {}, ε)} (Node ESet) [] ε" 
-        by (meson LTS_Empty LTS_Epi insertI1)
-      from a1 c1 show ?thesis 
-        by (smt (verit, del_insts) LTS_Step_cases empty_iff list.exhaust prod.sel(1) prod.sel(2) singletonD state.distinct(2))
-    qed
-    done
+    by (smt (verit, best) LTS_is_reachable.simps(1) LTS_is_reachable.simps(2) Pair_inject empty_iff list.exhaust regexp.distinct(15) singletonD)
 next
     case (LChr x)
     then show ?case     
       apply( unfold \<L>_def NFA_accept_def)
       apply auto
-      apply (simp add: LTS_Empty LTS_Step)
-      apply (rule LTS_is_reachable.cases)
-      by auto
+      by (smt (z3) LTS_is_reachable.simps(1) LTS_is_reachable.simps(2) old.prod.inject regexp.distinct(29) remdups_adj.cases singletonD)
 next
   case Dot
   then show ?case 
-      apply (unfold \<L>_def  NFA_accept_def)
-      apply auto
-      apply (meson LTS_Empty LTS_Epi singletonI)
-      apply (smt (verit, best) LTS_Step_cases equals0D list.exhaust old.prod.inject singletonD state.distinct(2))
-      apply (simp add: LTS_Empty LTS_Step)
-      apply(rule LTS_is_reachable.cases)
-      by auto
+    apply (unfold \<L>_def  NFA_accept_def)
+    apply auto
+    subgoal for x 
+      apply(induct x)
+       apply auto
+sledgehammer
+   
 next
   case (Alter r1 r2)
   then show ?case     
@@ -278,7 +262,7 @@ next
          have c6:"LTS_is_reachable (Δ (reg2nfa r1 v)) (Node r1) x \<epsilon>"
            using c1 c2 c3 c4 c5  apply auto
            apply(erule LTS_is_reachable.induct)
-              apply auto 
+           apply auto 
            subgoal for q 
              sorry
            subgoal for a q Δ' w q' q'' σ
@@ -324,10 +308,10 @@ next
         by (simp add: c3 transEqDel)
       have e2:"LTS_is_reachable (trans2Del1 r2 v) (Node r2) b ε"
         by (simp add: b2 transEqDel)
-      from e1 e2 have e3:"LTS_is_reachable (insert (pairState ε (Node r2), {}, Node r2) ({(pairState a (Node r2), aa, pairState b (Node r2)) |a aa b. (a, aa, b) ∈ trans2Del1 r1 v} ∪ trans2Del1 r2 v)) (pairState (Node r1) (Node r2)) (a) (pairState ε (Node r2))"
+      from e1 e2 have e3:"LTS_is_reachable (insert (state.Pair ε (Node r2), {}, Node r2) ({(state.Pair a (Node r2), aa, state.Pair b (Node r2)) |a aa b. (a, aa, b) ∈ trans2Del1 r1 v} ∪ trans2Del1 r2 v)) (state.Pair (Node r1) (Node r2)) (a) (state.Pair ε (Node r2))"
          proof (induction rule: LTS_is_reachable.induct)
            case (LTS_Empty Δ q)
-           then show ?case apply auto
+           then show ?case 
              by (simp add: LTS_is_reachable.LTS_Empty)
          next
            case (LTS_Step a q Δ w q')
@@ -344,9 +328,9 @@ next
          qed
          have ee:"LTS_is_reachable  (insert (state.Pair ε (Node r2), {}, Node r2)
        (insert (Node (Concat r1 r2), {}, state.Pair (Node r1) (Node r2))
-         ({(state.Pair a (Node r2), aa, state.Pair b (Node r2)) |a aa b. (a, aa, b) ∈ trans2Del1 r1 v} ∪ trans2Del1 r2 v))) (pairState (Node r1) (Node r2)) (a) (pairState ε (Node r2))"
-           by (smt (verit, best) Collect_cong Un_insert_left e3 insert_is_Un pairState.simps subLTSlemma sup_commute)
-      have e4:"LTS_is_reachable (Δ (reg2nfa (Concat r1 r2) v)) (pairState (Node r1) (Node r2)) (a) (pairState ε (Node r2))"
+         ({(state.Pair a (Node r2), aa, state.Pair b (Node r2)) |a aa b. (a, aa, b) ∈ trans2Del1 r1 v} ∪ trans2Del1 r2 v))) (state.Pair (Node r1) (Node r2)) (a) (state.Pair ε (Node r2))"
+           by (smt (verit, best) Collect_cong Un_insert_left e3 insert_is_Un subLTSlemma sup_commute)
+      have e4:"LTS_is_reachable (Δ (reg2nfa (Concat r1 r2) v)) (state.Pair (Node r1) (Node r2)) (a) (state.Pair ε (Node r2))"
          using ee by auto
       have e5:"LTS_is_reachable (Δ (reg2nfa (Concat r1 r2) v)) (Node r2) b ε"
         by (metis e2 subLTSlemma sup_commute trans2Del1.simps(4) transEqDel)
@@ -358,11 +342,11 @@ next
        (insert (Node (Concat r1 r2), {}, state.Pair (Node r1) (Node r2))
          ({(state.Pair a (Node r2), aa, state.Pair b (Node r2)) |a aa b. (a, aa, b) ∈ trans2Del1 r1 v} ∪ trans2Del1 r2 v))) (Node (Concat r1 r2)) [] (state.Pair (Node r1) (Node r2))"
         by (meson LTS_Empty LTS_Epi insertCI)
-      have e7:"LTS_is_reachable ({(pairState ε (Node r2), {}, Node r2)} \<union> ({(pairState a (Node r2), aa, pairState b (Node r2)) |a aa b. (a, aa, b) ∈ trans2Del1 r1 v}))
-        (pairState ε (Node r2)) [] (Node r2)"
+      have e7:"LTS_is_reachable ({(state.Pair ε (Node r2), {}, Node r2)} \<union> ({(state.Pair a (Node r2), aa, state.Pair b (Node r2)) |a aa b. (a, aa, b) ∈ trans2Del1 r1 v}))
+        (state.Pair ε (Node r2)) [] (Node r2)"
         by (meson LTS_Empty LTS_Epi UnCI singletonI)
-      have e8:"LTS_is_reachable (Δ (reg2nfa (Concat r1 r2) v)) (pairState (Node r1) (Node r2)) (a@b) ε" 
-        by (metis (no_types, lifting) LTS_Epi1 e4 e5 e6 insertI1 joinLTSlemma pairState.simps)      
+      have e8:"LTS_is_reachable (Δ (reg2nfa (Concat r1 r2) v)) (state.Pair (Node r1) (Node r2)) (a@b) ε" 
+        by (metis (no_types, lifting) LTS_Epi1 e4 e5 e6 insertI1 joinLTSlemma)      
       have e9:"LTS_is_reachable (Δ (reg2nfa (Concat r1 r2) v)) (Node (Concat r1 r2)) (a@b) ε"
         using e8 ee1 joinLTSlemma by fastforce
       have e10:"LTS_is_reachable

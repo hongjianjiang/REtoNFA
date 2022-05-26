@@ -21,12 +21,52 @@ text \<open>Often it is enough to consider just the first and last state of
 a path. This leads to the following definition of reachability. Notice, 
 that @{term "LTS_is_reachable \<Delta>"} is the reflexive, transitive closure of @{term \<Delta>}.\<close>
 
+primrec LTS_is_reachable :: "('q, 'a) LTS \<Rightarrow> 'q \<Rightarrow> 'a list \<Rightarrow> 'q \<Rightarrow> bool" where
+   "LTS_is_reachable \<Delta> q [] q' = (q = q')"|
+   "LTS_is_reachable \<Delta> q (a # w) q' =
+      (\<exists>q'' \<sigma>. a \<in> \<sigma> \<and> (q, \<sigma>, q'') \<in> \<Delta> \<and> LTS_is_reachable \<Delta> q'' w q')"
+
+
+lemma DeltLTSlemma:"LTS_is_reachable Δ q x y \<Longrightarrow>LTS_is_reachable {(f a, b, f c)| a b c. (a,b,c)\<in> Δ } (f q) x (f y)"
+  apply(induct x arbitrary:q)
+   apply simp
+  apply simp
+   apply auto
+  done
+
+
+lemma subLTSlemma[simp]:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reachable (l1 \<union> l2) q x y"
+  apply (induct x  arbitrary:q)
+  apply auto
+  done
+
+
+
+end
+(*
+text \<open> Given a set of states $\mathcal{Q}$ and an alphabet $\Sigma$,
+a labeled transition system is a subset of $\mathcal{Q} \times \Sigma
+\times \mathcal{Q}$.  Given such a relation $\Delta \subseteq
+\mathcal{Q} \times \Sigma \times \mathcal{Q}$, a triple $(q, \sigma,
+q')$ is an element of $\Delta$ iff starting in state $q$ the state
+$q'$ can be reached reading the label $\sigma$. \<close>
+
+  
+type_synonym ('q,'a) LTS = "('q * 'a set * 'q) set"
+
+
+subsubsection  \<open>Reachability\<close>
+
+text \<open>Often it is enough to consider just the first and last state of
+a path. This leads to the following definition of reachability. Notice, 
+that @{term "LTS_is_reachable \<Delta>"} is the reflexive, transitive closure of @{term \<Delta>}.\<close>
+
 inductive LTS_is_reachable :: "('q, 'a) LTS  \<Rightarrow> 'q \<Rightarrow> 'a list \<Rightarrow> 'q \<Rightarrow> bool"  where 
    LTS_Empty:"LTS_is_reachable \<Delta> q [] q"|
    LTS_Step:"(\<exists>q'' \<sigma>. a \<in> \<sigma> \<and> (q, \<sigma>, q'') \<in> \<Delta> \<and> LTS_is_reachable \<Delta> q'' w q') \<Longrightarrow> 
               LTS_is_reachable \<Delta> q (a # w) q'"|
-   LTS_Epi:"(\<exists>q''. (q,{},q'') \<in> \<Delta> \<and>  LTS_is_reachable \<Delta> q'' [] q') \<Longrightarrow>   LTS_is_reachable \<Delta> q [] q'"|
-   LTS_Epi1:"(\<exists>q''. (q,{},q'') \<in> \<Delta> \<and>  LTS_is_reachable \<Delta> q'' l q') \<Longrightarrow>   LTS_is_reachable \<Delta> q l q'"
+   LTS_Epi:"(\<exists>q''. (q,{\<epsilon>},q'') \<in> \<Delta> \<and>  LTS_is_reachable \<Delta> q'' [] q') \<Longrightarrow>   LTS_is_reachable \<Delta> q [] q'"|
+   LTS_Epi1:"(\<exists>q''. (q,{\<epsilon>},q'') \<in> \<Delta> \<and>  LTS_is_reachable \<Delta> q'' l q') \<Longrightarrow>   LTS_is_reachable \<Delta> q l q'"
 
 
 inductive_cases LTS_Step_cases[elim!]:"LTS_is_reachable \<Delta> q (a # w) q'"
@@ -99,4 +139,4 @@ lemma joinLTSlemma:"LTS_is_reachable l1 q a y \<Longrightarrow> LTS_is_reachable
 
 
 
-end
+end*)

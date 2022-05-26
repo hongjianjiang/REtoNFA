@@ -17,6 +17,7 @@ record ('q,'a) NFA_rec =
   \<Q> :: "'q set"           (* "The set of states" *)
   \<Sigma> :: "'a set"           (* alphabet *)
   \<Delta> :: "('q,'a) LTS"      (* "The transition relation" *)
+  \<Delta>' :: "('q * 'q) set"      (* "The transition relation" *)
   \<I> :: "'q set"            (* "The set of initial states *)
   \<F> :: "'q set"           (* "The set of final states *)
 
