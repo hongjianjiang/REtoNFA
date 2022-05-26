@@ -42,9 +42,9 @@ primrec trans2Del1 :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp 
     "trans2Del1 (Alter r1 r2) alp_set = (fst (trans2Del1 r1 alp_set) \<union> fst (trans2Del1 r2 alp_set), 
                                         snd (trans2Del1 r1 alp_set) \<union> snd (trans2Del1 r2 alp_set) \<union> {(Alter r1 r2, r1),(Alter r1 r2, r2)})"|
     "trans2Del1 (Star r) alp_set = (Delta1_State (fst (trans2Del1 r alp_set)) r, 
-                                    Delta2_State (snd (trans2Del1 r alp_set) \<union> {(Star r, r)}) (Star r) \<union> {(Star r, \<epsilon>)})"|
+                                   (Delta2_State (snd (trans2Del1 r alp_set) \<union> {(Star r, r)}) (Star r)) \<union> {(Star r, \<epsilon>)})"|
     "trans2Del1 (Plus r) alp_set = (Delta1_State ((renameState (fst (trans2Del1 r alp_set)) (ConcatState (Star r))) \<union> Delta1_State (fst (trans2Del1 r alp_set)) r) r,
-                                    Delta2_State (snd (trans2Del1 r alp_set) \<union> {(Plus r, r), (Star r, r)}) (Star r) \<union> {(Star r, \<epsilon>)})"|
+                                    Delta2_State (renameState1 (snd (trans2Del1 r alp_set)) (ConcatState (Star r)) \<union> snd (trans2Del1 r alp_set) \<union> {(Plus r, (Concat r (Star r))), (Concat r (Star r), r),  (Star r, r)}) (Star r) \<union> {(Star r, \<epsilon>)})"|
     "trans2Del1 (Ques r) alp_set = (fst (trans2Del1 r alp_set),
                                    {(Ques r,\<epsilon>), (Ques r, r)} \<union> snd (trans2Del1 r alp_set))"
 
