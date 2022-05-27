@@ -30,15 +30,5 @@ definition NFA_accept :: "('a, 'b) NFA_rec \<Rightarrow> 'b list \<Rightarrow> b
 
 definition \<L> where "\<L> \<A> = {w. NFA_accept \<A> w}"
 
-(*lemma "u \<in> v \<Longrightarrow> NFA_accept ⦇𝒬 = (λu. [u]) ` v, Σ = v, Δ = (λx. ([], v, x)) ` (λu. [u]) ` v, ℐ = {[]}, ℱ = (λu. [u]) ` v⦈ [u]"
-  apply (unfold NFA_accept_def)
-  apply auto
-  done
-
-lemma [simp]:"u \<in> v \<Longrightarrow> NFA_accept ⦇𝒬 = (λu. [u]) ` v, Σ = v, Δ = (λx. ([], v, x)) ` (λu. [u]) ` v, ℐ = {[]}, ℱ = (λu. [u]) ` v⦈ [u]"
-  apply (unfold NFA_accept_def)
-  apply auto
-  done
-*)
 
 end

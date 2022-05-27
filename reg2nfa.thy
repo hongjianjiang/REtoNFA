@@ -3,19 +3,19 @@ theory reg2nfa
 begin
 
 
-fun ConcatState::"'v regexp \<Rightarrow> 'v regexp\<Rightarrow> 'v regexp" where
-  "ConcatState r1 r2 = Concat r2 r1"
+fun ConcatRegexp::"'v regexp \<Rightarrow> 'v regexp\<Rightarrow> 'v regexp" where
+  "ConcatRegexp r1 r2 = Concat r2 r1"
 
-fun renameState :: "('v regexp * 'v set * 'v regexp) set \<Rightarrow> ('v regexp => 'v regexp)  \<Rightarrow> ('v regexp *'v set *'v regexp) set" where 
-    "renameState ss f = (\<lambda>(q,v,q'). (f q, v, f q')) ` ss"
+fun renameDelta1 :: "('v regexp * 'v set * 'v regexp) set \<Rightarrow> ('v regexp => 'v regexp)  \<Rightarrow> ('v regexp *'v set *'v regexp) set" where 
+    "renameDelta1 ss f = (\<lambda>(q,v,q'). (f q, v, f q')) ` ss"
 
-fun renameState1 :: "('v regexp * 'v regexp) set \<Rightarrow> ('v regexp => 'v regexp)  \<Rightarrow> ('v regexp  *'v regexp) set" where  
-    "renameState1 ss f = (\<lambda>(q,q'). (f q, f q')) ` ss"
+fun renameDelta2 :: "('v regexp * 'v regexp) set \<Rightarrow> ('v regexp => 'v regexp)  \<Rightarrow> ('v regexp  *'v regexp) set" where  
+    "renameDelta2 ss f = (\<lambda>(q,q'). (f q, f q')) ` ss"
 
 inductive_set Delta1_State :: " ('v regexp * 'v set * 'v regexp) set \<Rightarrow> 'v regexp \<Rightarrow> ('v regexp * 'v set * 'v regexp) set" 
   for tr :: "('v regexp * 'v set * 'v regexp) set" and r::"'v regexp" 
   where
-  Node2Del1:"x \<in> tr \<Longrightarrow> x \<in> (Delta1_State tr r)" |(* a \<rightarrow> \<epsilon>*)
+  Node2Del1:"x \<in> tr \<Longrightarrow> x \<in> (Delta1_State tr r)" |
   StepDel1:"x \<in> Delta1_State tr r \<Longrightarrow> (Concat (fst x) (Star r), fst (snd x), Concat (snd (snd x)) (Star r)) ∈ Delta1_State tr r"
 
 
@@ -24,7 +24,6 @@ inductive_set Delta2_State :: " ('v regexp  * 'v regexp) set \<Rightarrow> 'v re
   where 
   Node2Del2:"x \<in> tr \<Longrightarrow> x \<in> (Delta2_State tr r)" |
   StepDel2:"x \<in> Delta2_State tr r \<Longrightarrow> (Concat (fst x) (Star r), Concat (snd x) (Star r)) ∈ Delta2_State tr r"
-
 
 inductive_set Node_State :: "'v regexp set \<Rightarrow> 'v regexp \<Rightarrow> 'v regexp set" 
   for tr :: "('v regexp) set" and r::"'v regexp" 
@@ -37,14 +36,14 @@ primrec trans2Del1 :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp 
     "trans2Del1 (ESet) alp_set= ({(ESet,{},\<epsilon>)},{})"|
     "trans2Del1 (\<epsilon>) alp_set = ({},{(\<epsilon>,\<epsilon>)})"|
     "trans2Del1 (Dot) alp_set = ({(Dot ,alp_set, \<epsilon>)},{})"|
-    "trans2Del1 (Concat r1 r2) alp_set =((renameState (fst (trans2Del1 r1 alp_set)) (ConcatState r2)) \<union> (fst (trans2Del1 r2 alp_set)),
-                                        {(Concat r1 r2, r1),(Concat \<epsilon> r2, r2)} \<union> renameState1 (snd (trans2Del1 r1 alp_set)) (ConcatState r2) \<union> snd (trans2Del1 r2 alp_set))"|
+    "trans2Del1 (Concat r1 r2) alp_set =((renameDelta1 (fst (trans2Del1 r1 alp_set)) (ConcatRegexp r2)) \<union> (fst (trans2Del1 r2 alp_set)),
+                                        {(Concat r1 r2, r1),(Concat \<epsilon> r2, r2)} \<union> renameDelta2 (snd (trans2Del1 r1 alp_set)) (ConcatRegexp r2) \<union> snd (trans2Del1 r2 alp_set))"|
     "trans2Del1 (Alter r1 r2) alp_set = (fst (trans2Del1 r1 alp_set) \<union> fst (trans2Del1 r2 alp_set), 
                                         snd (trans2Del1 r1 alp_set) \<union> snd (trans2Del1 r2 alp_set) \<union> {(Alter r1 r2, r1),(Alter r1 r2, r2)})"|
     "trans2Del1 (Star r) alp_set = (Delta1_State (fst (trans2Del1 r alp_set)) r, 
                                    (Delta2_State (snd (trans2Del1 r alp_set) \<union> {(Star r, r)}) (Star r)) \<union> {(Star r, \<epsilon>)})"|
-    "trans2Del1 (Plus r) alp_set = (Delta1_State ((renameState (fst (trans2Del1 r alp_set)) (ConcatState (Star r))) \<union> Delta1_State (fst (trans2Del1 r alp_set)) r) r,
-                                    Delta2_State (renameState1 (snd (trans2Del1 r alp_set)) (ConcatState (Star r)) \<union> snd (trans2Del1 r alp_set) \<union> {(Plus r, (Concat r (Star r))), (Concat r (Star r), r),  (Star r, r)}) (Star r) \<union> {(Star r, \<epsilon>)})"|
+    "trans2Del1 (Plus r) alp_set = (Delta1_State ((renameDelta1 (fst (trans2Del1 r alp_set)) (ConcatRegexp (Star r))) \<union> Delta1_State (fst (trans2Del1 r alp_set)) r) r,
+                                    Delta2_State (renameDelta2 (snd (trans2Del1 r alp_set)) (ConcatRegexp (Star r)) \<union> snd (trans2Del1 r alp_set) \<union> {(Plus r, (Concat r (Star r))), (Concat r (Star r), r),  (Star r, r)}) (Star r) \<union> {(Star r, \<epsilon>)})"|
     "trans2Del1 (Ques r) alp_set = (fst (trans2Del1 r alp_set),
                                    {(Ques r,\<epsilon>), (Ques r, r)} \<union> snd (trans2Del1 r alp_set))"
 
@@ -164,6 +163,9 @@ lemma finalSet:"ℱ (reg2nfa r1 v) = {\<epsilon>}"
 
 lemma trans2Del :"fst (trans2Del1 r v) =(Δ (reg2nfa r v))"
   by (simp add: transEqDel)
+
+
+
 
 theorem tranl_eq :
   fixes r v  
