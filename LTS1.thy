@@ -27,16 +27,16 @@ primrec LTS_is_reachable :: "('q, 'a) LTS \<Rightarrow> 'q \<Rightarrow> 'a list
       (\<exists>q'' \<sigma>. a \<in> \<sigma> \<and> (q, \<sigma>, q'') \<in> \<Delta> \<and> LTS_is_reachable \<Delta> q'' w q')"
 
 
-lemma DeltLTSlemma:"LTS_is_reachable Δ q x y \<Longrightarrow>LTS_is_reachable {(f a, b, f c)| a b c. (a,b,c)\<in> Δ } (f q) x (f y)"
+lemma DeltLTSlemma:"LTS_is_reachable \<Delta> q x y \<Longrightarrow>LTS_is_reachable {(f a, b, f c)| a b c. (a,b,c)\<in> \<Delta> } (f q) x (f y)"
   apply(induct x arbitrary:q)
    apply simp
   apply simp
    apply auto
   done
 
-(*primrec LTS_is_reachable_set :: "('q, 'a) LTS ⇒ 'q ⇒ 'a list ⇒ 'q set" where
-"LTS_is_reachable_set Δ q [] = {q}"| 
-"LTS_is_reachable_set Δ q (a # w) =     (⋃((λ(q, σ, q''). LTS_is_reachable_set Δ q'' w)  Δ))"
+(*primrec LTS_is_reachable_set :: "('q, 'a) LTS \<Rightarrow> 'q \<Rightarrow> 'a list \<Rightarrow> 'q set" where
+"LTS_is_reachable_set \<Delta> q [] = {q}"| 
+"LTS_is_reachable_set \<Delta> q (a # w) =     (\<Union>((\<lambda>(q, \<sigma>, q''). LTS_is_reachable_set \<Delta> q'' w)  \<Delta>))"
 *)
 
 lemma subLTSlemma[simp]:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reachable (l1 \<union> l2) q x y"
@@ -47,13 +47,13 @@ lemma subLTSlemma[simp]:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reac
 
 
 lemma [simp]:"LTS_is_reachable {([], {x}, [x])} [] w [x] \<Longrightarrow> w = [x]"
-  apply (cases w; cases ‹tl w›)
+  apply (cases w; cases \<open>tl w\<close>)
   apply auto
   done
 
 
 
-lemma [simp]:"LTS_is_reachable {([], {}, [])} [] x xa ⟹ x = []" 
+lemma [simp]:"LTS_is_reachable {([], {}, [])} [] x xa \<Longrightarrow> x = []" 
   apply (induct x)
   apply auto
   done
