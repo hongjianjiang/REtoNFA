@@ -288,8 +288,8 @@ next
            by auto
          have c4:"¬LTS_is_reachable (Δ (reg2nfa r2 v), Δ' (reg2nfa r2 v)) r2 x ε"
            by (simp add: a4 finalSet initalSet)
-         have c5:"¬LTS_is_reachable (Δ (reg2nfa (r1 || r2) v), Δ' (reg2nfa (r1 || r2) v)) (r1 || r2) [] r2
-         
+         have c5:"¬LTS_is_reachable (Δ (reg2nfa (r1 || r2) v), Δ' (reg2nfa (r1 || r2) v)) r2 x ε"
+           sledgehammer
          
            
                

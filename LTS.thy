@@ -34,12 +34,19 @@ inductive_cases LTS_Step2_cases:"LTS_is_reachable \<Delta> q l q'"
 
 inductive_cases LTS_Empty_cases:"LTS_is_reachable \<Delta> q [] q"
 
-(*lemma DeltLTSlemma:"LTS_is_reachable \<Delta> q x y \<Longrightarrow>LTS_is_reachable ({(f a, b, f c)| a b c. (a,b,c)\<in> (fst \<Delta>)}, {(f a, f b)| a b. (a,b)\<in>snd \<Delta>}) (f q) x (f y)"
-  apply(induct x arbitrary:q)
-   apply simp
-   apply auto
-sorry
-*)
+
+
+lemma joinLTSlemma[simp]:"LTS_is_reachable l q x p \<Longrightarrow>  LTS_is_reachable l p y q''\<Longrightarrow> LTS_is_reachable l q (x@y) q''"
+  proof (induction rule: LTS_is_reachable.induct)
+    case (LTS_Empty \<Delta> q)
+    then show ?case by auto
+  next
+    case (LTS_Step1 q \<Delta> l q')
+    then show ?case by auto
+  next
+    case (LTS_Step2 a q \<Delta> w q')
+    then show ?case by auto
+  qed
 
 lemma subLTSlemma[simp]:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reachable (fst l1 \<union> l2, snd l1 \<union> l3) q x y"
   proof (induction rule: LTS_is_reachable.induct)
