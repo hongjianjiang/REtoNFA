@@ -24,11 +24,10 @@ record ('q,'a) NFA_rec =
 text \<open>Using notions for labelled transition systems, 
 it is easy to define the languages accepted by automata.\<close>
 
-definition NFA_accept :: "('a, 'b) NFA_rec \<Rightarrow> 'b list \<Rightarrow> bool" where
+definition NFA_accept :: "('q, 'a) NFA_rec \<Rightarrow> 'a list \<Rightarrow> bool" where
   "NFA_accept \<A> w = (\<exists> q \<in> (\<I> \<A>). \<exists> q' \<in> (\<F> \<A>).
-                  LTS_is_reachable (\<Delta> \<A>) q w q') "
+                  LTS_is_reachable (Pair (\<Delta> \<A>) (\<Delta>' \<A>)) q w q') "
 
 definition \<L> where "\<L> \<A> = {w. NFA_accept \<A> w}"
-
 
 end

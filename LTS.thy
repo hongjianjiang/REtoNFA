@@ -21,24 +21,38 @@ text \<open>Often it is enough to consider just the first and last state of
 a path. This leads to the following definition of reachability. Notice, 
 that @{term "LTS_is_reachable \<Delta>"} is the reflexive, transitive closure of @{term \<Delta>}.\<close>
 
-primrec LTS_is_reachable :: "('q, 'a) LTS \<Rightarrow> 'q \<Rightarrow> 'a list \<Rightarrow> 'q \<Rightarrow> bool" where
-   "LTS_is_reachable \<Delta> q [] q' = (q = q')"|
-   "LTS_is_reachable \<Delta> q (a # w) q' =
-      (\<exists>q'' \<sigma>. a \<in> \<sigma> \<and> (q, \<sigma>, q'') \<in> \<Delta> \<and> LTS_is_reachable \<Delta> q'' w q')"
+inductive LTS_is_reachable :: "(('q, 'a) LTS * ('q * 'q) set) \<Rightarrow> 'q \<Rightarrow> 'a list \<Rightarrow> 'q \<Rightarrow> bool" where
+   LTS_Empty[intro!]:"LTS_is_reachable \<Delta> q [] q"|
+   LTS_Step1[intro!]:"(\<exists>q''. (q, q'') \<in> snd \<Delta> \<and> LTS_is_reachable \<Delta> q'' l q') \<Longrightarrow> LTS_is_reachable \<Delta> q l q'" |
+   LTS_Step2[intro!]:"(\<exists>q'' \<sigma>. a \<in> \<sigma> \<and> (q, \<sigma>, q'') \<in> fst \<Delta> \<and> LTS_is_reachable \<Delta> q'' w q') \<Longrightarrow> LTS_is_reachable \<Delta> q (a # w) q'"
 
 
-lemma DeltLTSlemma:"LTS_is_reachable \<Delta> q x y \<Longrightarrow>LTS_is_reachable {(f a, b, f c)| a b c. (a,b,c)\<in> \<Delta> } (f q) x (f y)"
+
+inductive_cases LTS_Step1_cases:"LTS_is_reachable \<Delta> q (a # w) q'"
+
+inductive_cases LTS_Step2_cases:"LTS_is_reachable \<Delta> q l q'"
+
+inductive_cases LTS_Empty_cases:"LTS_is_reachable \<Delta> q [] q"
+
+(*lemma DeltLTSlemma:"LTS_is_reachable \<Delta> q x y \<Longrightarrow>LTS_is_reachable ({(f a, b, f c)| a b c. (a,b,c)\<in> (fst \<Delta>)}, {(f a, f b)| a b. (a,b)\<in>snd \<Delta>}) (f q) x (f y)"
   apply(induct x arbitrary:q)
    apply simp
-  apply simp
    apply auto
-  done
+sorry
+*)
 
-
-lemma subLTSlemma[simp]:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reachable (l1 \<union> l2) q x y"
-  apply (induct x  arbitrary:q)
-  apply auto
-  done
+lemma subLTSlemma[simp]:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reachable (fst l1 \<union> l2, snd l1 \<union> l3) q x y"
+  proof (induction rule: LTS_is_reachable.induct)
+    case (LTS_Empty \<Delta> q)
+    then show ?case by auto
+  next
+    case (LTS_Step1 q \<Delta> l q')
+    then show ?case by auto
+  next
+    case (LTS_Step2 a q \<Delta> w q')
+    then show ?case 
+      by (smt (z3) LTS_is_reachable.LTS_Step2 UnI1 fst_conv)
+  qed
 
 
 
