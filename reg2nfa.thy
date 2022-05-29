@@ -7,10 +7,10 @@ fun ConcatRegexp::"'v regexp \<Rightarrow> 'v regexp\<Rightarrow> 'v regexp" whe
   "ConcatRegexp r1 r2 = Concat r2 r1"
 
 fun renameDelta1 :: "('v regexp * 'v set * 'v regexp) set \<Rightarrow> ('v regexp => 'v regexp)  \<Rightarrow> ('v regexp *'v set *'v regexp) set" where 
-    "renameDelta1 ss f = (\<lambda>(q,v,q'). (f q, v, f q')) ` ss"
+    "renameDelta1 ss f = {(f q,v, f q')| q v q' . (q, v, q')\<in> ss}"
 
 fun renameDelta2 :: "('v regexp * 'v regexp) set \<Rightarrow> ('v regexp => 'v regexp)  \<Rightarrow> ('v regexp  *'v regexp) set" where  
-    "renameDelta2 ss f = (\<lambda>(q,q'). (f q, f q')) ` ss"
+    "renameDelta2 ss f = {(f q, f q')| q q'.(q, q')\<in> ss}"
 
 inductive_set Delta1_State :: " ('v regexp * 'v set * 'v regexp) set \<Rightarrow> 'v regexp \<Rightarrow> ('v regexp * 'v set * 'v regexp) set" 
   for tr :: "('v regexp * 'v set * 'v regexp) set" and r::"'v regexp" 
@@ -37,8 +37,8 @@ primrec trans2Del1 :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp 
     "trans2Del1 (ESet) alp_set= ({(ESet,{},\<epsilon>)},{})"|
     "trans2Del1 (\<epsilon>) alp_set = ({},{(\<epsilon>,\<epsilon>)})"|
     "trans2Del1 (Dot) alp_set = ({(Dot ,alp_set, \<epsilon>)},{})"|
-    "trans2Del1 (Concat r1 r2) alp_set =((renameDelta1 (fst (trans2Del1 r1 alp_set)) (ConcatRegexp r2)) \<union> (fst (trans2Del1 r2 alp_set)),
-                                        renameDelta2 (snd (trans2Del1 r1 alp_set)) (ConcatRegexp r2) \<union> {(Concat \<epsilon> r2, r2)}  \<union> snd (trans2Del1 r2 alp_set))"|
+    "trans2Del1 (Concat r1 r2) alp_set =(renameDelta1 (fst (trans2Del1 r1 alp_set)) (ConcatRegexp r2) \<union> (fst (trans2Del1 r2 alp_set)),
+                                        (renameDelta2 (snd (trans2Del1 r1 alp_set)) (ConcatRegexp r2) \<union> {(Concat \<epsilon> r2, r2)}  \<union> snd (trans2Del1 r2 alp_set)))"|
     "trans2Del1 (Alter r1 r2) alp_set = (fst (trans2Del1 r1 alp_set) \<union> fst (trans2Del1 r2 alp_set), 
                                         snd (trans2Del1 r1 alp_set) \<union> snd (trans2Del1 r2 alp_set) \<union> {(Alter r1 r2, r1),(Alter r1 r2, r2)})"|
     "trans2Del1 (Star r) alp_set = (Delta1_State (fst (trans2Del1 r alp_set)) r, 
@@ -47,6 +47,9 @@ primrec trans2Del1 :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp 
                                     Delta2_State (renameDelta2 (snd (trans2Del1 r alp_set)) (ConcatRegexp (Star r)) \<union> snd (trans2Del1 r alp_set) \<union> {(Plus r, (Concat r (Star r))), (Concat r (Star r), r),  (Star r, r)}) (Star r) \<union> {(Star r, \<epsilon>)})"|
     "trans2Del1 (Ques r) alp_set = (fst (trans2Del1 r alp_set),
                                    {(Ques r,\<epsilon>), (Ques r, r)} \<union> snd (trans2Del1 r alp_set))"
+
+
+value "trans2Del1 (Concat (LChr a) (LChr b)) {v}"
 
 primrec reg2lts :: "'v regexp \<Rightarrow> 'v set\<Rightarrow>  ((('v regexp, 'v) LTS) * ('v regexp * 'v regexp) set)" where
     "reg2lts Dot a = trans2Del1 Dot a"|
@@ -161,16 +164,9 @@ lemma finalSet:"\<F> (reg2nfa r1 v) = {\<epsilon>}"
   apply auto
   done
 
-
-lemma "b \<noteq> a \<Longrightarrow> LTS_is_reachable ({(r1,{a},\<epsilon>)}, {}) r1 [b] \<epsilon> \<Longrightarrow>
-\<not>  LTS_is_reachable ({(r1,{a},\<epsilon>)}, {(r2,r1)}) r1 [b] \<epsilon> "
-  apply auto
-  apply(rule LTS_is_reachable.cases)
-     apply auto
-  done
-
 lemma trans2Del :"fst (trans2Del1 r v) =(\<Delta> (reg2nfa r v))"
   by (simp add: transEqDel)
+
 
 theorem tranl_eq :
   fixes r v  
@@ -309,20 +305,59 @@ next
       using FinalState by blast 
     from c4 c5 a8 have c6: "LTS_is_reachable (Δ (reg2nfa r2 v), Δ' (reg2nfa r2 v)) r2 b ε" 
       by auto
-    from c3 c6 have c7:"LTS_is_reachable (Δ (reg2nfa (Concat r1 r2) v), Δ' (reg2nfa (Concat r1 r2) v))  (Concat r1 r2) (a @ b) ε" apply auto
-    proof -
+    from c3 c6 have c7:"LTS_is_reachable (Δ (reg2nfa (Concat r1 r2) v), Δ' (reg2nfa (Concat r1 r2) v))  (Concat r1 r2) (a @ b) ε" 
+      proof -
       assume b1:"LTS_is_reachable (Δ (reg2nfa r1 v), Δ' (reg2nfa r1 v)) r1 a ε"
       assume b2:"LTS_is_reachable (Δ (reg2nfa r2 v), Δ' (reg2nfa r2 v)) r2 b ε"
       have e1:"LTS_is_reachable (fst (trans2Del1 r1 v), snd (trans2Del1 r1 v)) r1 a ε" 
         using b1 by (induct r1)  auto
       have e2:"LTS_is_reachable (fst (trans2Del1 r2 v), snd (trans2Del1 r2 v)) r2 b ε" 
         using b2 by (induct r2)  auto
-      have e3:"LTS_is_reachable (Δ (reg2nfa (Concat r1 r2) v), Δ' (reg2nfa (Concat r1 r2) v))  (Concat r1 r2) [] r1"
-        by auto
-      have e4:"LTS_is_reachable (Δ (reg2nfa (Concat r1 r2) v), Δ' (reg2nfa (Concat r1 r2) v)) (Concat r1 r2) a (Concat ε r2)"
-        using e1 apply auto
-  qed
-  subgoal for x
+      from b1 have e3:"LTS_is_reachable (Δ (reg2nfa (Concat r1 r2) v), Δ' (reg2nfa (Concat r1 r2) v)) (Concat r1 r2) a r2"
+        apply simp
+        proof - 
+          assume a1:"LTS_is_reachable (Δ (reg2nfa r1 v), Δ' (reg2nfa r1 v)) r1 a ε"
+          have c1:"LTS_is_reachable (fst (trans2Del1 r1 v), snd (trans2Del1 r1 v)) r1 a ε"
+            using a1 by (induct r1) auto
+          have c2:"LTS_is_reachable (fst (trans2Del1 r1 v) ∪ fst (trans2Del1 r2 v),snd (trans2Del1 r1 v) \<union> snd (trans2Del1 r2 v)) r1 a   ε"
+            using c1 by auto
+          have c3:"LTS_is_reachable
+           ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2Del1 r1 v)} ∪ fst (trans2Del1 r2 v),
+            insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2Del1 r1 v)} ∪ snd (trans2Del1 r2 v)))
+           (Concat r1 r2) a (Concat ε r2)"
+            using c1 apply simp    
+            apply (induction rule: LTS_is_reachable.induct)
+            by auto+
+           have c4:"LTS_is_reachable
+           ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2Del1 r1 v)} ∪ fst (trans2Del1 r2 v),
+            insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2Del1 r1 v)} ∪ snd (trans2Del1 r2 v)))
+           (Concat ε r2) [] r2"
+             using c3 by auto 
+           have c5:"LTS_is_reachable
+           ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2Del1 r1 v)} ∪ fst (trans2Del1 r2 v),
+            insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2Del1 r1 v)} ∪ snd (trans2Del1 r2 v)))
+           (Concat r1 r2) a r2"
+             using c3 c4 
+             by (induction rule: LTS_is_reachable.induct) auto
+            then show "LTS_is_reachable ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2Del1 r1 v)} ∪ fst (trans2Del1 r2 v),
+          insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2Del1 r1 v)} ∪ snd (trans2Del1 r2 v)))
+         (Concat r1 r2) a  r2"  
+              by blast
+          qed
+      have e4:"LTS_is_reachable (Δ (reg2nfa (Concat r1 r2) v), Δ' (reg2nfa (Concat r1 r2) v)) r2 b ε"
+        using e2 apply simp
+        by (smt (z3) Un_commute Un_insert_right subLTSlemma)
+      show " LTS_is_reachable (Δ (reg2nfa (Concat r1 r2) v), Δ' (reg2nfa (Concat r1 r2) v)) (Concat r1 r2) (a @ b) ε" 
+        by (meson e3 e4 joinLTSlemma)
+    qed
+    show "∃q''. (r1 = ε ∧ q'' = r2 ∨ (∃q'. q'' = Concat q' r2 ∧ (r1, q') ∈ snd (trans2Del1 r1 v)) ∨ (Concat r1 r2, q'') ∈ snd (trans2Del1 r2 v)) ∧
+          LTS_is_reachable
+           ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2Del1 r1 v)} ∪ fst (trans2Del1 r2 v),
+            insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2Del1 r1 v)} ∪ snd (trans2Del1 r2 v)))
+           q'' (a @ b) ε"
+      using c7 apply auto
+      
+      subgoal for x
   proof -
     assume a1:"sem_reg r1 v = {w. \<exists>q\<in>\<I> (reg2nfa r1 v). \<exists>x\<in>\<F> (reg2nfa r1 v). LTS_is_reachable (\<Delta> (reg2nfa r1 v)) q w x}"
     assume a2:"sem_reg r2 v = {w. \<exists>q\<in>\<I> (reg2nfa r2 v). \<exists>x\<in>\<F> (reg2nfa r2 v). LTS_is_reachable (\<Delta> (reg2nfa r2 v)) q w x}"
