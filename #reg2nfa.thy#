@@ -364,12 +364,6 @@ next
            r2 b ε"
       using e3 
       by (smt (z3) Un_commute Un_insert_left e2 prod.collapse subLTSlemma)
-    have e5:"(r1 = ε ∧ q'' = r2) ∧
-          LTS_is_reachable
-           ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2Del1 r1 v)} ∪ fst (trans2Del1 r2 v),
-            insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2Del1 r1 v)} ∪ snd (trans2Del1 r2 v)))
-           q'' (a @ b) ε" 
-      using e4 e1 sledgehammer
 
     done
 next
