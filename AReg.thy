@@ -4,8 +4,8 @@ declare Let_def [simp]
 
 section "Regexp definition and semantics"
 
-datatype ('v)regexp = ESet |(* EString |*) LChr 'v| Concat "'v regexp" "'v regexp"|
-                      Alter "('v) regexp" "('v) regexp" (infix "||" 55) | Dot|
+datatype ('v)regexp = ESet | LChr 'v| Concat "'v regexp" "'v regexp"|
+                      Alter "('v) regexp" "('v) regexp"| Dot|
                       Star "'v regexp" | Plus "('v) regexp" | Ques "('v) regexp" | \<epsilon>         
 
 inductive_set star :: "'v list set \<Rightarrow> 'v list set" 
@@ -15,11 +15,10 @@ step[intro!]:"x \<in> r \<and> y \<in> star r \<Longrightarrow> x@y \<in> star r
 
 primrec sem_reg :: "('v) regexp => 'v set\<Rightarrow> 'v list set" where 
 "sem_reg ESet v = {}"| (*Empty Set*)
-(*"sem_reg EString v = {[]}"| (*Empty String*)*)
 "sem_reg (Dot) vset = (\<lambda>x .[x]) ` vset" | 
 "sem_reg (Concat r1 r2) v =(\<lambda>u. fst u @ snd u) ` (sem_reg r1 v \<times> sem_reg r2 v)"|
 "sem_reg (LChr a) v = {[a]}"|
-"sem_reg (v1||v2) a = (sem_reg v1 a) \<union> (sem_reg v2 a)"|
+"sem_reg (Alter v1 v2) a = (sem_reg v1 a) \<union> (sem_reg v2 a)"|
 "sem_reg (Star a) v = star (sem_reg a v)"|
 "sem_reg (Plus a) v = (sem_reg a v) \<union> star (sem_reg a v)  "|
 "sem_reg (Ques v) a = {[]} \<union> (sem_reg v a)"|
@@ -29,9 +28,8 @@ primrec sem_reg :: "('v) regexp => 'v set\<Rightarrow> 'v list set" where
 primrec  alp_reg :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> 'v set" where
 "alp_reg (LChr n) vs=  {n}"|
 "alp_reg (ESet) vs = {}"|
-(*"alp_reg (EString) vs = {}"|*)
 "alp_reg (Concat r1 r2) vs =  (alp_reg r1 vs \<union> alp_reg r2 vs)"|
-"alp_reg (v1||v2) vs = alp_reg v1 vs \<union> alp_reg v2 vs"|
+"alp_reg (Alter v1 v2) vs = alp_reg v1 vs \<union> alp_reg v2 vs"|
 "alp_reg (Dot) vs = vs"|
 "alp_reg (Star v) vs = alp_reg v vs"| 
 "alp_reg (Plus v) vs = alp_reg v vs"|
