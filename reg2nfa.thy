@@ -35,7 +35,7 @@ inductive_set Node_State :: "'v regexp set \<Rightarrow> 'v regexp \<Rightarrow>
 primrec trans2Del1 :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp \<times> 'v set \<times> 'v regexp) set * ('v regexp * 'v regexp) set)" where 
     "trans2Del1 (LChr v) alp_set= ({(LChr v,{v},\<epsilon>)},{})"|
     "trans2Del1 (ESet) alp_set= ({(ESet,{},\<epsilon>)},{})"|
-    "trans2Del1 (\<epsilon>) alp_set = ({},{(\<epsilon>,\<epsilon>)})"|
+    "trans2Del1 (\<epsilon>) alp_set = ({(\<epsilon>,{},\<epsilon>)},{})"|
     "trans2Del1 (Dot) alp_set = ({(Dot ,alp_set, \<epsilon>)},{})"|
     "trans2Del1 (Concat r1 r2) alp_set =(renameDelta1 (fst (trans2Del1 r1 alp_set)) (ConcatRegexp r2) \<union> (fst (trans2Del1 r2 alp_set)),
                                         (renameDelta2 (snd (trans2Del1 r1 alp_set)) (ConcatRegexp r2) \<union> {(Concat \<epsilon> r2, r2)}  \<union> snd (trans2Del1 r2 alp_set)))"|
@@ -47,9 +47,6 @@ primrec trans2Del1 :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp 
                                     Delta2_State (renameDelta2 (snd (trans2Del1 r alp_set)) (ConcatRegexp (Star r)) \<union> snd (trans2Del1 r alp_set) \<union> {(Plus r, (Concat r (Star r))), (Concat r (Star r), r),  (Star r, r)}) (Star r) \<union> {(Star r, \<epsilon>)})"|
     "trans2Del1 (Ques r) alp_set = (fst (trans2Del1 r alp_set),
                                    {(Ques r,\<epsilon>), (Ques r, r)} \<union> snd (trans2Del1 r alp_set))"
-
-
-value "trans2Del1 (Concat (LChr a) (LChr b)) {v}"
 
 primrec reg2lts :: "'v regexp \<Rightarrow> 'v set\<Rightarrow>  ((('v regexp, 'v) LTS) * ('v regexp * 'v regexp) set)" where
     "reg2lts Dot a = trans2Del1 Dot a"|
@@ -167,6 +164,10 @@ lemma finalSet:"\<F> (reg2nfa r1 v) = {\<epsilon>}"
 lemma trans2Del :"fst (trans2Del1 r v) =(\<Delta> (reg2nfa r v))"
   by (simp add: transEqDel)
 
+
+lemma ll:"LTS_is_reachable ({}, {(ε, ε)}) ε [] ε"
+  apply auto
+  done
 theorem tranl_eq :
   fixes r v  
   shows l1: "sem_reg r v = \<L> (reg2nfa r v)"
@@ -209,7 +210,16 @@ next
       qed
       done
     done    
-  next
+next
+  case ε
+  then show ?case     
+    apply (unfold \<L>_def  NFA_accept_def)
+    apply auto
+    subgoal for x
+      apply(rule LTS_is_reachable.cases)
+      by auto
+    done
+next
   case (Alter r1 r2)
   then show ?case     
     apply(unfold \<L>_def NFA_accept_def)
@@ -273,13 +283,36 @@ next
        qed
      qed
      subgoal for x
-       sorry
-     done
+     proof -
+       assume a1:"sem_reg r1 v = {w. ∃q∈ℐ (reg2nfa r1 v). ∃x∈ℱ (reg2nfa r1 v). LTS_is_reachable (Δ (reg2nfa r1 v), Δ' (reg2nfa r1 v)) q w x}" 
+       assume a2:"sem_reg r2 v = {w. ∃q∈ℐ (reg2nfa r2 v). ∃x∈ℱ (reg2nfa r2 v). LTS_is_reachable (Δ (reg2nfa r2 v), Δ' (reg2nfa r2 v)) q w x}"
+       assume a3:"LTS_is_reachable (fst (trans2Del1 r1 v) ∪ fst (trans2Del1 r2 v), insert (r1 || r2, r1) (insert (r1 || r2, r2) (snd (trans2Del1 r1 v) ∪ snd (trans2Del1 r2 v)))) (r1 || r2) x ε"
+       assume a4:"∀q∈ℐ (reg2nfa r2 v). ∀xa∈ℱ (reg2nfa r2 v). ¬ LTS_is_reachable (Δ (reg2nfa r2 v), Δ' (reg2nfa r2 v)) q x xa"
+       show "∃q∈ℐ (reg2nfa r1 v). ∃xa∈ℱ (reg2nfa r1 v). LTS_is_reachable (Δ (reg2nfa r1 v), Δ' (reg2nfa r1 v)) q x xa" 
+       proof -
+         have c1:" ¬ LTS_is_reachable (Δ (reg2nfa r2 v), Δ' (reg2nfa r2 v)) r2 x ε" using a4 
+           using finalSet
+           by (simp add: finalSet initalSet)
+        have c2:" ¬ LTS_is_reachable (fst (trans2Del1 r2 v), (snd (trans2Del1 r2 v))) r2 x ε" using c1 
+          by (induct r2) auto
+        have c3:" ¬ LTS_is_reachable (fst (trans2Del1 r2 v), insert (r1 || r2, r2) (snd (trans2Del1 r2 v))) (r1||r2) x ε" using c2
+          apply simp
+          apply(rule LTS_is_reachable.induct)
+             apply auto
+          sorry
+         have c4:"LTS_is_reachable (fst (trans2Del1 r1 v) ∪ fst (trans2Del1 r2 v), insert (r1 || r2, r1) (insert (r1 || r2, r2) (snd (trans2Del1 r1 v) ∪ snd (trans2Del1 r2 v)))) (r1 || r2) [] r1"
+           by auto
+         have c5:"LTS_is_reachable (fst (trans2Del1 r1 v) ∪ fst (trans2Del1 r2 v), insert (r1 || r2, r1) (insert (r1 || r2, r2) (snd (trans2Del1 r1 v) ∪ snd (trans2Del1 r2 v)))) (r1 || r2) [] r2"
+           by auto
+         then show ?thesis sorry
+       qed
+     qed
+   done
  next
   case (Concat r1 r2)
   then show ?case 
     apply(unfold \<L>_def NFA_accept_def)
-    apply auto 
+    apply auto
     subgoal for a b q xa qa xb 
     proof -
     assume a1:"sem_reg r1 v ={w. ∃q∈ℐ (reg2nfa r1 v). ∃x∈ℱ (reg2nfa r1 v). LTS_is_reachable (Δ (reg2nfa r1 v), Δ' (reg2nfa r1 v)) q w x}"
@@ -359,44 +392,125 @@ next
       apply simp
       by (simp add: sup.commute)
     have e4:"LTS_is_reachable
-           ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2Del1 r1 v)} ∪ fst (trans2Del1 r2 v),
-           insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2Del1 r1 v)} ∪ snd (trans2Del1 r2 v)))
-           r2 b ε"
+           ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2Del1 ε v)} ∪ fst (trans2Del1 r2 v),
+           insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2Del1 ε v)} ∪ snd (trans2Del1 r2 v)))
+           r2 ([]@b) ε"
       using e3 
-      by (smt (z3) Un_commute Un_insert_left e2 prod.collapse subLTSlemma)
-    have e5:"(r1 = ε ∧ q'' = r2) ∧
+      by (metis (no_types, lifting) Un_commute Un_insert_right append_self_conv2 e2 prod.collapse subLTSlemma)
+    show "∃q''. (r1 = ε ∧ q'' = r2 ∨ (∃q'. q'' = Concat q' r2 ∧ (r1, q') ∈ snd (trans2Del1 r1 v)) ∨ (Concat r1 r2, q'') ∈ snd (trans2Del1 r2 v)) ∧
           LTS_is_reachable
            ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2Del1 r1 v)} ∪ fst (trans2Del1 r2 v),
             insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2Del1 r1 v)} ∪ snd (trans2Del1 r2 v)))
-           q'' (a @ b) ε" 
-      using e4 e1 sledgehammer
-
-    done
+           q'' (a @ b) ε"
+      sorry
+  qed
+  subgoal for x 
+    sorry
+  done
 next
   case (Star r)
   then show ?case apply auto 
      apply(unfold \<L>_def NFA_accept_def)
      apply auto 
-     subgoal for x  sorry
-     subgoal for x sorry
+    subgoal for x 
+    proof -
+      assume a1:"sem_reg r v = {w. ∃q∈ℐ (reg2nfa r v). ∃x∈ℱ (reg2nfa r v). LTS_is_reachable (Δ (reg2nfa r v), Δ' (reg2nfa r v)) q w x}"
+      assume a2:"x ∈ star {w. ∃q∈ℐ (reg2nfa r v). ∃x∈ℱ (reg2nfa r v). LTS_is_reachable (Δ (reg2nfa r v), Δ' (reg2nfa r v)) q w x}"
+      show "∃q''. (q'' = ε ∨ (Star r, q'') ∈ Delta2_State (insert (Star r, r) (snd (trans2Del1 r v))) (Star r)) ∧
+          LTS_is_reachable (Delta1_State (fst (trans2Del1 r v)) r, insert (Star r, ε) (Delta2_State (insert (Star r, r) (snd (trans2Del1 r v))) (Star r))) q'' x ε" sorry
+    qed
+    subgoal for x 
+    proof - 
+      assume a1:"sem_reg r v = {w. ∃q∈ℐ (reg2nfa r v). ∃x∈ℱ (reg2nfa r v). LTS_is_reachable (Δ (reg2nfa r v), Δ' (reg2nfa r v)) q w x}"
+      assume a2:"LTS_is_reachable (Delta1_State (fst (trans2Del1 r v)) r, insert (Star r, ε) (Delta2_State (insert (Star r, r) (snd (trans2Del1 r v))) (Star r))) (Star r) x ε"
+      show "x ∈ star {w. ∃q∈ℐ (reg2nfa r v). ∃x∈ℱ (reg2nfa r v). LTS_is_reachable (Δ (reg2nfa r v), Δ' (reg2nfa r v)) q w x}"
+        sorry
+    qed
     done
 next
   case (Plus r)
   then show ?case  
     apply(unfold \<L>_def NFA_accept_def)
     apply auto 
-    subgoal for x q xa sorry
-    subgoal for x sorry
-    subgoal for x sorry
+    subgoal for x q xa 
+    proof -
+      assume a1:"sem_reg r v = {w. ∃q∈ℐ (reg2nfa r v). ∃x∈ℱ (reg2nfa r v). LTS_is_reachable (Δ (reg2nfa r v), Δ' (reg2nfa r v)) q w x}"
+      assume a2:"q ∈ ℐ (reg2nfa r v)"
+      assume a3:"xa ∈ ℱ (reg2nfa r v)"
+      assume a4:"LTS_is_reachable (Δ (reg2nfa r v), Δ' (reg2nfa r v)) q x xa"
+      show " ∃q''. (r+, q'')
+          ∈ Delta2_State
+              (insert (r+, Concat r (Star r))
+                (insert (Concat r (Star r), r) (insert (Star r, r) ({(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2Del1 r v)} ∪ snd (trans2Del1 r v)))))
+              (Star r) ∧
+          LTS_is_reachable
+           (Delta1_State ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') ∈ fst (trans2Del1 r v)} ∪ Delta1_State (fst (trans2Del1 r v)) r) r,
+            insert (Star r, ε)
+             (Delta2_State
+               (insert (r+, Concat r (Star r))
+                 (insert (Concat r (Star r), r) (insert (Star r, r) ({(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2Del1 r v)} ∪ snd (trans2Del1 r v)))))
+               (Star r)))
+           q'' x ε" 
+        sorry 
+    qed
+    subgoal for x 
+    proof -
+      assume a1:"sem_reg r v = {w. ∃q∈ℐ (reg2nfa r v). ∃x∈ℱ (reg2nfa r v). LTS_is_reachable (Δ (reg2nfa r v), Δ' (reg2nfa r v)) q w x}"
+      assume a2:"x ∈ star {w. ∃q∈ℐ (reg2nfa r v). ∃x∈ℱ (reg2nfa r v). LTS_is_reachable (Δ (reg2nfa r v), Δ' (reg2nfa r v)) q w x}"
+      show "∃q''. (r+, q'')
+            ∈ Delta2_State
+                (insert (r+, Concat r (Star r))
+                  (insert (Concat r (Star r), r) (insert (Star r, r) ({(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2Del1 r v)} ∪ snd (trans2Del1 r v)))))
+                (Star r) ∧
+            LTS_is_reachable
+             (Delta1_State ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') ∈ fst (trans2Del1 r v)} ∪ Delta1_State (fst (trans2Del1 r v)) r) r,
+              insert (Star r, ε)
+               (Delta2_State
+                 (insert (r+, Concat r (Star r))
+                   (insert (Concat r (Star r), r) (insert (Star r, r) ({(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2Del1 r v)} ∪ snd (trans2Del1 r v)))))
+                 (Star r)))
+             q'' x ε"
+        sorry
+    qed
+    subgoal for x 
+    proof -
+      assume a1:"sem_reg r v = {w. ∃q∈ℐ (reg2nfa r v). ∃x∈ℱ (reg2nfa r v). LTS_is_reachable (Δ (reg2nfa r v), Δ' (reg2nfa r v)) q w x}"
+      assume a2:"x ∉ star {w. ∃q∈ℐ (reg2nfa r v). ∃x∈ℱ (reg2nfa r v). LTS_is_reachable (Δ (reg2nfa r v), Δ' (reg2nfa r v)) q w x}"
+      assume a3:"LTS_is_reachable
+     (Delta1_State ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') ∈ fst (trans2Del1 r v)} ∪ Delta1_State (fst (trans2Del1 r v)) r) r,
+      insert (Star r, ε)
+       (Delta2_State
+         (insert (r+, Concat r (Star r))
+           (insert (Concat r (Star r), r) (insert (Star r, r) ({(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2Del1 r v)} ∪ snd (trans2Del1 r v)))))
+         (Star r)))
+     r+ x ε"
+      show "    ∃q∈ℐ (reg2nfa r v). ∃xa∈ℱ (reg2nfa r v). LTS_is_reachable (Δ (reg2nfa r v), Δ' (reg2nfa r v)) q x xa"
+        sorry
+    qed
     done
 next
   case (Ques r)
   then show ?case     
     apply(unfold \<L>_def NFA_accept_def)
     apply auto 
-    subgoal sorry
-    subgoal for x q xa sorry
-    subgoal for x sorry
+    subgoal for x q xa 
+    proof -
+      assume a1:"sem_reg r v = {w. ∃q∈ℐ (reg2nfa r v). ∃x∈ℱ (reg2nfa r v). LTS_is_reachable (Δ (reg2nfa r v), Δ' (reg2nfa r v)) q w x}"
+      assume a2:"sem_reg r v = {w. ∃q∈ℐ (reg2nfa r v). ∃x∈ℱ (reg2nfa r v). LTS_is_reachable (Δ (reg2nfa r v), Δ' (reg2nfa r v)) q w x}"
+      assume a3:"q ∈ ℐ (reg2nfa r v)"
+      assume a4:" xa ∈ ℱ (reg2nfa r v)"
+      assume a5:"LTS_is_reachable (Δ (reg2nfa r v), Δ' (reg2nfa r v)) q x xa"
+      show "∃q''. (q'' = ε ∨ q'' = r ∨ (r?, q'') ∈ snd (trans2Del1 r v)) ∧ LTS_is_reachable (fst (trans2Del1 r v), insert (r?, ε) (insert (r?, r) (snd (trans2Del1 r v)))) q'' x ε"
+     sorry
+    qed
+    subgoal for x 
+    proof -
+      assume a1:"sem_reg r v = {w. ∃q∈ℐ (reg2nfa r v). ∃x∈ℱ (reg2nfa r v). LTS_is_reachable (Δ (reg2nfa r v), Δ' (reg2nfa r v)) q w x}" 
+      assume a2:"LTS_is_reachable (fst (trans2Del1 r v), insert (r?, ε) (insert (r?, r) (snd (trans2Del1 r v)))) r? x ε"
+      assume a3:"x ≠ []" 
+      show "∃q∈ℐ (reg2nfa r v). ∃xa∈ℱ (reg2nfa r v). LTS_is_reachable (Δ (reg2nfa r v), Δ' (reg2nfa r v)) q x xa "
+        sorry
+    qed
     done
 qed
 

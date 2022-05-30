@@ -14,12 +14,12 @@ $q'$ can be reached reading the label $\sigma$. \<close>
   
 type_synonym ('q,'a) LTS = "('q * 'a set * 'q) set"
 
-
 subsubsection  \<open>Reachability\<close>
 
 text \<open>Often it is enough to consider just the first and last state of
 a path. This leads to the following definition of reachability. Notice, 
 that @{term "LTS_is_reachable \<Delta>"} is the reflexive, transitive closure of @{term \<Delta>}.\<close>
+
 
 inductive LTS_is_reachable :: "(('q, 'a) LTS * ('q * 'q) set) \<Rightarrow> 'q \<Rightarrow> 'a list \<Rightarrow> 'q \<Rightarrow> bool" where
    LTS_Empty[intro!]:"LTS_is_reachable lts q [] q"|
@@ -33,6 +33,7 @@ inductive_cases LTS_Step1_cases:"LTS_is_reachable \<Delta> q (a # w) q'"
 inductive_cases LTS_Step2_cases:"LTS_is_reachable \<Delta> q l q'"
 
 inductive_cases LTS_Empty_cases:"LTS_is_reachable \<Delta> q [] q"
+
 
 
 lemma DeltLTSlemma1:"LTS_is_reachable l q al y \<Longrightarrow>LTS_is_reachable ({(f u a, v, f w a)| u v w. (u,v,w)\<in> fst l},{(f u a, f w a)| u w .(u,w) \<in> snd l}) (f q a) al (f y a)"
