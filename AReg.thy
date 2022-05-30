@@ -6,7 +6,7 @@ section "Regexp definition and semantics"
 
 datatype ('v)regexp = ESet |(* EString |*) LChr 'v| Concat "'v regexp" "'v regexp"|
                       Alter "('v) regexp" "('v) regexp" (infix "||" 55) | Dot|
-                      Star "'v regexp" | Plus "('v) regexp"("_+") | Ques "('v) regexp"("_?") | \<epsilon>         
+                      Star "'v regexp" | Plus "('v) regexp" | Ques "('v) regexp" | \<epsilon>         
 
 inductive_set star :: "'v list set \<Rightarrow> 'v list set" 
   for r :: "'v list set" where
@@ -17,7 +17,7 @@ primrec sem_reg :: "('v) regexp => 'v set\<Rightarrow> 'v list set" where
 "sem_reg ESet v = {}"| (*Empty Set*)
 (*"sem_reg EString v = {[]}"| (*Empty String*)*)
 "sem_reg (Dot) vset = (\<lambda>x .[x]) ` vset" | 
-"sem_reg (Concat r1 r2) v =(λu. fst u @ snd u) ` (sem_reg r1 v × sem_reg r2 v)"|
+"sem_reg (Concat r1 r2) v =(\<lambda>u. fst u @ snd u) ` (sem_reg r1 v \<times> sem_reg r2 v)"|
 "sem_reg (LChr a) v = {[a]}"|
 "sem_reg (v1||v2) a = (sem_reg v1 a) \<union> (sem_reg v2 a)"|
 "sem_reg (Star a) v = star (sem_reg a v)"|
