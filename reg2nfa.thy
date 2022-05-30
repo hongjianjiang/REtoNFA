@@ -33,7 +33,7 @@ inductive_set Node_State :: "'v regexp set \<Rightarrow> 'v regexp \<Rightarrow>
   Node2Star:"x \<in> tr \<Longrightarrow> x \<in> (Node_State tr r)" |
   StepStar:"x \<in> Node_State tr r \<Longrightarrow> Concat x r \<in> Node_State tr r " 
 
-  
+ 
 primrec trans2LTS :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp \<times> 'v set \<times> 'v regexp) set * ('v regexp * 'v regexp) set)" where 
     "trans2LTS (LChr v) alp_set= ({(LChr v,{v},\<epsilon>)},{})"|
     "trans2LTS (ESet) alp_set= ({(ESet,{},\<epsilon>)},{})"|
@@ -49,8 +49,10 @@ primrec trans2LTS :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp \
                                     Delta2_State (renameDelta2 (snd (trans2LTS r alp_set)) (ConcatRegexp (Star r)) \<union> snd (trans2LTS r alp_set) \<union> {(Plus r, (Concat r (Star r))), (Concat r (Star r), r),  (Star r, r)}) (Star r) \<union> {(Star r, \<epsilon>)})"|
     "trans2LTS (Ques r) alp_set = (fst (trans2LTS r alp_set),
                                    {(Ques r,\<epsilon>), (Ques r, r)} \<union> snd (trans2LTS r alp_set))"
-value "trans2LTS (Alter Dot (LChr r)) {v}"
 
+value "trans2LTS (Alter Dot (LChr r)) {v}"
+value "trans2LTS (Concat Dot (LChr r)) {v}"
+value "trans2LTS (Star Dot) {v}"
 
 primrec reg2q :: "'v regexp \<Rightarrow> 'v set\<Rightarrow>  ('v regexp) set" where
     "reg2q Dot a = {Dot, \<epsilon>}"|
@@ -399,9 +401,21 @@ next
             insert (Concat \<epsilon> r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') \<in> snd (trans2LTS r1 v)} \<union> snd (trans2LTS r2 v)))
            q'' (a @ b) \<epsilon>"
       sorry
-  qed
+  qed    
+
   subgoal for x 
-    sorry
+  proof -
+    assume a1:"sem_reg r1 v = {w. ∃q∈ℐ (reg2nfa r1 v). ∃x∈ℱ (reg2nfa r1 v). LTS_is_reachable (Δ (reg2nfa r1 v), Δ' (reg2nfa r1 v)) q w x}"
+    assume a2:"sem_reg r2 v = {w. ∃q∈ℐ (reg2nfa r2 v). ∃x∈ℱ (reg2nfa r2 v). LTS_is_reachable (Δ (reg2nfa r2 v), Δ' (reg2nfa r2 v)) q w x}"
+    assume a3:"LTS_is_reachable
+     ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2LTS r1 v)} ∪ fst (trans2LTS r2 v),
+      insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2LTS r1 v)} ∪ snd (trans2LTS r2 v)))
+     (Concat r1 r2) x ε"
+    show "x ∈ (λx. fst x @ snd x) `
+         ({w. ∃q∈ℐ (reg2nfa r1 v). ∃x∈ℱ (reg2nfa r1 v). LTS_is_reachable (Δ (reg2nfa r1 v), Δ' (reg2nfa r1 v)) q w x} ×
+          {w. ∃q∈ℐ (reg2nfa r2 v). ∃x∈ℱ (reg2nfa r2 v). LTS_is_reachable (Δ (reg2nfa r2 v), Δ' (reg2nfa r2 v)) q w x}) "
+      sorry
+  qed
   done
 next
   case (Star r)
