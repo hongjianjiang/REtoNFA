@@ -15,8 +15,7 @@ step[intro!]:"x \<in> r \<and> y \<in> star r \<Longrightarrow> x@y \<in> star r
 
 thm star.simps
 
-lemma "[a,a] \<in> star {[a]}"
-  
+
 
 primrec sem_reg :: "('v) regexp => 'v set\<Rightarrow> 'v list set" where 
 "sem_reg ESet v = {}"| (*Empty Set*)

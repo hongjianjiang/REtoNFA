@@ -462,8 +462,9 @@ next
             show " ∃q''. (q'' = ε ∨ q'' = Star r ∨ (Star r, q'') ∈ Delta2_State (insert (Star r, r) (snd (trans2LTS r v))) r) ∧
           LTS_is_reachable (Delta1_State (fst (trans2LTS r v)) r, insert (Star r, ε) (insert (Star r, Star r) (Delta2_State (insert (Star r, r) (snd (trans2LTS r v))) r))) q''
            (x @ y) ε"
-          proof -
-             
+            proof -
+
+          qed
       qed
     subgoal for x 
     proof - 
