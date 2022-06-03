@@ -509,17 +509,8 @@ next
           by (metis LTS_Empty LTS_Step1 insertI1 insertI2 snd_eqD)
         from c1 have c3:"LTS_is_reachable (fst (trans2LTS r v), (snd (trans2LTS r v))) r x ε"
           apply (induct r) apply auto done
-        from c3 have "LTS_is_reachable (fst (trans2LTS r v),  (Ques r, ε) \<union> (snd (trans2LTS r v))) r x ε"
-          apply auto   proof (induction rule: LTS_is_reachable.induct)
-case (LTS_Empty lts q)
-  then show ?case by auto
-next
-case (LTS_Step1 q lts l q')
-  then show ?case  sorry
-next
-  case (LTS_Step2 a q lts w q')
-  then show ?case apply auto sledgehammer
-qed
+        from c3 have "LTS_is_reachable (fst (trans2LTS r v),  {(Ques r, ε)} \<union> (snd (trans2LTS r v))) r x ε"
+          apply auto sledgehammer
 
         from c2 c3 have "LTS_is_reachable (fst (trans2LTS r v), insert (Ques r, ε) (insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) x ε"
           
