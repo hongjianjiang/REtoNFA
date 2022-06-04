@@ -24,7 +24,7 @@ primrec sem_reg :: "('v) regexp => 'v set\<Rightarrow> 'v list set" where
 "sem_reg (LChr a) v = {[a]}"|
 "sem_reg (Alter v1 v2) a = (sem_reg v1 a) \<union> (sem_reg v2 a)"|
 "sem_reg (Star a) v = star (sem_reg a v)"|
-"sem_reg (Plus a) v = (sem_reg a v) \<union> star (sem_reg a v)  "|
+"sem_reg (Plus a) v = {q@p| q p. q \<in> (sem_reg a v) \<and> p \<in> star (sem_reg a v)}"|
 "sem_reg (Ques v) a = {[]} \<union> (sem_reg v a)"|
 "sem_reg \<epsilon> v = {[]}"
 
