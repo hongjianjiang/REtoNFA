@@ -8,6 +8,9 @@ section "definition of nondeterministic finite automaton"
 fun ConcatRegexp::"'v regexp \<Rightarrow> 'v regexp\<Rightarrow> 'v regexp" where
   "ConcatRegexp r1 r2 = Concat r2 r1"
 
+fun ConcatRegexp2::"'v regexp \<Rightarrow> 'v regexp\<Rightarrow> 'v regexp" where
+  "ConcatRegexp2 r1 r2 = Concat (Concat r2 r1) r1"
+
 fun renameDelta1 :: "('v regexp * 'v set * 'v regexp) set \<Rightarrow> ('v regexp => 'v regexp)  \<Rightarrow> ('v regexp *'v set *'v regexp) set" where 
     "renameDelta1 ss f = {(f q,v, f q')| q v q' . (q, v, q')\<in> ss}"
 
@@ -25,11 +28,12 @@ primrec trans2LTS :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp \
                                         snd (trans2LTS r1 alp_set) \<union> snd (trans2LTS r2 alp_set) \<union> {(Alter r1 r2, r1),(Alter r1 r2, r2)})"|
     "trans2LTS (Star r) alp_set = (renameDelta1 (fst (trans2LTS r alp_set)) (ConcatRegexp (Star r)), 
                                    (renameDelta2 (snd (trans2LTS r alp_set)) (ConcatRegexp (Star r))) \<union> {(Star r, \<epsilon>),(Star r,Concat r (Star r)),(Concat \<epsilon> (Star r), Star r)})"|
-    "trans2LTS (Plus r) alp_set = (renameDelta1 (renameDelta1 (fst (trans2LTS r alp_set)) (ConcatRegexp (Star r))) (ConcatRegexp (Star r)) \<union> (renameDelta1 (fst (trans2LTS r alp_set)) (ConcatRegexp (Star r))), 
-                                   {(Plus r, Concat (Concat r (Star r)) (Star r)),(Concat (Concat \<epsilon> (Star r)) (Star r),Concat (Star r) (Star r)),(Concat (Star r) (Star r), \<epsilon>),(Concat (Star r) (Star r), Star r),(Concat \<epsilon> (Star r), Concat (Star r) (Star r))}
-                                    \<union> renameDelta2 (renameDelta2 (snd (trans2LTS r alp_set)) (ConcatRegexp (Star r))) (ConcatRegexp (Star r)) \<union> (renameDelta2 (snd (trans2LTS r alp_set)) (ConcatRegexp (Star r))))"|
+    "trans2LTS (Plus r) alp_set = ((renameDelta1 (fst (trans2LTS r alp_set)) (ConcatRegexp2 (Star r))) \<union> (renameDelta1 (fst (trans2LTS r alp_set)) (ConcatRegexp (Star r))), 
+                                   {(Plus r, Concat (Concat r (Star r)) (Star r)),(Concat (Concat \<epsilon> (Star r)) (Star r),Concat (Star r) (Star r)),(Concat (Star r) (Star r), \<epsilon>),(Concat (Star r) (Star r), Concat r (Star r)),(Concat \<epsilon> (Star r), Concat (Star r) (Star r))}
+                                    \<union>(renameDelta2 (snd (trans2LTS r alp_set)) (ConcatRegexp2 (Star r))) \<union> (renameDelta2 (snd (trans2LTS r alp_set)) (ConcatRegexp (Star r))))"|
     "trans2LTS (Ques r) alp_set = (fst (trans2LTS r alp_set),
                                    {(Ques r,\<epsilon>), (Ques r, r)} \<union> snd (trans2LTS r alp_set))"
+
 
 primrec reg2q :: "'v regexp \<Rightarrow> 'v set\<Rightarrow>  ('v regexp) set" where
     "reg2q Dot a = {Dot, \<epsilon>}"|
@@ -232,52 +236,49 @@ next
       assume a1:"sem_reg r v = {w. LTS_is_reachable (trans2LTS r v) r w \<epsilon>}"
       assume a2:"LTS_is_reachable (trans2LTS r v) r q \<epsilon>"
       assume a3:"p \<in> star {w. LTS_is_reachable (trans2LTS r v) r w \<epsilon>}"
-      show "LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, va, q'a) \<in> fst (trans2LTS r v))} \<union>
-                {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r)) (insert (Concat (Concat \<epsilon> (Star r)) (Star r), Concat (Star r) (Star r))
-                (insert (Concat (Star r) (Star r), \<epsilon>) (insert (Concat (Star r) (Star r), Star r) (insert (Concat \<epsilon> (Star r), Concat (Star r) (Star r))
-                ({(Concat q (Star r), Concat q' (Star r)) |q q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, q'a) \<in> snd (trans2LTS r v))} \<union>
-                {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))))) 
-                (Plus r) (q @ p) \<epsilon>"
+      show "LTS_is_reachable ({(Concat (Concat q (Star r)) (Star r), va, Concat (Concat q' (Star r)) (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)} ∪
+            {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r))  (insert (Concat (Concat ε (Star r)) (Star r), Concat (Star r) (Star r)) (insert (Concat (Star r) (Star r), ε) (insert (Concat (Star r) (Star r), Concat r (Star r))
+            (insert (Concat ε (Star r), Concat (Star r) (Star r)) ({(Concat (Concat q (Star r)) (Star r), Concat (Concat q' (Star r)) (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)} ∪
+            {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)}))))))
+            (Plus r) (q @ p) ε"
       proof -
-        have c1:"LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, va, q'a) \<in> fst (trans2LTS r v))} \<union>
-                {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r)) (insert (Concat (Concat \<epsilon> (Star r)) (Star r), Concat (Star r) (Star r))
-                (insert (Concat (Star r) (Star r), \<epsilon>) (insert (Concat (Star r) (Star r), Star r) (insert (Concat \<epsilon> (Star r), Concat (Star r) (Star r))
-                ({(Concat q (Star r), Concat q' (Star r)) |q q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, q'a) \<in> snd (trans2LTS r v))} \<union>
-                {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))))) 
+          have c1:"LTS_is_reachable ({(Concat (Concat q (Star r)) (Star r), va, Concat (Concat q' (Star r)) (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)} ∪
+                  {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r))  (insert (Concat (Concat ε (Star r)) (Star r), Concat (Star r) (Star r)) (insert (Concat (Star r) (Star r), ε) (insert (Concat (Star r) (Star r), Concat r (Star r))
+                  (insert (Concat ε (Star r), Concat (Star r) (Star r)) ({(Concat (Concat q (Star r)) (Star r), Concat (Concat q' (Star r)) (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)} ∪
+                  {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)}))))))
                  (Plus r) [] (Concat (Concat r (Star r)) (Star r))"
             by (simp add: LTS_Empty LTS_Step1)
-          have c2:"LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, va, q'a) \<in> fst (trans2LTS r v))} \<union>
-                {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r)) (insert (Concat (Concat \<epsilon> (Star r)) (Star r), Concat (Star r) (Star r))
-                (insert (Concat (Star r) (Star r), \<epsilon>) (insert (Concat (Star r) (Star r), Star r) (insert (Concat \<epsilon> (Star r), Concat (Star r) (Star r))
-                ({(Concat q (Star r), Concat q' (Star r)) |q q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, q'a) \<in> snd (trans2LTS r v))} \<union>
-                {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))))) 
-                (Concat (Concat r (Star r)) (Star r)) q (Concat (Concat \<epsilon> (Star r)) (Star r))"
-            sorry
-          have 1:"LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, va, q'a) \<in> fst (trans2LTS r v))} \<union>
-                {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r)) (insert (Concat (Concat \<epsilon> (Star r)) (Star r), Concat (Star r) (Star r))
-                (insert (Concat (Star r) (Star r), \<epsilon>) (insert (Concat (Star r) (Star r), Star r) (insert (Concat \<epsilon> (Star r), Concat (Star r) (Star r))
-                ({(Concat q (Star r), Concat q' (Star r)) |q q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, q'a) \<in> snd (trans2LTS r v))} \<union>
-                {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))))) 
-                (Plus r) q (Concat (Concat \<epsilon> (Star r)) (Star r))"
+          have e1:"LTS_is_reachable ({(Concat (Concat q (Star r)) (Star r), va, Concat (Concat q' (Star r)) (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)},{(Concat (Concat q (Star r)) (Star r), Concat (Concat q' (Star r)) (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)})
+                  (Concat (Concat r (Star r)) (Star r)) q (Concat (Concat \<epsilon> (Star r)) (Star r))"
+            using a2 by (rule DeltLTSlemma1)
+          have c2:"LTS_is_reachable ({(Concat (Concat q (Star r)) (Star r), va, Concat (Concat q' (Star r)) (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)} ∪
+                  {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r))  (insert (Concat (Concat ε (Star r)) (Star r), Concat (Star r) (Star r)) (insert (Concat (Star r) (Star r), ε) (insert (Concat (Star r) (Star r), Concat r (Star r))
+                  (insert (Concat ε (Star r), Concat (Star r) (Star r)) ({(Concat (Concat q (Star r)) (Star r), Concat (Concat q' (Star r)) (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)} ∪
+                  {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)}))))))
+                  (Concat (Concat r (Star r)) (Star r)) q (Concat (Concat \<epsilon> (Star r)) (Star r))"
+            using e1   by (metis (no_types, lifting) Un_insert_right fst_eqD snd_eqD subLTSlemma)
+          have 1:"LTS_is_reachable ({(Concat (Concat q (Star r)) (Star r), va, Concat (Concat q' (Star r)) (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)} ∪
+                  {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r)) (insert (Concat (Concat ε (Star r)) (Star r), Concat (Star r) (Star r))
+                  (insert (Concat (Star r) (Star r), ε) (insert (Concat (Star r) (Star r), Concat r (Star r)) (insert (Concat ε (Star r), Concat (Star r) (Star r)) ({(Concat (Concat q (Star r)) (Star r), Concat (Concat q' (Star r)) (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)} ∪
+                  {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)}))))))
+                  (Plus r) q (Concat (Concat \<epsilon> (Star r)) (Star r))"
             using c1 c2 joinLTSlemma by fastforce
-          have c3:"LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, va, q'a) \<in> fst (trans2LTS r v))} \<union>
-                {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r)) (insert (Concat (Concat \<epsilon> (Star r)) (Star r), Concat (Star r) (Star r))
-                (insert (Concat (Star r) (Star r), \<epsilon>) (insert (Concat (Star r) (Star r), Star r) (insert (Concat \<epsilon> (Star r), Concat (Star r) (Star r))
-                ({(Concat q (Star r), Concat q' (Star r)) |q q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, q'a) \<in> snd (trans2LTS r v))} \<union>
-                {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))))) 
-                (Concat (Concat \<epsilon> (Star r)) (Star r)) []  (Concat (Star r) (Star r))" 
+          have c3:"LTS_is_reachable ({(Concat (Concat q (Star r)) (Star r), va, Concat (Concat q' (Star r)) (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)} ∪
+                  {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r)) (insert (Concat (Concat ε (Star r)) (Star r), Concat (Star r) (Star r))
+                  (insert (Concat (Star r) (Star r), ε) (insert (Concat (Star r) (Star r), Concat r (Star r)) (insert (Concat ε (Star r), Concat (Star r) (Star r)) ({(Concat (Concat q (Star r)) (Star r), Concat (Concat q' (Star r)) (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)} ∪
+                  {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)}))))))
+                  (Concat (Concat \<epsilon> (Star r)) (Star r)) []  (Concat (Star r) (Star r))" 
             by (smt (z3) LTS_Empty LTS_Step1 insertI1 insert_commute snd_conv)
-          have 2:"LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, va, q'a) \<in> fst (trans2LTS r v))} \<union>
-                {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r)) (insert (Concat (Concat \<epsilon> (Star r)) (Star r), Concat (Star r) (Star r))
-                (insert (Concat (Star r) (Star r), \<epsilon>) (insert (Concat (Star r) (Star r), Star r) (insert (Concat \<epsilon> (Star r), Concat (Star r) (Star r))
-                ({(Concat q (Star r), Concat q' (Star r)) |q q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, q'a) \<in> snd (trans2LTS r v))} \<union>
-                {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))))) 
-                (Plus r) q  (Concat (Star r) (Star r))" using 1 c3 joinLTSlemma by fastforce
-          have 3:"LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, va, q'a) \<in> fst (trans2LTS r v))} \<union>
-                {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r)) (insert (Concat (Concat \<epsilon> (Star r)) (Star r), Concat (Star r) (Star r))
-                (insert (Concat (Star r) (Star r), \<epsilon>) (insert (Concat (Star r) (Star r), Star r) (insert (Concat \<epsilon> (Star r), Concat (Star r) (Star r))
-                ({(Concat q (Star r), Concat q' (Star r)) |q q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, q'a) \<in> snd (trans2LTS r v))} \<union>
-                {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))))) (Concat (Star r) (Star r)) p \<epsilon>"
+          have 2:"LTS_is_reachable ({(Concat (Concat q (Star r)) (Star r), va, Concat (Concat q' (Star r)) (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)} ∪
+                  {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r)) (insert (Concat (Concat ε (Star r)) (Star r), Concat (Star r) (Star r))
+                  (insert (Concat (Star r) (Star r), ε) (insert (Concat (Star r) (Star r), Concat r (Star r)) (insert (Concat ε (Star r), Concat (Star r) (Star r)) ({(Concat (Concat q (Star r)) (Star r), Concat (Concat q' (Star r)) (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)} ∪
+                  {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)}))))))
+                  (Plus r) q  (Concat (Star r) (Star r))" using 1 c3 joinLTSlemma by fastforce
+          have 3:"LTS_is_reachable ({(Concat (Concat q (Star r)) (Star r), va, Concat (Concat q' (Star r)) (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)} ∪
+                    {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r)) (insert (Concat (Concat ε (Star r)) (Star r), Concat (Star r) (Star r))
+                    (insert (Concat (Star r) (Star r), ε) (insert (Concat (Star r) (Star r), Concat r (Star r)) (insert (Concat ε (Star r), Concat (Star r) (Star r)) ({(Concat (Concat q (Star r)) (Star r), Concat (Concat q' (Star r)) (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)} ∪
+                    {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)}))))))
+                   (Concat (Star r) (Star r)) p \<epsilon>"
                 using a3 proof(induction p)
                   case zero
                   then show ?case 
@@ -287,31 +288,44 @@ next
                   then show ?case apply auto proof -
                     assume a1:"LTS_is_reachable (trans2LTS r v) r x \<epsilon>"
                     assume a2:"y \<in> star {w. LTS_is_reachable (trans2LTS r v) r w \<epsilon>}"
-                    assume a3:"LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, va, q'a) \<in> fst (trans2LTS r v))} \<union>
-                                {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r)) (insert (Concat (Concat \<epsilon> (Star r)) (Star r), Concat (Star r) (Star r))
-                                (insert (Concat (Star r) (Star r), \<epsilon>) (insert (Concat (Star r) (Star r), Star r) (insert (Concat \<epsilon> (Star r), Concat (Star r) (Star r))
-                                ({(Concat q (Star r), Concat q' (Star r)) |q q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, q'a) \<in> snd (trans2LTS r v))} \<union>
-                                {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)}))))))
-                                (Concat (Star r) (Star r)) y \<epsilon>"
-                    have c1:"LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, va, q'a) \<in> fst (trans2LTS r v))} \<union>
-                                {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r)) (insert (Concat (Concat \<epsilon> (Star r)) (Star r), Concat (Star r) (Star r))
-                                (insert (Concat (Star r) (Star r), \<epsilon>) (insert (Concat (Star r) (Star r), Star r) (insert (Concat \<epsilon> (Star r), Concat (Star r) (Star r))
-                                ({(Concat q (Star r), Concat q' (Star r)) |q q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, q'a) \<in> snd (trans2LTS r v))} \<union>
-                                {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))))) (Concat (Star r) (Star r)) x (Concat \<epsilon> (Star r))"
-                      sorry
-                    have c2:"LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, va, q'a) \<in> fst (trans2LTS r v))} \<union>
-                                {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r)) (insert (Concat (Concat \<epsilon> (Star r)) (Star r), Concat (Star r) (Star r))
-                                (insert (Concat (Star r) (Star r), \<epsilon>) (insert (Concat (Star r) (Star r), Star r) (insert (Concat \<epsilon> (Star r), Concat (Star r) (Star r))
-                                ({(Concat q (Star r), Concat q' (Star r)) |q q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, q'a) \<in> snd (trans2LTS r v))} \<union>
-                                {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))))) (Concat \<epsilon> (Star r)) [] (Concat (Star r) (Star r))"
+                    assume a3:"LTS_is_reachable ({(Concat (Concat q (Star r)) (Star r), va, Concat (Concat q' (Star r)) (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)} ∪
+                              {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r))
+                              (insert (Concat (Concat ε (Star r)) (Star r), Concat (Star r) (Star r)) (insert (Concat (Star r) (Star r), ε) (insert (Concat (Star r) (Star r), Concat r (Star r)) (insert (Concat ε (Star r), Concat (Star r) (Star r))
+                              ({(Concat (Concat q (Star r)) (Star r), Concat (Concat q' (Star r)) (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)} ∪ {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)}))))))
+                              (Concat (Star r) (Star r)) y ε"
+                    have e1:"LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}, 
+                          {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)}) (Concat r (Star r)) x (Concat \<epsilon> (Star r))"
+                      using a1 by(simp add:DeltLTSlemma1)
+                    have e2:"LTS_is_reachable ({(Concat (Concat q (Star r)) (Star r), va, Concat (Concat q' (Star r)) (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)} ∪
+                              {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r))
+                              (insert (Concat (Concat ε (Star r)) (Star r), Concat (Star r) (Star r)) (insert (Concat (Star r) (Star r), ε) (insert (Concat (Star r) (Star r), Concat r (Star r)) (insert (Concat ε (Star r), Concat (Star r) (Star r))
+                              ({(Concat (Concat q (Star r)) (Star r), Concat (Concat q' (Star r)) (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)} ∪ {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)}))))))
+                              (Concat (Star r) (Star r)) [] (Concat r (Star r))"
                       by (smt (z3) LTS_Empty LTS_Step1 insertCI snd_conv)
-                    have c3:"LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, va, q'a) \<in> fst (trans2LTS r v))} \<union>
-                                {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r)) (insert (Concat (Concat \<epsilon> (Star r)) (Star r), Concat (Star r) (Star r))
-                                (insert (Concat (Star r) (Star r), \<epsilon>) (insert (Concat (Star r) (Star r), Star r) (insert (Concat \<epsilon> (Star r), Concat (Star r) (Star r))
-                                ({(Concat q (Star r), Concat q' (Star r)) |q q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, q'a) \<in> snd (trans2LTS r v))} \<union>
-                                {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))))) (Concat (Star r) (Star r)) x (Concat (Star r) (Star r))"
-                      using c1 c2 joinLTSlemma by fastforce
-                    thus ?thesis using c3 a3 joinLTSlemma by fastforce
+                   have c1:"LTS_is_reachable ({(Concat (Concat q (Star r)) (Star r), va, Concat (Concat q' (Star r)) (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)} ∪
+                              {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r))
+                              (insert (Concat (Concat ε (Star r)) (Star r), Concat (Star r) (Star r)) (insert (Concat (Star r) (Star r), ε) (insert (Concat (Star r) (Star r), Concat r (Star r)) (insert (Concat ε (Star r), Concat (Star r) (Star r))
+                              ({(Concat (Concat q (Star r)) (Star r), Concat (Concat q' (Star r)) (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)} ∪ {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)}))))))
+                             (Concat r (Star r)) x (Concat \<epsilon> (Star r))"
+                     using e1   by (smt (z3) Un_left_commute fst_conv inf_sup_aci(5) insert_def snd_conv subLTSlemma)
+                    have e3:"LTS_is_reachable ({(Concat (Concat q (Star r)) (Star r), va, Concat (Concat q' (Star r)) (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)} ∪
+                              {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r))
+                              (insert (Concat (Concat ε (Star r)) (Star r), Concat (Star r) (Star r)) (insert (Concat (Star r) (Star r), ε) (insert (Concat (Star r) (Star r), Concat r (Star r)) (insert (Concat ε (Star r), Concat (Star r) (Star r))
+                              ({(Concat (Concat q (Star r)) (Star r), Concat (Concat q' (Star r)) (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)} ∪ {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)}))))))
+                              (Concat (Star r) (Star r)) x (Concat \<epsilon> (Star r))"
+                      using e2 c1 joinLTSlemma by fastforce
+                    have c2:"LTS_is_reachable ({(Concat (Concat q (Star r)) (Star r), va, Concat (Concat q' (Star r)) (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)} ∪
+                              {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r))
+                              (insert (Concat (Concat ε (Star r)) (Star r), Concat (Star r) (Star r)) (insert (Concat (Star r) (Star r), ε) (insert (Concat (Star r) (Star r), Concat r (Star r)) (insert (Concat ε (Star r), Concat (Star r) (Star r))
+                              ({(Concat (Concat q (Star r)) (Star r), Concat (Concat q' (Star r)) (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)} ∪ {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)}))))))
+                              (Concat \<epsilon> (Star r)) [] (Concat (Star r) (Star r))"
+                      by (smt (z3) LTS_Empty LTS_Step1 insertCI snd_conv)
+                    have e4:"LTS_is_reachable ({(Concat (Concat q (Star r)) (Star r), va, Concat (Concat q' (Star r)) (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)} ∪
+                              {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r))
+                              (insert (Concat (Concat ε (Star r)) (Star r), Concat (Star r) (Star r)) (insert (Concat (Star r) (Star r), ε) (insert (Concat (Star r) (Star r), Concat r (Star r)) (insert (Concat ε (Star r), Concat (Star r) (Star r))
+                              ({(Concat (Concat q (Star r)) (Star r), Concat (Concat q' (Star r)) (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)} ∪ {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)}))))))
+                              (Concat (Star r) (Star r)) x (Concat (Star r) (Star r))"using e3 c2 joinLTSlemma by fastforce
+                    thus ?thesis using e4 a3 joinLTSlemma by fastforce
                   qed
                 qed
               thus ?thesis using 2 3 joinLTSlemma by fastforce
@@ -320,17 +334,11 @@ next
     subgoal for x 
     proof -
       assume "sem_reg r v = {w. LTS_is_reachable (trans2LTS r v) r w \<epsilon>}"
-      assume "LTS_is_reachable
-     ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, va, q'a) \<in> fst (trans2LTS r v))} \<union>
-      {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)},
-      insert (Plus r, Concat (Concat r (Star r)) (Star r))
-       (insert (Concat (Concat \<epsilon> (Star r)) (Star r), Concat (Star r) (Star r))
-         (insert (Concat (Star r) (Star r), \<epsilon>)
-           (insert (Concat (Star r) (Star r), Star r)
-             (insert (Concat \<epsilon> (Star r), Concat (Star r) (Star r))
-               ({(Concat q (Star r), Concat q' (Star r)) |q q'. \<exists>qa. q = Concat qa (Star r) \<and> (\<exists>q'a. q' = Concat q'a (Star r) \<and> (qa, q'a) \<in> snd (trans2LTS r v))} \<union>
-                {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)}))))))
-     (Plus r) x \<epsilon>"
+      assume "LTS_is_reachable ({(Concat (Concat q (Star r)) (Star r), va, Concat (Concat q' (Star r)) (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)} ∪
+              {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') ∈ fst (trans2LTS r v)}, insert (Plus r, Concat (Concat r (Star r)) (Star r)) (insert (Concat (Concat ε (Star r)) (Star r), Concat (Star r) (Star r))
+              (insert (Concat (Star r) (Star r), ε) (insert (Concat (Star r) (Star r), Concat r (Star r)) (insert (Concat ε (Star r), Concat (Star r) (Star r)) ({(Concat (Concat q (Star r)) (Star r), Concat (Concat q' (Star r)) (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)} ∪
+              {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') ∈ snd (trans2LTS r v)}))))))
+              (Plus r) x ε"
       show "\<exists>q p. x = q @ p \<and> LTS_is_reachable (trans2LTS r v) r q \<epsilon> \<and> p \<in> star {w. LTS_is_reachable (trans2LTS r v) r w \<epsilon>}"  
         sorry 
     qed
