@@ -26,7 +26,9 @@ inductive LTS_is_reachable :: "(('q, 'a) LTS * ('q * 'q) set) \<Rightarrow> 'q \
    LTS_Step1:"(\<exists>q''. (q, q'') \<in> snd lts \<and> LTS_is_reachable lts q'' l q') \<Longrightarrow> LTS_is_reachable lts q l q'" |
    LTS_Step2[intro!]:"(\<exists>q'' \<sigma>. a \<in> \<sigma> \<and> (q, \<sigma>, q'') \<in> fst lts \<and> LTS_is_reachable lts q'' w q') \<Longrightarrow> LTS_is_reachable lts q (a # w) q'"
 
-
+thm LTS_Empty
+thm LTS_Step1
+declare LTS_Step1[simp]
 
 lemma subLTSlemma:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reachable (fst l1 \<union> l2, snd l1 \<union> l3) q x y"
   proof (induction rule: LTS_is_reachable.induct)
@@ -62,18 +64,16 @@ lemma DeltLTSlemma1:"LTS_is_reachable lts q l q' \<Longrightarrow>LTS_is_reachab
     then show ?case by auto
   next
     case (LTS_Step1 q lts l q')
-    then show ?case apply auto
-      thm LTS_Step1.IH
-      subgoal for q''
-      proof -
-        assume 1:"(q, q'') \<in> snd lts"
-        assume 2:"LTS_is_reachable lts q'' l q'"
-        assume 3:"LTS_is_reachable ({(f q a, va, f q' a) |q va q'. (q, va, q') \<in> fst lts}, {(f q a, f q' a) |q q'. (q, q') \<in> snd lts}) (f q'' a) l (f q' a)"
-        show "LTS_is_reachable ({(f q a, va, f q' a) |q va q'. (q, va, q') \<in> fst lts}, {(f q a, f q' a) |q q'. (q, q') \<in> snd lts}) (f q a) l (f q' a)"
-          using 1 2 3 LTS_Step1.IH apply auto
-          by (metis LTS_is_reachable.LTS_Step1 mem_Collect_eq pred_equals_eq2 snd_eqD)
-      qed
-      done
+    then show ?case apply auto 
+    proof -
+      fix q'' :: 'a
+      assume a1: "(q, q'') \<in> snd lts"
+      assume a2: "LTS_is_reachable ({(f q a, va, f q' a) |q va q'. (q, va, q') \<in> fst lts}, {(f q a, f q' a) |q q'. (q, q') \<in> snd lts}) (f q'' a) l (f q' a)"
+      have "(f q a, f q'' a) \<in> snd ({(f aa a, B, f ab a) |aa B ab. (aa, B, ab) \<in> fst lts}, {(f aa a, f ab a) |aa ab. (aa, ab) \<in> snd lts})"
+        using a1 by auto
+      then show ?thesis
+        using a2 by (meson LTS_is_reachable.LTS_Step1)
+    qed
   next
     case (LTS_Step2 a q lts w q')
     then show ?case apply auto by blast

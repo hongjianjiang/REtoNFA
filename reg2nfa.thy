@@ -23,7 +23,7 @@ primrec trans2LTS :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp \
     "trans2LTS (\<epsilon>) alp_set = ({(\<epsilon>,{},\<epsilon>)},{})"|
     "trans2LTS (Dot) alp_set = ({(Dot ,alp_set, \<epsilon>)},{})"|
     "trans2LTS (Concat r1 r2) alp_set =(renameDelta1 (fst (trans2LTS r1 alp_set)) (ConcatRegexp r2) \<union> (fst (trans2LTS r2 alp_set)),
-                                        (renameDelta2 (snd (trans2LTS r1 alp_set)) (ConcatRegexp r2) \<union> {(Concat r1 r2, Concat r1 r2),(Concat \<epsilon> r2, r2)}  \<union> snd (trans2LTS r2 alp_set)))"|
+                                        (renameDelta2 (snd (trans2LTS r1 alp_set)) (ConcatRegexp r2) \<union> {(Concat \<epsilon> r2, r2)}  \<union> snd (trans2LTS r2 alp_set)))"|
     "trans2LTS (Alter r1 r2) alp_set = (fst (trans2LTS r1 alp_set) \<union> fst (trans2LTS r2 alp_set), 
                                         snd (trans2LTS r1 alp_set) \<union> snd (trans2LTS r2 alp_set) \<union> {(Alter r1 r2, r1),(Alter r1 r2, r2)})"|
     "trans2LTS (Star r) alp_set = (renameDelta1 (fst (trans2LTS r alp_set)) (ConcatRegexp (Star r)), 
@@ -60,9 +60,32 @@ theorem uniqueInitalState:"\<I> (reg2nfa r v) = {r}"
   apply (induct r)
   by auto
 
+lemma " ((r1, r1) ∈ snd (trans2LTS r1 v) ⟹ False) ⟹
+    ((r2, r2) ∈ snd (trans2LTS r2 v) ⟹ False) ⟹ (Concat r1 r2, Concat r1 r2) ∈ snd (trans2LTS (Concat r1 r2) v) ⟹ False"
+  sorry
+
 theorem uniqueFinalState:"\<F> (reg2nfa r v) = {\<epsilon>}"
   apply(induct r)
   by auto
+
+lemma "(r, r) ∈ snd (trans2LTS r v) \<Longrightarrow> False"
+  apply(induction r)
+  subgoal 
+    by auto
+  subgoal for x
+    by auto
+  subgoal for r1 r2  apply  auto sorry
+  subgoal for r1 r2 apply simp sorry
+  subgoal by auto
+  subgoal for r by auto
+  subgoal for r by auto
+  subgoal for r apply auto sorry
+  subgoal by auto
+done
+
+lemma "¬ LTS_is_reachable (trans2LTS r2 v) r2 x ε \<Longrightarrow>  LTS_is_reachable (fst (trans2LTS r2 v), (insert (Alter r1 r2, r2) (snd (trans2LTS r2 v)))) (Alter r1 r2) [] r2\<Longrightarrow>
+  ¬ LTS_is_reachable (fst (trans2LTS r2 v), (insert (Alter r1 r2, r2) (snd (trans2LTS r2 v)))) (Alter r1 r2) x ε"
+  sorry
 
 theorem tranl_eq :
   fixes r v  
@@ -154,7 +177,14 @@ next
        qed
      qed
      subgoal for x
-       sorry
+     proof -
+       assume a1:"sem_reg r1 v = {w. LTS_is_reachable (trans2LTS r1 v) r1 w ε}"
+       assume a2:"sem_reg r2 v = {w. LTS_is_reachable (trans2LTS r2 v) r2 w ε}"
+       assume a3:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v), insert (Alter r1 r2, r1) (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)))) (Alter r1 r2) x ε"
+       assume a4:"¬ LTS_is_reachable (trans2LTS r2 v) r2 x ε" 
+       show "LTS_is_reachable (trans2LTS r1 v) r1 x ε"
+         sorry
+     qed
    done
  next
   case (Concat r1 r2)
@@ -168,9 +198,9 @@ next
     assume a3:"LTS_is_reachable (trans2LTS r1 v) r1 q \<epsilon>"
     assume a4:"LTS_is_reachable (trans2LTS r2 v) r2 p \<epsilon>"
     show "LTS_is_reachable
-     ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') \<in> fst (trans2LTS r1 v)} \<union> fst (trans2LTS r2 v),
-      insert (Concat r1 r2, Concat r1 r2) (insert (Concat \<epsilon> r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') \<in> snd (trans2LTS r1 v)} \<union> snd (trans2LTS r2 v))))
-     (Concat r1 r2) (q @ p) \<epsilon>"
+     ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2LTS r1 v)} ∪ fst (trans2LTS r2 v),
+      insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2LTS r1 v)} ∪ snd (trans2LTS r2 v)))
+     (Concat r1 r2) (q @ p) ε"
     proof-
       have c1:"LTS_is_reachable
      ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') \<in> fst (trans2LTS r1 v)},({(Concat q r2, Concat q' r2) |q q'. (q, q') \<in> snd (trans2LTS r1 v)})) (Concat r1 r2) q (Concat \<epsilon> r2)"
@@ -181,7 +211,7 @@ next
         by blast
       then have c2:"LTS_is_reachable
      ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') \<in> fst (trans2LTS r1 v)},
-            insert (Concat r1 r2, Concat r1 r2) (insert (Concat \<epsilon> r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') \<in> snd (trans2LTS r1 v)})))
+      insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2LTS r1 v)} ∪ snd (trans2LTS r2 v)))
              (Concat r1 r2) q (Concat \<epsilon> r2)"
         apply (induction rule: LTS_is_reachable.cases)
           subgoal for lts qa
@@ -195,20 +225,23 @@ next
         done
       then have c3:"LTS_is_reachable
            ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') \<in> fst (trans2LTS r1 v)} \<union> fst (trans2LTS r2 v),
-            insert (Concat r1 r2, Concat r1 r2) (insert (Concat \<epsilon> r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') \<in> snd (trans2LTS r1 v)} \<union> snd (trans2LTS r2 v)))) (Concat r1 r2) q (Concat \<epsilon> r2)"
-        by (metis (no_types, lifting) Un_insert_left fst_conv snd_eqD subLTSlemma)
-      have c4:"LTS_is_reachable
+            insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2LTS r1 v)} ∪ snd (trans2LTS r2 v)))
+            (Concat r1 r2) q (Concat \<epsilon> r2)"
+        by (metis (no_types, lifting) Un_insert_right c1 fst_eqD snd_conv subLTSlemma)
+        have c4:"LTS_is_reachable
            ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') \<in> fst (trans2LTS r1 v)} \<union> fst (trans2LTS r2 v),
-            insert (Concat r1 r2, Concat r1 r2) (insert (Concat \<epsilon> r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') \<in> snd (trans2LTS r1 v)} \<union> snd (trans2LTS r2 v)))) (Concat \<epsilon> r2) [] r2"
+            insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2LTS r1 v)} ∪ snd (trans2LTS r2 v)))
+          (Concat \<epsilon> r2) [] r2"
         by (smt (z3) LTS_Empty LTS_Step1 insertI1 insert_commute snd_conv)
         have c5:"LTS_is_reachable
            ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') \<in> fst (trans2LTS r1 v)} \<union> fst (trans2LTS r2 v),
-            insert (Concat r1 r2, Concat r1 r2) (insert (Concat \<epsilon> r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') \<in> snd (trans2LTS r1 v)} \<union> snd (trans2LTS r2 v)))) r2 p \<epsilon>"
+            insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2LTS r1 v)} ∪ snd (trans2LTS r2 v)))
+         r2 p \<epsilon>"
         using a4 
         by (smt (z3) insert_def subLTSlemma sup.commute sup_left_commute)
       have "LTS_is_reachable
            ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') \<in> fst (trans2LTS r1 v)} \<union> fst (trans2LTS r2 v),
-            insert (Concat r1 r2, Concat r1 r2) (insert (Concat \<epsilon> r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') \<in> snd (trans2LTS r1 v)} \<union> snd (trans2LTS r2 v))))
+            insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2LTS r1 v)} ∪ snd (trans2LTS r2 v)))
            (Concat r1 r2) (q @ p) \<epsilon>" using c3 c4 c5 
         by (smt (z3) append.right_neutral joinLTSlemma)
       thus ?thesis by auto
@@ -219,9 +252,9 @@ next
     assume a1:"sem_reg r1 v = {w. LTS_is_reachable (trans2LTS r1 v) r1 w \<epsilon>}"
     assume a2:"sem_reg r2 v = {w. LTS_is_reachable (trans2LTS r2 v) r2 w \<epsilon>}"
     assume a3:"LTS_is_reachable
-     ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') \<in> fst (trans2LTS r1 v)} \<union> fst (trans2LTS r2 v),
-      insert (Concat r1 r2, Concat r1 r2) (insert (Concat \<epsilon> r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') \<in> snd (trans2LTS r1 v)} \<union> snd (trans2LTS r2 v))))
-     (Concat r1 r2) x \<epsilon>"
+     ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2LTS r1 v)} ∪ fst (trans2LTS r2 v),
+      insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2LTS r1 v)} ∪ snd (trans2LTS r2 v)))
+     (Concat r1 r2) x ε"
     show  "\<exists>q p. x = q @ p \<and> LTS_is_reachable (trans2LTS r1 v) r1 q \<epsilon> \<and> LTS_is_reachable (trans2LTS r2 v) r2 p \<epsilon>"
       sorry
 qed
