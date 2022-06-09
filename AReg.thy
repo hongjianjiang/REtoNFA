@@ -1,7 +1,5 @@
 theory AReg imports Main  begin
 
-declare Let_def [simp]
-
 section "Regexp definition and semantics"
 
 datatype ('v)regexp = ESet | LChr 'v| Concat "'v regexp" "'v regexp"|

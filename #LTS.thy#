@@ -77,8 +77,6 @@ lemma DeltLTSlemma1:"LTS_is_reachable lts q l q' \<Longrightarrow>LTS_is_reachab
     then show ?case apply auto by blast
   qed
 
-lemma "LTS_is_reachable ({(f q a, va, f q' a)| q va q'. (q, va, q')\<in> fst lts}, {(f q a, f q' a)| q q'. (q, q') \<in> snd lts}) (f q a) l (f q' a) \<Longrightarrow>LTS_is_reachable lts q l q'"
-
 
 
 
