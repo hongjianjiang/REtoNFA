@@ -23,7 +23,7 @@ that @{term "LTS_is_reachable \<Delta>"} is the reflexive, transitive closure of
 
 inductive LTS_is_reachable :: "(('q, 'a) LTS * ('q * 'q) set) \<Rightarrow> 'q \<Rightarrow> 'a list \<Rightarrow> 'q \<Rightarrow> bool" where
    LTS_Empty[intro!]:"LTS_is_reachable lts q [] q"|
-   LTS_Step1:"(\<exists>q''. (q, q'') \<in> snd lts \<and> LTS_is_reachable lts q'' l q') \<Longrightarrow> LTS_is_reachable lts q l q'" |
+   LTS_Step1:"(q, q'') \<in> snd lts \<and> LTS_is_reachable lts q'' l q' \<Longrightarrow> LTS_is_reachable lts q l q'" |
    LTS_Step2[intro!]:"(\<exists>q'' \<sigma>. a \<in> \<sigma> \<and> (q, \<sigma>, q'') \<in> fst lts \<and> LTS_is_reachable lts q'' w q') \<Longrightarrow> LTS_is_reachable lts q (a # w) q'"
 
  
@@ -41,6 +41,7 @@ lemma subLTSlemma:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reachable 
     then show ?case 
       by (smt (z3) LTS_is_reachable.LTS_Step2 UnI1 fst_conv)
   qed
+
 
 lemma subLTSlemma1:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reachable (fst l1 \<union> {(f q a, va, f q' a)|q va q'. (q,va,q') \<in> fst l1}, snd l1 \<union> l3) q x y"
   proof (induction rule: LTS_is_reachable.induct)
@@ -62,22 +63,17 @@ lemma DeltLTSlemma1:"LTS_is_reachable lts q l q' \<Longrightarrow>LTS_is_reachab
     then show ?case by auto
   next
     case (LTS_Step1 q lts l q')
-    then show ?case apply auto 
+    then show ?case apply auto
     proof -
-      fix q'' :: 'a
-      assume a1: "(q, q'') \<in> snd lts"
-      assume a2: "LTS_is_reachable ({(f q a, va, f q' a) |q va q'. (q, va, q') \<in> fst lts}, {(f q a, f q' a) |q q'. (q, q') \<in> snd lts}) (f q'' a) l (f q' a)"
-      have "(f q a, f q'' a) \<in> snd ({(f aa a, B, f ab a) |aa B ab. (aa, B, ab) \<in> fst lts}, {(f aa a, f ab a) |aa ab. (aa, ab) \<in> snd lts})"
-        using a1 by auto
+      have "(f q a, f lts a) \<in> snd ({(f aa a, B, f ab a) |aa B ab. (aa, B, ab) \<in> fst l}, {(f aa a, f ab a) |aa ab. (aa, ab) \<in> snd l})"
+        using LTS_Step1.IH by auto
       then show ?thesis
-        using a2 by (meson LTS_is_reachable.LTS_Step1)
+        by (smt (z3) LTS_Step1.IH LTS_is_reachable.LTS_Step1)
     qed
   next
     case (LTS_Step2 a q lts w q')
     then show ?case apply auto by blast
   qed
-
-lemma "LTS_is_reachable ({(f q a, va, f q' a)| q va q'. (q, va, q')\<in> fst lts}, {(f q a, f q' a)| q q'. (q, q') \<in> snd lts}) (f q a) l (f q' a) \<Longrightarrow>LTS_is_reachable lts q l q'"
 
 
 
