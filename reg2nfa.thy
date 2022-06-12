@@ -18,29 +18,9 @@ fun renameDelta1 :: "('v regexp * 'v set * 'v regexp) set \<Rightarrow> ('v rege
 fun renameDelta2 :: "('v regexp * 'v regexp) set \<Rightarrow> ('v regexp => 'v regexp)  \<Rightarrow> ('v regexp  *'v regexp) set" where  
     "renameDelta2 ss f = {(f q, f q')| q q'.(q, q')\<in> ss}"
 
-fun getFirstRegexp :: "'v regexp \<Rightarrow> 'v regexp" where
-  "getFirstRegexp (LChr v) = (LChr v)"|
-  "getFirstRegexp (ESet) = (ESet)"|
-  "getFirstRegexp \<epsilon> =\<epsilon>"|
-  "getFirstRegexp Dot = Dot"|
-  "getFirstRegexp (Concat r1 r2) = r1"|
-  "getFirstRegexp (Alter r1 r2) = r1"|
-  "getFirstRegexp (Star r) = (Star r)"|
-  "getFirstRegexp (Plus r) = (Plus r)"|
-  "getFirstRegexp (Ques r) = (Ques r)"
 
-fun getSecondRegexp :: "'v regexp \<Rightarrow> 'v regexp" where
-  "getSecondRegexp (LChr v) = (LChr v)"|
-  "getSecondRegexp (ESet) = (ESet)"|
-  "getSecondRegexp \<epsilon> =\<epsilon>"|
-  "getSecondRegexp Dot = Dot"|
-  "getSecondRegexp (Concat r1 r2) = r2"|
-  "getSecondRegexp (Alter r1 r2) = r2"|
-  "getSecondRegexp (Star r) = (Star r)"|
-  "getSecondRegexp (Plus r) = (Plus r)"|
-  "getSecondRegexp (Ques r) = (Ques r)"
 
-fun len_reg :: "'v regexp \<Rightarrow> nat" where
+primrec len_reg :: "'v regexp \<Rightarrow> nat" where
   "len_reg (LChr v) = 1"|
   "len_reg (ESet) = 1"|
   "len_reg \<epsilon> = 1"|
@@ -52,7 +32,7 @@ fun len_reg :: "'v regexp \<Rightarrow> nat" where
   "len_reg (Ques r) = 1 + len_reg r"
 
 
-fun trans2LTS :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp \<times> 'v set \<times> 'v regexp) set * ('v regexp * 'v regexp) set)" where 
+primrec trans2LTS :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp \<times> 'v set \<times> 'v regexp) set * ('v regexp * 'v regexp) set)" where 
     "trans2LTS (LChr v) alp_set= ({(LChr v,{v},\<epsilon>)},{})"|
     "trans2LTS (ESet) alp_set= ({(ESet,{},\<epsilon>)},{})"|
     "trans2LTS (\<epsilon>) alp_set = ({(\<epsilon>,{},\<epsilon>)},{})"|
@@ -66,8 +46,8 @@ fun trans2LTS :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp \<tim
     "trans2LTS (Plus r) alp_set = ((renameDelta1 (fst (trans2LTS r alp_set)) (ConcatRegexp2 (Star r))) \<union> (renameDelta1 (fst (trans2LTS r alp_set)) (ConcatRegexp (Star r))), 
                                    {(Plus r, Concat (Concat r (Star r)) (Star r)),(Concat (Concat \<epsilon> (Star r)) (Star r),Concat (Star r) (Star r)),(Concat (Star r) (Star r), \<epsilon>),(Concat (Star r) (Star r), Concat r (Star r)),(Concat \<epsilon> (Star r), Concat (Star r) (Star r))}
                                     \<union>(renameDelta2 (snd (trans2LTS r alp_set)) (ConcatRegexp2 (Star r))) \<union> (renameDelta2 (snd (trans2LTS r alp_set)) (ConcatRegexp (Star r))))"|
-    "trans2LTS (Ques r) alp_set = (fst (trans2LTS r alp_set),
-                                   {(Ques r,\<epsilon>), (Ques r, r)} \<union> snd (trans2LTS r alp_set))"
+    "trans2LTS (Ques r) alp_set = (fst (trans2LTS r alp_set), {(Ques r,\<epsilon>), (Ques r, r)} \<union> snd (trans2LTS r alp_set))"
+
 
 primrec reg2q :: "'v regexp \<Rightarrow> 'v set\<Rightarrow>  ('v regexp) set" where
     "reg2q Dot a = {Dot, \<epsilon>}"|
@@ -83,16 +63,23 @@ primrec reg2q :: "'v regexp \<Rightarrow> 'v set\<Rightarrow>  ('v regexp) set" 
 fun reg2nfa :: "'v regexp \<Rightarrow> 'v set\<Rightarrow> ('v regexp,'v) NFA_rec" where 
     "reg2nfa r a= \<lparr>  \<Q> = reg2q r a,
                   \<Sigma> = alp_reg  r a,
-                  \<Delta> = fst (trans2LTS  r a),
-                  \<Delta>' = snd (trans2LTS  r a),
+                  \<Delta> = fst (trans2LTS r a),
+                  \<Delta>' = snd (trans2LTS r a),
                   \<I> ={r}, 
                   \<F> ={\<epsilon>}\<rparr> " 
 
 section "function correctness of transition from regexp expression to  nondeterministic finite automaton"
 
-lemma "(Concat r1 r2, q'') ∈ snd (trans2LTS r2 v) \<Longrightarrow> False"
-  apply(induct r2)
-  apply simp apply simp apply simp sorry
+lemma [simp]:"0<len_reg r" 
+  by (induct r) auto
+
+lemma "(q,q') = trans2LTS r1 v \<Longrightarrow> \<forall>(a,b) \<in> q'. len_reg a < len_reg (Alter r1 r2)"
+  apply(induct r1)
+  sorry
+
+
+lemma "(Alter r1 r2, q'') \<notin> snd (trans2LTS r1 v)"
+  apply auto apply(induction r1) prefer 3 subgoal for r11 r12 apply simp 
 
 lemma "LTS_is_reachable (fst (trans2LTS r1 v), insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) (Alter r1 r2) x ε \<Longrightarrow>  LTS_is_reachable (fst (trans2LTS r1 v),insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) r1 x \<epsilon>"
   proof (induction rule: LTS_is_reachable.cases)
@@ -132,7 +119,11 @@ lemma "LTS_is_reachable (fst (trans2LTS r1 v), insert (Alter r1 r2, r1) (snd (tr
     qed
     done
 qed
-    
+
+
+lemma " LTS_is_reachable ({(ESet, {}, ε)}, {}) ESet [] ε"
+  nitpick
+
 theorem uniqueInitalState:"\<I> (reg2nfa r v) = {r}"
   apply (induct r)
   by auto
@@ -251,11 +242,16 @@ next
            then show ?case apply auto sorry
          next
            case (LTS_Step2 a q lts w q')
-           then show ?case apply simp sorry
+           then show ?case apply auto sorry
          qed
 
        have "LTS_is_reachable ?trans r1 x \<epsilon> \<Longrightarrow> LTS_is_reachable (trans2LTS r1 v) r1 x \<epsilon>"
-         sorry
+         apply(induction r1)
+                 apply auto
+         subgoal apply(rule LTS_is_reachable.cases)
+              apply simp 
+           subgoal for lts q apply auto done
+           sledgehammer
        have "LTS_is_reachable ?trans r2 x \<epsilon> \<Longrightarrow> LTS_is_reachable (trans2LTS r2 v) r2 x \<epsilon>"
          sorry
        show "LTS_is_reachable (trans2LTS r1 v) r1 x ε"
