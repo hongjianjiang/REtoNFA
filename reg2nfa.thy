@@ -70,18 +70,25 @@ fun reg2nfa :: "'v regexp \<Rightarrow> 'v set\<Rightarrow> ('v regexp,'v) NFA_r
 
 section "function correctness of transition from regexp expression to  nondeterministic finite automaton"
 
-lemma [simp]:"0<len_reg r" 
+lemma [simp]:"0 < len_reg r" 
   by (induct r) auto
+ 
 
-lemma "(q,q') = trans2LTS r1 v \<Longrightarrow> \<forall>(a,b) \<in> q'. len_reg a < len_reg (Alter r1 r2)"
-  apply(induct r1)
-  sorry
+lemma "(q, q') = trans2LTS r1 v \<Longrightarrow> \<forall>(a,b) \<in> q'. len_reg a < len_reg (Alter r1 r2)"
+  apply(induction r1 arbitrary:r2)
+  subgoal for r2 by auto 
+  subgoal by auto 
+  subgoal for r11 r12 r2 apply simp sorry
+  subgoal for r11 r12 r2 apply simp sorry
+  subgoal for r2 by auto
+  subgoal for r1 r2 apply simp sorry 
+  subgoal for r1 r2 apply simp sorry
+  subgoal for r1 r2 apply simp sorry
+  subgoal for r2 by auto
+  done
 
-
-lemma "(Alter r1 r2, q'') \<notin> snd (trans2LTS r1 v)"
-  apply auto apply(induction r1) prefer 3 subgoal for r11 r12 apply simp 
-
-lemma "LTS_is_reachable (fst (trans2LTS r1 v), insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) (Alter r1 r2) x ε \<Longrightarrow>  LTS_is_reachable (fst (trans2LTS r1 v),insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) r1 x \<epsilon>"
+lemma "LTS_is_reachable (fst (trans2LTS r1 v), insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) (Alter r1 r2) x ε \<Longrightarrow> 
+       LTS_is_reachable (fst (trans2LTS r1 v),insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) r1 x ε"
   proof (induction rule: LTS_is_reachable.cases)
     case (LTS_Empty lts q)
     then show ?case apply auto done
@@ -96,7 +103,17 @@ lemma "LTS_is_reachable (fst (trans2LTS r1 v), insert (Alter r1 r2, r1) (snd (tr
       assume 5:"LTS_is_reachable (fst (trans2LTS r1 v), insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) q'' l ε"
       assume 6:"(Alter r1 r2, q'') ∈ snd (trans2LTS r1 v)"
       show "LTS_is_reachable (fst (trans2LTS r1 v), insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) r1 l ε " proof -
-      have 7:"(Alter r1 r2, q'') ∈ snd (trans2LTS r1 v) \<Longrightarrow> False" sorry
+        have 7:"(Alter r1 r2, q'') ∈ snd (trans2LTS r1 v) \<Longrightarrow> False" 
+          apply(induction r1) 
+          subgoal by auto
+          subgoal for x by auto
+          subgoal for r11 r12 apply auto sorry
+          subgoal for r11 r12 apply auto sorry
+          subgoal by auto
+          subgoal for r1 by auto
+          subgoal for r1 by auto
+          subgoal for r1 apply auto sorry
+          subgoal by auto done
       then have 8:"False"  using "6" by blast
       thus ?thesis  by blast
     qed
@@ -113,16 +130,22 @@ lemma "LTS_is_reachable (fst (trans2LTS r1 v), insert (Alter r1 r2, r1) (snd (tr
     assume a7:"LTS_is_reachable (fst (trans2LTS r1 v), insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) q'' w ε" 
     show "∃q'' σ. a ∈ σ ∧ (r1, σ, q'') ∈ fst (trans2LTS r1 v) ∧ LTS_is_reachable (fst (trans2LTS r1 v), insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) q'' w ε" 
     proof -
-      have c1:"(Alter r1 r2, σ, q'') ∈ fst (trans2LTS r1 v) \<Longrightarrow> False"  sorry
-        then show ?thesis using a6 by blast
+      have c1:"(Alter r1 r2, σ, q'') ∈ fst (trans2LTS r1 v) \<Longrightarrow> False" 
+        apply(induction r1)
+        subgoal by auto
+        subgoal for x by auto
+        subgoal for r11 r12 apply auto sorry
+        subgoal for r11 r12 apply auto sorry
+        subgoal by auto 
+        subgoal for r1 by auto
+        subgoal for r1 by auto
+        subgoal for r1 apply auto sorry
+        subgoal by auto done
+      then show ?thesis using a6 by blast
       qed
     qed
     done
 qed
-
-
-lemma " LTS_is_reachable ({(ESet, {}, ε)}, {}) ESet [] ε"
-  nitpick
 
 theorem uniqueInitalState:"\<I> (reg2nfa r v) = {r}"
   apply (induct r)
@@ -236,26 +259,20 @@ next
          apply auto
          proof (induction rule: LTS_is_reachable.cases)
            case (LTS_Empty lts q)
-           then show ?case apply auto done
+           then show ?case apply simp done 
          next
-           case (LTS_Step1 q lts l q')
-           then show ?case apply auto sorry
+           case (LTS_Step1 q q'' lts l q')
+           then show ?case apply auto sorry 
          next
            case (LTS_Step2 a q lts w q')
-           then show ?case apply auto sorry
+           then show ?case apply simp sorry
          qed
-
-       have "LTS_is_reachable ?trans r1 x \<epsilon> \<Longrightarrow> LTS_is_reachable (trans2LTS r1 v) r1 x \<epsilon>"
-         apply(induction r1)
-                 apply auto
-         subgoal apply(rule LTS_is_reachable.cases)
-              apply simp 
-           subgoal for lts q apply auto done
-           sledgehammer
-       have "LTS_is_reachable ?trans r2 x \<epsilon> \<Longrightarrow> LTS_is_reachable (trans2LTS r2 v) r2 x \<epsilon>"
-         sorry
+         have c2:"LTS_is_reachable ?trans r1 x \<epsilon> \<Longrightarrow> LTS_is_reachable (trans2LTS r1 v) r1 x ε"
+           sorry
+         have c3:"¬ LTS_is_reachable (trans2LTS r2 v) r2 x ε \<Longrightarrow> ¬ LTS_is_reachable ?trans r2 x \<epsilon>"
+           apply auto sorry
        show "LTS_is_reachable (trans2LTS r1 v) r1 x ε"
-         sorry
+         using c1 c2 c3 a4 by auto
      qed
    done
  next
@@ -569,31 +586,18 @@ next
     qed
     subgoal for x
     proof -
-      assume a1:"sem_reg r v = {w. LTS_is_reachable (trans2LTS r v) r w \<epsilon>}"
+      assume a1:"sem_reg r v = {w. LTS_is_reachable (trans2LTS r v) r w ε}"
       assume a2:"LTS_is_reachable (fst (trans2LTS r v), insert (Ques r, ε) (insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) x ε"
       assume a3:"x \<noteq> []" 
-      show "LTS_is_reachable (trans2LTS r v) r x ε"
-      proof (rule ccontr)
-        assume a4:"¬ LTS_is_reachable (trans2LTS r v) r x ε"
-        have c1:"LTS_is_reachable (fst (trans2LTS r v),(insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) [] r"
-          by (metis LTS_Empty LTS_Step1 insertI1 snd_conv)
-        have c2:"¬ LTS_is_reachable (fst (trans2LTS r v),(insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) x ε"
-          using c1 a4 
-          apply auto 
-          apply(rule LTS_is_reachable.cases) 
-          apply simp 
-          subgoal for lts q by auto
-          subgoal for q lts l q' sorry
-          subgoal for a q lts w q' by auto
-          done
-        have c3:"¬ LTS_is_reachable (fst (trans2LTS r v), insert (Ques r, ε) (insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) x ε"
-          using c2 a3 apply (induct x)
-          subgoal apply auto done 
-          subgoal for a x  sorry
-          done
-        show "False" using c3 a2 by auto 
+      from a1 a2 a3 show "LTS_is_reachable (trans2LTS r v) r x ε"
+      proof(induction x)
+        case Nil
+          then show ?case apply auto done
+        next
+          case (Cons a x)
+          then show ?case apply simp 
+          
+          qed
       qed
-    qed
-    done
-qed
+  qed
 end

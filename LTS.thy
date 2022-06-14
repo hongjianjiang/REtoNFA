@@ -26,7 +26,6 @@ inductive LTS_is_reachable :: "(('q, 'a) LTS * ('q * 'q) set) \<Rightarrow> 'q \
    LTS_Step1:"(q, q'') \<in> snd lts \<and> LTS_is_reachable lts q'' l q' \<Longrightarrow> LTS_is_reachable lts q l q'" |
    LTS_Step2[intro!]:"(\<exists>q'' \<sigma>. a \<in> \<sigma> \<and> (q, \<sigma>, q'') \<in> fst lts \<and> LTS_is_reachable lts q'' w q') \<Longrightarrow> LTS_is_reachable lts q (a # w) q'"
 
- 
 
 lemma subLTSlemma:"LTS_is_reachable l1 q x y \<Longrightarrow> LTS_is_reachable (fst l1 \<union> l2, snd l1 \<union> l3) q x y"
   proof (induction rule: LTS_is_reachable.induct)
