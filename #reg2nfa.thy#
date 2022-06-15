@@ -81,7 +81,8 @@ theorem uniqueFinalState:"\<F> (reg2nfa r v) = {\<epsilon>}"
   apply(induct r)
   by auto
 
-
+lemma "LTS_is_reachable {(LChr x, {x}, ε)} {} ε w ε ⟹ w = []"
+  nitpick
 
 theorem tranl_eq :
   fixes r v  
@@ -110,7 +111,7 @@ next
         from a1 have "w = []" 
         apply (rule LTS_is_reachable.cases)
         apply auto 
-        sledgehammer
+        
         then show "w=[]" .
       qed 
       done

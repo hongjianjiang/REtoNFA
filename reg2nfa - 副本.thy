@@ -35,7 +35,7 @@ primrec len_reg :: "'v regexp \<Rightarrow> nat" where
 primrec trans2LTS :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp \<times> 'v set \<times> 'v regexp) set * ('v regexp * 'v regexp) set)" where 
     "trans2LTS (LChr v) alp_set= ({(LChr v,{v},\<epsilon>)},{})"|
     "trans2LTS (ESet) alp_set= ({(ESet,{},\<epsilon>)},{})"|
-    "trans2LTS (\<epsilon>) alp_set = ({},{(\<epsilon>,\<epsilon>)})"|
+    "trans2LTS (\<epsilon>) alp_set = ({(\<epsilon>,{},\<epsilon>)},{})"|
     "trans2LTS (Dot) alp_set = ({(Dot ,alp_set, \<epsilon>)},{})"|
     "trans2LTS (Concat r1 r2) alp_set =(renameDelta1 (fst (trans2LTS r1 alp_set)) (ConcatRegexp r2) \<union> (fst (trans2LTS r2 alp_set)),
                                         (renameDelta2 (snd (trans2LTS r1 alp_set)) (ConcatRegexp r2) \<union> {(Concat \<epsilon> r2, r2)}  \<union> snd (trans2LTS r2 alp_set)))"|
@@ -73,6 +73,81 @@ section "function correctness of transition from regexp expression to  nondeterm
 lemma [simp]:"0 < len_reg r" 
   by (induct r) auto
  
+
+lemma "(q, q') = trans2LTS r1 v \<Longrightarrow> \<forall>(a,b) \<in> q'. len_reg a < len_reg (Alter r1 r2)"
+  apply(induction r1 arbitrary:r2)
+  subgoal for r2 by auto 
+  subgoal by auto 
+  subgoal for r11 r12 r2 apply simp sorry
+  subgoal for r11 r12 r2 apply simp sorry
+  subgoal for r2 by auto
+  subgoal for r1 r2 apply simp sorry 
+  subgoal for r1 r2 apply simp sorry
+  subgoal for r1 r2 apply simp sorry
+  subgoal for r2 by auto
+  done
+
+lemma "LTS_is_reachable (fst (trans2LTS r1 v), insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) (Alter r1 r2) x \<epsilon> \<Longrightarrow> 
+       LTS_is_reachable (fst (trans2LTS r1 v),insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) r1 x \<epsilon>"
+  proof (induction rule: LTS_is_reachable.cases)
+    case (LTS_Empty lts q)
+    then show ?case apply auto done
+  next
+    case (LTS_Step1 q q'' lts l q')
+    then show ?case apply auto 
+    proof -
+      assume 1:"x = l"
+      assume 2:"lts = (fst (trans2LTS r1 v), insert (Alter r1 r2, r1) (snd (trans2LTS r1 v)))"
+      assume 3:"q = Alter r1 r2"
+      assume 4:"q' = \<epsilon>"
+      assume 5:"LTS_is_reachable (fst (trans2LTS r1 v), insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) q'' l \<epsilon>"
+      assume 6:"(Alter r1 r2, q'') \<in> snd (trans2LTS r1 v)"
+      show "LTS_is_reachable (fst (trans2LTS r1 v), insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) r1 l \<epsilon> " proof -
+        have 7:"(Alter r1 r2, q'') \<in> snd (trans2LTS r1 v) \<Longrightarrow> False" 
+          apply(induction r1) 
+          subgoal by auto
+          subgoal for x by auto
+          subgoal for r11 r12 apply auto sorry
+          subgoal for r11 r12 apply auto sorry
+          subgoal by auto
+          subgoal for r1 by auto
+          subgoal for r1 by auto
+          subgoal for r1 apply auto sorry
+          subgoal by auto done
+      then have 8:"False"  using "6" by blast
+      thus ?thesis  by blast
+    qed
+  qed
+  next
+    case (LTS_Step2 a q lts w q')
+    then show ?case apply auto  subgoal for q''  \<sigma> proof - 
+    assume a1:"x = a # w"
+    assume a2:"lts = (fst (trans2LTS r1 v), insert (Alter r1 r2, r1) (snd (trans2LTS r1 v)))"
+    assume a3:"q = Alter r1 r2"
+    assume a4:"q' = \<epsilon>"
+    assume a5:"a \<in> \<sigma>"
+    assume a6:"(Alter r1 r2, \<sigma>, q'') \<in> fst (trans2LTS r1 v)"
+    assume a7:"LTS_is_reachable (fst (trans2LTS r1 v), insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) q'' w \<epsilon>" 
+    show "\<exists>q'' \<sigma>. a \<in> \<sigma> \<and> (r1, \<sigma>, q'') \<in> fst (trans2LTS r1 v) \<and> LTS_is_reachable (fst (trans2LTS r1 v), insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) q'' w \<epsilon>" 
+    proof -
+      have c1:"(Alter r1 r2, \<sigma>, q'') \<in> fst (trans2LTS r1 v) \<Longrightarrow> False" 
+        apply(induction r1)
+        subgoal by auto
+        subgoal for x by auto
+        subgoal for r11 r12 apply auto sorry
+        subgoal for r11 r12 apply auto sorry
+        subgoal by auto 
+        subgoal for r1 by auto
+        subgoal for r1 by auto
+        subgoal for r1 apply auto sorry
+        subgoal by auto done
+      then show ?thesis using a6 by blast
+      qed
+    qed
+    done
+qed
+
+
 theorem uniqueInitalState:"\<I> (reg2nfa r v) = {r}"
   apply (induct r)
   by auto
@@ -80,8 +155,6 @@ theorem uniqueInitalState:"\<I> (reg2nfa r v) = {r}"
 theorem uniqueFinalState:"\<F> (reg2nfa r v) = {\<epsilon>}"
   apply(induct r)
   by auto
-
-
 
 theorem tranl_eq :
   fixes r v  
@@ -91,12 +164,7 @@ case ESet
   then show ?case 
     apply (unfold \<L>_def NFA_accept_def)
     apply auto
-    apply (rule LTS_is_reachable.cases)
-       apply simp
-    subgoal for x lts q apply auto done
-    subgoal for x q q'' lts l q' apply auto done 
-    subgoal for x a q lts w q' apply auto done
-    done
+    by (rule LTS_is_reachable.cases) auto
 next
     case (LChr x)
     then show ?case     
@@ -106,11 +174,9 @@ next
       apply auto
       subgoal for w
       proof -
-        assume a1:"LTS_is_reachable {(LChr x, {x}, ε)} {} (LChr x) (x # w) ε"
+        assume a1:" LTS_is_reachable ({(LChr x, {x}, \<epsilon>)}, {}) \<epsilon> w \<epsilon>"
         from a1 have "w = []" 
-        apply (rule LTS_is_reachable.cases)
-        apply auto 
-        sledgehammer
+          by(rule LTS_is_reachable.cases)auto
         then show "w=[]" .
       qed 
       done
@@ -138,13 +204,7 @@ next
     apply (unfold \<L>_def  NFA_accept_def)
     apply auto
     subgoal for x
-    proof -
-      assume a1:"LTS_is_reachable ({}, {(ε, ε)}) ε x ε"
-      have c1:"LTS_is_reachable ({}, {(ε, ε)}) ε [] ε"
-        by (simp add: LTS_Empty)
-      from c1 a1 have "x = []"
-        
-
+    by(rule LTS_is_reachable.cases) auto
   done
 next
   case (Alter r1 r2)
@@ -538,9 +598,7 @@ next
           case (Cons a x)
           then show ?case apply simp 
           proof -
-            have "x \<noteq>  [] \<Longrightarrow> LTS_is_reachable (fst (trans2LTS r v), (insert (Ques r, r) (snd (trans2LTS r v)))) \<epsilon> x \<epsilon> \<Longrightarrow> False"
-               
-         
+          
           sorry
           qed
       qed
