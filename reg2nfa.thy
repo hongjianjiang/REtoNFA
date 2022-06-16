@@ -202,53 +202,66 @@ next
      qed
      subgoal for x
      proof -
-       assume a1:"sem_reg r1 v = {w. LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) r1 w \<epsilon>}"
-       assume a2:"sem_reg r2 v = {w. LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) r2 w \<epsilon>}"
-       assume a3:"LTS_is_reachable (fst (trans2LTS r1 v) \<union> fst (trans2LTS r2 v)) (insert (Alter r1 r2, r1) (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) \<union> snd (trans2LTS r2 v)))) (Alter r1 r2) x ε"
-       assume a4:" \<not> LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) r2 x ε" 
+       assume a1:"sem_reg r1 v = {w. LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) r1 w ε}"
+       assume a2:"sem_reg r2 v = {w. LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) r2 w ε}"
+       assume a3:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)) (insert (Alter r1 r2, r1) (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)))) (Alter r1 r2) x ε"
+       assume a4:"¬ LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) r2 x ε" 
        let ?trans1 = "(fst (trans2LTS r1 v) \<union> fst (trans2LTS r2 v))"
        let ?trans2 = "(insert (Alter r1 r2, r1) (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) \<union> snd (trans2LTS r2 v))))"
-       from a3 have c1:"LTS_is_reachable ?trans1 ?trans2 (Alter r1 r2) [] r1"
-         by (metis LTS_Empty LTS_Step1 insertI1)
-       from a3 have c2:"LTS_is_reachable ?trans1 ?trans2 (Alter r1 r2) [] r2"
-         by (metis LTS_Empty LTS_Step1 UnI2 insertI1 insert_def)
-       from a3 c1 c2 have c1:"LTS_is_reachable ?trans1 ?trans2 r1 x ε \<or> LTS_is_reachable ?trans1 ?trans2 r2 x ε"
-         apply auto apply(rule LTS_is_reachable.cases)
-            apply simp
-         subgoal for Δ Δ' q by auto
-         subgoal for q q'' Δ' Δ l q' apply simp proof -
-            assume a1:"LTS_is_reachable Δ Δ' q l ε"
-            assume a2:"LTS_is_reachable Δ Δ' q [] r1"
-            assume a3:"LTS_is_reachable Δ Δ' q [] r2"
-            assume a4:"¬ LTS_is_reachable Δ Δ' r2 l ε"
-            assume a5:"fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v) = Δ"
-            assume a6:"insert (q, r1) (insert (q, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v))) = Δ'"
-            assume a7:"Alter r1 r2 = q" 
-            assume a8:"x = l" 
-            assume a9:"ε = q'" 
-            assume a10:"(q, q'') ∈ Δ' ∧ LTS_is_reachable Δ Δ' q'' l ε ∧ q ≠ q''"
-            show "LTS_is_reachable Δ Δ' r1 l ε"
-            proof -
-              have c1:"(Alter r1 r2, r1) ∈ Δ'" sorry
-              have c2:"Alter r1 r2 ≠ r1 " by auto
-              show "LTS_is_reachable Δ Δ' r1 l ε" using c1 c2 a10 apply auto sorry
+       show "LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) r1 x ε"
+       proof -
+         from a3 have c1:"LTS_is_reachable ?trans1 ?trans2 (Alter r1 r2) [] r1"
+           by (metis LTS_Empty LTS_Step1 insertI1)
+         from a3 have c2:"LTS_is_reachable ?trans1 ?trans2 (Alter r1 r2) [] r2"
+           by (metis LTS_Empty LTS_Step1 UnI2 insertI1 insert_def)
+         from a3 c1 c2 have c1:"LTS_is_reachable ?trans1 ?trans2 r1 x ε \<or> LTS_is_reachable ?trans1 ?trans2 r2 x ε"
+           apply auto apply(rule LTS_is_reachable.cases)
+           apply simp
+           subgoal for Δ Δ' q by auto
+           subgoal for q q'' Δ' Δ l q' apply simp proof -
+              assume a1:"LTS_is_reachable Δ Δ' q l ε"
+              assume a2:"LTS_is_reachable Δ Δ' q [] r1"
+              assume a3:"LTS_is_reachable Δ Δ' q [] r2"
+              assume a4:"¬ LTS_is_reachable Δ Δ' r2 l ε"
+              assume a5:"fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v) = Δ"
+              assume a6:"insert (q, r1) (insert (q, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v))) = Δ'"
+              assume a7:"Alter r1 r2 = q" 
+              assume a8:"x = l" 
+              assume a9:"ε = q'" 
+              assume a10:"(q, q'') ∈ Δ' ∧ LTS_is_reachable Δ Δ' q'' l ε ∧ q ≠ q''"
+              show "LTS_is_reachable Δ Δ' r1 l ε"
+              proof -
+                from a7 a10 have c1:"(q, q'') ∈ Δ' ∧ LTS_is_reachable Δ Δ' q'' l ε ∧ q ≠ q'' \<Longrightarrow> q'' = r1" sorry
+                from a10 have c2:"LTS_is_reachable Δ Δ' q'' l ε" by auto
+                show "LTS_is_reachable Δ Δ' r1 l ε" using a7 c1 c2 a10 by auto
+              qed
             qed
-          qed
-          subgoal for a q Δ Δ' w q' apply simp proof -
-            assume a1:"LTS_is_reachable Δ Δ' q (a # w) ε"
-            assume a2:"LTS_is_reachable Δ Δ' q [] r1"
-            assume a3:"LTS_is_reachable Δ Δ' q [] r2"
-            assume a4:"¬ LTS_is_reachable Δ Δ' r2 (a # w) ε"
-            assume "fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v) = Δ"
-            assume "insert (q, r1) (insert (q, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v))) = Δ'"
-            assume "Alter r1 r2 = q" assume "x = a # w" assume "ε = q'" assume "∃q'' σ. a ∈ σ ∧ (q, σ, q'') ∈ Δ ∧ LTS_is_reachable Δ Δ' q'' w ε" show "LTS_is_reachable Δ Δ' r1 (a # w) ε"
-              sorry
-       have c2:"LTS_is_reachable ?trans1 ?trans2 r1 x ε \<Longrightarrow> LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) r1 x ε"
-           sorry
-       have c3:"\<not> LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) r2 x ε \<Longrightarrow> \<not> LTS_is_reachable ?trans1 ?trans2 r2 x ε"
+            subgoal for a σ q q'' Δ Δ' w q' apply simp proof -
+              assume a1:"LTS_is_reachable Δ Δ' q (a # w) ε"
+              assume a2:"LTS_is_reachable Δ Δ' q [] r1"
+              assume a3:"LTS_is_reachable Δ Δ' q [] r2"
+              assume a4:"¬ LTS_is_reachable Δ Δ' r2 (a # w) ε"
+              assume a5:"fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v) = Δ"
+              assume a6:"insert (q, r1) (insert (q, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v))) = Δ'"
+              assume a7:"Alter r1 r2 = q" 
+              assume a8:"x = a # w"
+              assume a9:"ε = q'"
+              assume a10:" a ∈ σ ∧ (q, σ, q'') ∈ Δ ∧ LTS_is_reachable Δ Δ' q'' w ε" 
+              show "LTS_is_reachable Δ Δ' r1 (a # w) ε"
+              proof -
+                have c1:"(q, σ, q'') ∈ Δ \<Longrightarrow> False" using a7 a5 sorry
+                from a10 have c2:"(q, σ, q'') ∈ Δ" by auto
+                from c1 c2 have "False" by auto
+                then show ?thesis by auto
+              qed
+            qed
+            done
+         have c2:"LTS_is_reachable ?trans1 ?trans2 r1 x ε \<Longrightarrow> LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) r1 x ε"
+             sorry
+         have c3:"\<not> LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) r2 x ε \<Longrightarrow> \<not> LTS_is_reachable ?trans1 ?trans2 r2 x ε"
            apply auto sorry
-       show " LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) r1 x ε "
-         using c1 c2 c3 a4 by auto
+         then show ?thesis  using a4 c1 c2 by auto
+       qed
      qed
    done
  next
@@ -270,8 +283,7 @@ next
         using a3   
         apply (induction rule: LTS_is_reachable.induct)  
           apply auto
-        apply (metis (mono_tags, lifting) LTS_Step1 insertI2 mem_Collect_eq)
-        by blast
+        by (metis (mono_tags, lifting) LTS_Step1 insertI2 mem_Collect_eq)
       then have c2:"LTS_is_reachable ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') \<in> fst (trans2LTS r1 v)})
                     (insert (Concat \<epsilon> r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') \<in> snd (trans2LTS r1 v)})) (Concat r1 r2) q (Concat \<epsilon> r2)"
                     apply (induction rule: LTS_is_reachable.cases)
