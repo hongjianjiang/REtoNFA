@@ -231,12 +231,13 @@ next
               assume a10:"(q, q'') ∈ Δ' ∧ LTS_is_reachable Δ Δ' q'' l ε ∧ q ≠ q''"
               show "LTS_is_reachable Δ Δ' r1 l ε"
               proof -
-                from a7 a10 have c1:"(q, q'') ∈ Δ' ∧ LTS_is_reachable Δ Δ' q'' l ε ∧ q ≠ q'' \<Longrightarrow> q'' = r1" sorry
+                from a7 a10 have c1:"(q, q'') ∈ Δ' ∧ LTS_is_reachable Δ Δ' q'' l ε ∧ q ≠ q'' \<Longrightarrow> q'' = r1" apply simp      sorry
                 from a10 have c2:"LTS_is_reachable Δ Δ' q'' l ε" by auto
                 show "LTS_is_reachable Δ Δ' r1 l ε" using a7 c1 c2 a10 by auto
               qed
             qed
-            subgoal for a σ q q'' Δ Δ' w q' apply simp proof -
+            subgoal for a σ q q'' Δ Δ' w q' apply simp 
+            proof -
               assume a1:"LTS_is_reachable Δ Δ' q (a # w) ε"
               assume a2:"LTS_is_reachable Δ Δ' q [] r1"
               assume a3:"LTS_is_reachable Δ Δ' q [] r2"
