@@ -56,9 +56,9 @@ next
     by (smt (verit, ccfv_SIG) CollectI LTS_is_reachable.LTS_Step1)
 next
   case (LTS_Step2 a q \<Delta> \<Delta>' w q')
-  then show ?case 
+  then show ?case  
     apply auto 
-    by blast
+    by auto
 qed
 
 
