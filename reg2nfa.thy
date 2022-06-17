@@ -231,9 +231,24 @@ next
               assume a10:"(q, q'') ∈ Δ' ∧ LTS_is_reachable Δ Δ' q'' l ε ∧ q ≠ q''"
               show "LTS_is_reachable Δ Δ' r1 l ε"
               proof -
-                from a7 a10 have c1:"(q, q'') ∈ Δ' ∧ LTS_is_reachable Δ Δ' q'' l ε ∧ q ≠ q'' \<Longrightarrow> q'' = r1" apply simp      sorry
+                from a7 a6 a10 have c1:"(q, q'') ∈ Δ' ∧ LTS_is_reachable Δ Δ' q'' l ε ∧ q ≠ q'' \<Longrightarrow> q'' = r1 \<or> q'' = r2" apply auto
+                  subgoal 
+                  proof - 
+                    assume a1:"(Alter r1 r2, q'') ∈ snd (trans2LTS r1 v)"
+                    have "(Alter r1 r2, q'') ∈ snd (trans2LTS r1 v) \<Longrightarrow> False" sorry
+                    then have "False" using a1 by auto
+                    then show ?thesis by auto
+                  qed
+                  subgoal 
+                  proof -
+                    assume a1:"(Alter r1 r2, q'') ∈ snd (trans2LTS r2 v)"
+                    have "(Alter r1 r2, q'') ∈ snd (trans2LTS r2 v) \<Longrightarrow> False" sorry
+                    then have "False" using a1 by auto
+                    then show ?thesis by auto
+                  qed
+                  done
                 from a10 have c2:"LTS_is_reachable Δ Δ' q'' l ε" by auto
-                show "LTS_is_reachable Δ Δ' r1 l ε" using a7 c1 c2 a10 by auto
+                show "LTS_is_reachable Δ Δ' r1 l ε" using a7 c1 c2 a10 a4 by auto
               qed
             qed
             subgoal for a σ q q'' Δ Δ' w q' apply simp 
@@ -250,7 +265,20 @@ next
               assume a10:" a ∈ σ ∧ (q, σ, q'') ∈ Δ ∧ LTS_is_reachable Δ Δ' q'' w ε" 
               show "LTS_is_reachable Δ Δ' r1 (a # w) ε"
               proof -
-                have c1:"(q, σ, q'') ∈ Δ \<Longrightarrow> False" using a7 a5 sorry
+                have c1:"(q, σ, q'') ∈ Δ \<Longrightarrow> False" using a7 a5 apply auto 
+                  subgoal 
+                  proof -
+                    assume a1:"(Alter r1 r2, σ, q'') ∈ fst (trans2LTS r1 v)"
+                    have "(Alter r1 r2, σ, q'') ∈ fst (trans2LTS r1 v) \<Longrightarrow> False" sorry
+                    then show ?thesis using a1 by auto
+                  qed
+                  subgoal 
+                  proof -
+                    assume a1:"(Alter r1 r2, σ, q'') ∈ fst (trans2LTS r2 v)"
+                    have "(Alter r1 r2, σ, q'') ∈ fst (trans2LTS r2 v) \<Longrightarrow> False" sorry
+                    then show ?thesis using a1 by auto
+                  qed
+                  done
                 from a10 have c2:"(q, σ, q'') ∈ Δ" by auto
                 from c1 c2 have "False" by auto
                 then show ?thesis by auto
@@ -258,7 +286,7 @@ next
             qed
             done
          have c2:"LTS_is_reachable ?trans1 ?trans2 r1 x ε \<Longrightarrow> LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) r1 x ε"
-             sorry
+           sorry
          have c3:"\<not> LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) r2 x ε \<Longrightarrow> \<not> LTS_is_reachable ?trans1 ?trans2 r2 x ε"
            apply auto sorry
          then show ?thesis  using a4 c1 c2 by auto
