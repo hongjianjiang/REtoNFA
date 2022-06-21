@@ -84,8 +84,6 @@ lemma [simp]:"(\<epsilon>, \<sigma>, q'') \<in> fst (trans2LTS r v) \<Longrighta
   apply auto
   done
 
-
-
 lemma "(q, q') = trans2LTS r1 v \<Longrightarrow> \<forall>(a,b) \<in> q'. len_reg a < len_reg (Alter r1 r2)"
   apply(induction r1 arbitrary:r2)
   subgoal for r2 by auto 
@@ -251,8 +249,8 @@ next
                 show "LTS_is_reachable Δ Δ' r1 l ε" using a7 c1 c2 a10 a4 by auto
               qed
             qed
-            subgoal for a σ q q'' Δ Δ' w q' apply simp 
-            proof -
+           subgoal for a σ q q'' Δ Δ' w q' apply simp 
+           proof -
               assume a1:"LTS_is_reachable Δ Δ' q (a # w) ε"
               assume a2:"LTS_is_reachable Δ Δ' q [] r1"
               assume a3:"LTS_is_reachable Δ Δ' q [] r2"
@@ -285,8 +283,13 @@ next
               qed
             qed
             done
-         have c2:"LTS_is_reachable ?trans1 ?trans2 r1 x ε \<Longrightarrow> LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) r1 x ε"
-           sorry
+          have c2:"LTS_is_reachable ?trans1 ?trans2 r1 x ε \<Longrightarrow>  
+                   LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)) (insert (Alter r1 r2, r1) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v))) r1 x ε"
+            apply(rule LTS_is_reachable.cases)
+               apply simp
+            subgoal for Δ Δ' q by auto
+            subgoal for q q'' Δ' Δ l q' apply auto
+           
          have c3:"\<not> LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) r2 x ε \<Longrightarrow> \<not> LTS_is_reachable ?trans1 ?trans2 r2 x ε"
            apply auto sorry
          then show ?thesis  using a4 c1 c2 by auto
