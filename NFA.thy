@@ -28,6 +28,10 @@ definition NFA_accept :: "('q, 'a) NFA_rec \<Rightarrow> 'a list \<Rightarrow> b
   "NFA_accept \<A> w = (\<exists> q \<in> (\<I> \<A>). \<exists> q' \<in> (\<F> \<A>).
                   LTS_is_reachable (\<Delta> \<A>) (\<Delta>' \<A>) q w q') "
 
+definition NFA_accept_Q :: "('q, 'a) NFA_rec \<Rightarrow> 'q  \<Rightarrow> 'a list \<Rightarrow> bool" where
+  "NFA_accept_Q \<A> q w = (\<exists> q' \<in> (\<F> \<A>).
+                  LTS_is_reachable (\<Delta> \<A>) (\<Delta>' \<A>) q w q') "
+
 definition \<L> where "\<L> \<A> = {w. NFA_accept \<A> w}"
 
 end

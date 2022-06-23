@@ -23,7 +23,7 @@ that @{term "LTS_is_reachable \<Delta>"} is the reflexive, transitive closure of
 
 inductive LTS_is_reachable :: "('q, 'a) LTS \<Rightarrow>  ('q * 'q) set \<Rightarrow> 'q \<Rightarrow> 'a list \<Rightarrow> 'q \<Rightarrow> bool" where
    LTS_Empty[intro!]:"LTS_is_reachable \<Delta> \<Delta>' q [] q"|
-   LTS_Step1:"(q, q'') \<in> \<Delta>' \<and> LTS_is_reachable \<Delta> \<Delta>' q'' l q' \<and> q \<noteq> q''\<Longrightarrow> LTS_is_reachable \<Delta> \<Delta>' q l q'" |
+   LTS_Step1:"(q, q'') \<in> \<Delta>' \<and> LTS_is_reachable \<Delta> \<Delta>' q'' l q' \<Longrightarrow> LTS_is_reachable \<Delta> \<Delta>' q l q'" |
    LTS_Step2[intro!]:"a \<in> \<sigma> \<and> (q, \<sigma>, q'') \<in> \<Delta> \<and> LTS_is_reachable \<Delta> \<Delta>' q'' w q' \<Longrightarrow> LTS_is_reachable \<Delta> \<Delta>' q (a # w) q'"
 
 

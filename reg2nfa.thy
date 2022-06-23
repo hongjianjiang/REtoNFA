@@ -34,7 +34,7 @@ primrec len_reg :: "'v regexp \<Rightarrow> nat" where
 
 primrec trans2LTS :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp \<times> 'v set \<times> 'v regexp) set * ('v regexp * 'v regexp) set)" where 
     "trans2LTS (LChr v) alp_set= ({(LChr v,{v},\<epsilon>)},{})"|
-    "trans2LTS (ESet) alp_set= ({(ESet,{},\<epsilon>)},{})"|
+    "trans2LTS (ESet) alp_set= ({},{})"|
     "trans2LTS (\<epsilon>) alp_set = ({},{(\<epsilon>,\<epsilon>)})"|
     "trans2LTS (Dot) alp_set = ({(Dot ,alp_set, \<epsilon>)},{})"|
     "trans2LTS (Concat r1 r2) alp_set =(renameDelta1 (fst (trans2LTS r1 alp_set)) (ConcatRegexp r2) \<union> (fst (trans2LTS r2 alp_set)),
@@ -53,13 +53,13 @@ primrec trans2LTS :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp \
 primrec reg2q :: "'v regexp \<Rightarrow> 'v set\<Rightarrow>  ('v regexp) set" where
     "reg2q Dot a = {Dot, \<epsilon>}"|
     "reg2q (LChr p) a =  {(LChr p), \<epsilon>}"|
-    "reg2q (Alter r1 r2) a = {(Alter r1 r2),\<epsilon>} \<union> reg2q r1 a \<union> reg2q r2 a"|
-    "reg2q (Star r) a = {\<epsilon>, Star r} \<union> reg2q r a \<union> (\<lambda>x. ConcatRegexp x (Star r)) ` (reg2q r a)" |
-    "reg2q (Plus r) a =  {Plus r, \<epsilon>} \<union> {Concat r (Star r), (Concat \<epsilon> (Star r))} \<union> {Star r} \<union> reg2q r a \<union> (\<lambda>x. ConcatRegexp x (Star r)) ` (reg2q r a)" |
-    "reg2q (Ques r) a = {(Ques r), \<epsilon>} \<union> reg2q r a" |
+    "reg2q (Alter r1 r2) a = {(Alter r1 r2)} \<union> reg2q r1 a \<union> reg2q r2 a"|
+    "reg2q (Star r) a = {Star r} \<union> reg2q r a" |
+    "reg2q (Plus r) a =  {Plus r} \<union> reg2q r a" |
+    "reg2q (Ques r) a = {(Ques r)} \<union> reg2q r a" |
     "reg2q ESet a = {ESet, \<epsilon>}"|
     "reg2q \<epsilon> a = {\<epsilon>}"|
-    "reg2q (Concat r1 r2) a = {Concat r1 r2, r2, \<epsilon>, (Concat \<epsilon> r2)}"
+    "reg2q (Concat r1 r2) a = {Concat r1 r2} \<union> reg2q r1 a \<union>reg2q r2 a"
 
 
 fun reg2nfa :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> ('v regexp,'v) NFA_rec" where 
@@ -106,6 +106,134 @@ theorem uniqueFinalState:"\<F> (reg2nfa r v) = {\<epsilon>}"
   apply(induct r)
   by auto
 
+definition LQ :: "('q, 'a) NFA_rec => 'q \<Rightarrow> 'a list set" where 
+ "LQ 𝒜 q = {w. NFA_accept_Q 𝒜 q w}"
+
+lemma "\<Q> (reg2nfa r1 v) \<union> \<Q> (reg2nfa r2 v) \<union>{Alter r1 r2} =  \<Q> (reg2nfa (Alter r1 r2) v)  "
+  by auto 
+
+
+lemma len_bound: "\<forall> q \<in> reg2q r v. len_reg q \<le> len_reg r"
+  apply(induction r)
+  by auto
+
+lemma "len_reg (Alter r1 r2) > len_reg r1"
+  by auto
+
+lemma AlterR1bound:"(Alter r1 r2) \<notin> (reg2q r1 v)"
+  using len_bound by fastforce
+
+lemma AlterR2bound:"(Alter r1 r2) \<notin> (reg2q r2 v)"
+  using len_bound by fastforce
+
+
+theorem tranl_aux:
+  fixes r v 
+  shows "\<forall>q \<in> \<Q> (reg2nfa r v).sem_reg q v = LQ (reg2nfa r v) q"
+proof(induction r)
+case ESet
+    then show ?case  apply(unfold LQ_def NFA_accept_Q_def ) apply auto subgoal for x proof -
+      assume " LTS_is_reachable {} {} ESet x ε" 
+      then show "False" apply (rule LTS_is_reachable.cases) by auto
+    qed
+    subgoal for x 
+    apply(rule LTS_is_reachable.cases) by auto
+    done
+next
+  case (LChr x)
+  then show ?case  
+    apply(unfold LQ_def NFA_accept_Q_def ) apply auto 
+    subgoal for xa 
+      apply(rule LTS_is_reachable.cases)  
+         apply auto 
+      subgoal for w 
+      proof - 
+        assume "LTS_is_reachable {(LChr x, {x}, ε)} {} ε w ε" 
+        then show "w = []"
+          apply(rule LTS_is_reachable.cases)
+            apply auto
+          done
+      qed
+      done
+    subgoal for xa          
+      apply(rule LTS_is_reachable.cases)
+      by auto
+    done
+next
+  case (Concat r1 r2)
+  then show ?case sorry
+next
+  case (Alter r1 r2)
+  assume " ∀q∈𝒬 (reg2nfa r1 v). sem_reg q v = LQ (reg2nfa r1 v) q"  
+  then have "∀q∈𝒬 (reg2nfa r1 v). sem_reg q v = LQ (reg2nfa (Alter r1 r2) v) q" 
+    apply (simp del: reg2nfa.simps)
+  proof 
+    fix q  
+    assume a1:"∀q∈𝒬 (reg2nfa r1 v). sem_reg q v = LQ (reg2nfa r1 v) q" and a2:"q ∈ 𝒬 (reg2nfa r1 v)"
+    from a1 a2 
+    show "LQ (reg2nfa r1 v) q = LQ (reg2nfa (Alter r1 r2) v) q" apply auto 
+      subgoal for x 
+        proof -
+        assume "x ∈ LQ ⦇𝒬 = reg2q r1 v, Σ = alp_reg r1 v, Δ = fst (trans2LTS r1 v), Δ' = snd (trans2LTS r1 v), ℐ = {r1}, ℱ = {ε}⦈ q"
+        then have c1:"LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q x ε " 
+          apply(unfold LQ_def NFA_accept_Q_def) by auto
+        from c1 show ?thesis unfolding LQ_def NFA_accept_Q_def  apply simp
+          by (metis Un_insert_right subLTSlemma)
+        qed
+        subgoal for x 
+        proof -
+          assume "x ∈ LQ ⦇𝒬 = insert (Alter r1 r2) (reg2q r1 v ∪ reg2q r2 v), Σ = alp_reg r1 v ∪ alp_reg r2 v,
+               Δ = fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v),
+               Δ' = insert (Alter r1 r2, r1) (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v))),
+               ℐ = {Alter r1 r2}, ℱ = {ε}⦈  q" and "q ∈ reg2q r1 v"
+          then have c1:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)) (insert (Alter r1 r2, r1) 
+                        (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)))) q x ε"
+            apply(unfold LQ_def NFA_accept_Q_def) by auto
+          from c1 have "LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q x ε" apply(induction x) subgoal            
+              apply(rule LTS_is_reachable.cases)
+              apply auto
+             
+             apply(rule LTS_is_reachable.cases)
+            subgoal for Δ Δ' qa by auto
+            subgoal for qa q'' Δ' Δ l q' apply auto sorry
+            subgoal for a σ qa q'' Δ Δ' w q' apply auto sorry
+          then show "x ∈ LQ ⦇𝒬 = reg2q r1 v, Σ = alp_reg r1 v, Δ = fst (trans2LTS r1 v), Δ' = snd (trans2LTS r1 v), ℐ = {r1}, ℱ = {ε}⦈ q"
+            
+      
+   sorry 
+next
+  case Dot
+  then show ?case   apply(unfold LQ_def NFA_accept_Q_def ) apply auto 
+    subgoal for x 
+      apply(simp add:image_iff)
+      apply (rule LTS_is_reachable.cases)
+         apply auto
+      subgoal for a w
+      proof - 
+        assume "LTS_is_reachable {(Dot, v, ε)} {} ε w ε" 
+        then show "w = []"
+          apply(rule LTS_is_reachable.cases)
+            apply auto
+          done
+      qed
+      done
+    subgoal for x
+      apply(rule LTS_is_reachable.cases)
+      by auto
+    done
+next
+  case (Star r)
+  then show ?case sorry
+next
+  case (Plus r)
+  then show ?case sorry
+next
+  case (Ques r)
+  then show ?case sorry
+next
+  case ε
+  then show ?case sorry
+qed
  
 theorem tranl_eq :
   fixes r v  
@@ -216,7 +344,8 @@ next
            apply auto apply(rule LTS_is_reachable.cases)
            apply simp
            subgoal for Δ Δ' q by auto
-           subgoal for q q'' Δ' Δ l q' apply simp proof -
+           subgoal for q q'' Δ' Δ l q' 
+             apply simp proof -
               assume a1:"LTS_is_reachable Δ Δ' q l ε"
               assume a2:"LTS_is_reachable Δ Δ' q [] r1"
               assume a3:"LTS_is_reachable Δ Δ' q [] r2"
@@ -284,14 +413,17 @@ next
             qed
             done
           have c2:"LTS_is_reachable ?trans1 ?trans2 r1 x ε \<Longrightarrow>  
-                   LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)) (insert (Alter r1 r2, r1) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v))) r1 x ε"
-            apply(rule LTS_is_reachable.cases)
-               apply simp
-            subgoal for Δ Δ' q by auto
-            subgoal for q q'' Δ' Δ l q' apply auto
-           
+                   LTS_is_reachable (fst (trans2LTS r1 v)) 
+                  (snd (trans2LTS r1 v)) r1 x ε"
+            apply(cases "r2 = r1")
+            apply simp
+            sorry
+             (*
+             1:To prove that r1 can not start from (trans2LTS r2 v)
+             2:To prove that (Alter r1 r2, r1) and (Alter r1 r2, r2) has no influence on r1
+              *)
          have c3:"\<not> LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) r2 x ε \<Longrightarrow> \<not> LTS_is_reachable ?trans1 ?trans2 r2 x ε"
-           apply auto sorry
+            sorry
          then show ?thesis  using a4 c1 c2 by auto
        qed
      qed
