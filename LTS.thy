@@ -85,5 +85,7 @@ next
   case (LTS_Step2 a \<sigma> q q'' w q')
   then show ?case by auto
 qed
-     
+
+lemma joinLTSlemma1:"\<exists>x. LTS_is_reachable  \<Delta> \<Delta>' q x p \<Longrightarrow>  \<exists>y. LTS_is_reachable  \<Delta> \<Delta>' p y q''\<Longrightarrow> \<exists>x y. LTS_is_reachable  \<Delta> \<Delta>' q (x@y) q''"
+  by (meson joinLTSlemma)     
 end

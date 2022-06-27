@@ -807,7 +807,7 @@ next
           then show ?case by auto 
         next
           case (LTS_Step1 q q'' l q')
-          then show ?case apply auto subgoal 
+          then show ?case apply auto subgoal sledgehammer
         next
           case (LTS_Step2 a σ q q'' w q')
           then show ?case sorry
