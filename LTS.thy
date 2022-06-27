@@ -20,61 +20,70 @@ text \<open>Often it is enough to consider just the first and last state of
 a path. This leads to the following definition of reachability. Notice, 
 that @{term "LTS_is_reachable \<Delta>"} is the reflexive, transitive closure of @{term \<Delta>}.\<close>
 
-
-inductive LTS_is_reachable :: "('q, 'a) LTS \<Rightarrow>  ('q * 'q) set \<Rightarrow> 'q \<Rightarrow> 'a list \<Rightarrow> 'q \<Rightarrow> bool" where
-   LTS_Empty[intro!]:"LTS_is_reachable \<Delta> \<Delta>' q [] q"|
-   LTS_Step1:"(q, q'') \<in> \<Delta>' \<and> LTS_is_reachable \<Delta> \<Delta>' q'' l q' \<Longrightarrow> LTS_is_reachable \<Delta> \<Delta>' q l q'" |
-   LTS_Step2[intro!]:"a \<in> \<sigma> \<and> (q, \<sigma>, q'') \<in> \<Delta> \<and> LTS_is_reachable \<Delta> \<Delta>' q'' w q' \<Longrightarrow> LTS_is_reachable \<Delta> \<Delta>' q (a # w) q'"
-
+inductive LTS_is_reachable :: "('q, 'a) LTS \<Rightarrow>  ('q * 'q) set \<Rightarrow> 'q \<Rightarrow> 'a list \<Rightarrow> 'q \<Rightarrow> bool" for \<Delta> and \<Delta>' where
+  LTS_Empty[intro!]: "LTS_is_reachable \<Delta> \<Delta>' q [] q" |
+  LTS_Step1: "LTS_is_reachable \<Delta> \<Delta>' q l q'" if "(q, q'') \<in> \<Delta>'" and "LTS_is_reachable \<Delta> \<Delta>' q'' l q'" |
+  LTS_Step2[intro!]: "LTS_is_reachable \<Delta> \<Delta>' q (a # w) q'" if "a \<in> \<sigma>" and "(q, \<sigma>, q'') \<in> \<Delta>" and "LTS_is_reachable \<Delta> \<Delta>' q'' w q'"
 
 
-lemma subLTSlemma:"LTS_is_reachable  \<Delta> \<Delta>' q x y \<Longrightarrow> LTS_is_reachable ( \<Delta> \<union> l1) (\<Delta>' \<union> l2) q x y"
+lemma Delta1Empty: "LTS_is_reachable d1 d2 p l q \<Longrightarrow> d1 =  {} \<Longrightarrow> l = []"
+  by (induction rule: LTS_is_reachable.induct) auto 
+
+
+lemma subLTSlemma:"LTS_is_reachable \<Delta> \<Delta>' q x y \<Longrightarrow> LTS_is_reachable ( \<Delta> \<union> l1) (\<Delta>' \<union> l2) q x y"
   proof (induction rule: LTS_is_reachable.induct)
-    case (LTS_Empty \<Delta> \<Delta>' q)
+    case (LTS_Empty q)
     then show ?case by auto
   next
-    case (LTS_Step1 q q'' \<Delta>' \<Delta> l q')
-    then show ?case apply auto
+    case (LTS_Step1 q q'' l q')
+    then show ?case 
       by (meson LTS_is_reachable.LTS_Step1 UnI1)
   next
-    case (LTS_Step2 a q \<Delta> \<Delta>' w q')
+    case (LTS_Step2 a \<sigma> q q'' w q')
     then show ?case by auto
   qed
-
-
+ 
 lemma subLTSlemma1:"LTS_is_reachable \<Delta> \<Delta>' q x y \<Longrightarrow> LTS_is_reachable (\<Delta> \<union> {(f q a, va, f q' a)|q va q'. (q,va,q') \<in> \<Delta>}) (\<Delta>' \<union> l1) q x y"
   by (simp add: subLTSlemma)
 
-
 lemma DeltLTSlemma1:"LTS_is_reachable \<Delta> \<Delta>' q l q' \<Longrightarrow> LTS_is_reachable ({(f q a, va, f q' a)| q va q'. (q, va, q') \<in> \<Delta>}) ({(f q a, f q' a)| q q'. (q, q') \<in> \<Delta>'}) (f q a) l (f q' a)"
 proof (induction rule: LTS_is_reachable.induct)
-  case (LTS_Empty \<Delta> \<Delta>' q)
+  case (LTS_Empty q)
   then show ?case by auto
 next
-  case (LTS_Step1 q q'' \<Delta>' \<Delta> l q')
-  then show ?case apply auto
-    by (smt (verit, ccfv_SIG) CollectI LTS_is_reachable.LTS_Step1)
+  case (LTS_Step1 q q'' l q')
+  then show ?case 
+    using LTS_is_reachable.simps by fastforce
 next
-  case (LTS_Step2 a q \<Delta> \<Delta>' w q')
-  then show ?case  
-    by auto 
+  case (LTS_Step2 a \<sigma> q q'' w q')
+  then show ?case by auto
 qed
 
-
-
+lemma DeltLTSlemma2:"\<exists>l. LTS_is_reachable \<Delta> \<Delta>' q l q' \<Longrightarrow> \<exists>l. LTS_is_reachable ({(f q a, va, f q' a)| q va q'. (q, va, q') \<in> \<Delta>}) ({(f q a, f q' a)| q q'. (q, q') \<in> \<Delta>'}) (f q a) l (f q' a)"
+  apply(rule exE) apply auto subgoal for la  proof -
+    assume "LTS_is_reachable \<Delta> \<Delta>' q la q'" 
+    then have "LTS_is_reachable {(f q a, va, f q' a) |q va q'. (q, va, q') \<in> \<Delta>} {(f q a, f q' a) |q q'. (q, q') \<in> \<Delta>'} (f q a) la (f q' a)" apply(rule LTS_is_reachable.induct)
+      subgoal by auto
+      subgoal for q q'' l q'
+        using LTS_is_reachable.simps by fastforce
+      subgoal for aa \<sigma> q q'' w q'
+        by auto
+      done
+    then show ?thesis by auto
+  qed
+  done
+ 
 
 lemma joinLTSlemma:"LTS_is_reachable  \<Delta> \<Delta>' q x p \<Longrightarrow>  LTS_is_reachable  \<Delta> \<Delta>' p y q''\<Longrightarrow> LTS_is_reachable  \<Delta> \<Delta>' q (x@y) q''"
 proof (induction rule: LTS_is_reachable.induct)
-  case (LTS_Empty \<Delta> \<Delta>' q)
+case (LTS_Empty q)
+then show ?case by auto
+next
+  case (LTS_Step1 q q'' l q')
+then show ?case  by (meson LTS_is_reachable.LTS_Step1)
+next
+  case (LTS_Step2 a \<sigma> q q'' w q')
   then show ?case by auto
-next
-  case (LTS_Step1 q q'' \<Delta>' \<Delta> l q')
-  then show ?case 
-    apply auto 
-    by (meson LTS_is_reachable.LTS_Step1)
-next
-  case (LTS_Step2 a q \<Delta> \<Delta>' w q')
-  then show ?case by auto 
 qed
-    
+     
 end
