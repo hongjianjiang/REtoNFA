@@ -21,14 +21,14 @@ fun renameDelta2 :: "('v regexp * 'v regexp) set \<Rightarrow> ('v regexp => 'v 
 
 
 primrec len_reg :: "'v regexp \<Rightarrow> nat" where
-  "len_reg (LChr v) = 1"|
-  "len_reg (ESet) = 1"|
+  "len_reg (LChr v) = 2"|
+  "len_reg (ESet) = 2"|
   "len_reg \<epsilon> = 1"|
-  "len_reg Dot = 1"|
-  "len_reg (Concat r1 r2) = 1 + len_reg r1 + len_reg r2"|
+  "len_reg Dot = 2"|
+  "len_reg (Concat r1 r2) = len_reg r1 + len_reg r2"|
   "len_reg (Alter r1 r2) = 1 + len_reg r1 + len_reg r2"|
-  "len_reg (Star r) = 1 + len_reg r"|
-  "len_reg (Plus r) = 1 + len_reg r"|
+  "len_reg (Star r) = 2 + len_reg r"|
+  "len_reg (Plus r) = 2 + len_reg r*2"|
   "len_reg (Ques r) = 1 + len_reg r"
 
 
@@ -64,12 +64,12 @@ primrec reg2q :: "'v regexp \<Rightarrow> 'v set \<Rightarrow>  ('v regexp) set"
     "reg2q Dot a = {Dot, \<epsilon>}"|
     "reg2q (LChr p) a =  {(LChr p), \<epsilon>}"|
     "reg2q (Alter r1 r2) a = {(Alter r1 r2)} \<union> reg2q r1 a \<union> reg2q r2 a"|
-    "reg2q (Star r) a = {Star r} \<union> reg2q r a" |
-    "reg2q (Plus r) a = {Plus r} \<union> reg2q r a" |
+    "reg2q (Star r) a = {Star r, \<epsilon>} \<union> ConcatRegexp (Star r) ` reg2q r a" |
+    "reg2q (Plus r) a = {Plus r, \<epsilon>} \<union> ConcatRegexp2 (Star r) ` reg2q r a \<union> ConcatRegexp (Star r)` reg2q r a" |
     "reg2q (Ques r) a = {(Ques r)} \<union> reg2q r a" |
     "reg2q ESet a = {ESet, \<epsilon>}" |
     "reg2q \<epsilon> a = {\<epsilon>}" |
-    "reg2q (Concat r1 r2) a = {Concat r1 r2} \<union> reg2q r1 a \<union> reg2q r2 a"
+    "reg2q (Concat r1 r2) a = ConcatRegexp r2 ` reg2q r1 a \<union> reg2q r2 a"
 
 
 fun reg2nfa :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> ('v regexp,'v) NFA_rec" where 
@@ -807,7 +807,7 @@ next
           then show ?case by auto 
         next
           case (LTS_Step1 q q'' l q')
-          then show ?case apply auto subgoal 
+          then show ?case apply auto subgoal sledgehammer
         next
           case (LTS_Step2 a σ q q'' w q')
           then show ?case sorry
