@@ -383,13 +383,114 @@ qed
       from c6 c3 have c7:"∃x. LTS_is_reachable (fst (trans2LTS (Plus r) v)) (snd (trans2LTS (Plus r) v)) (Plus r) x (Concat (Concat ε (Star r)) (Star r))" apply auto
         by (meson LTS_Step1 insertI1)
       have c8:"∃x. LTS_is_reachable (fst (trans2LTS (Plus r) v)) (snd (trans2LTS (Plus r) v)) (Plus r) x (Concat (Star r) (Star r))" 
-          using c4 c7 joinLTSlemma by (metis (no_types, opaque_lifting))
-      show ?thesis   using c5 c8 joinLTSlemma by (metis (no_types, opaque_lifting))
+          using c4 c7 by (meson joinLTSlemma1)
+      show ?thesis   using c5 c8 by (meson joinLTSlemma1)
     qed
   qed
   done
 
+theorem tranl_eq1 :
+  fixes r v  
+  assumes a:"v \<noteq> {}"
+  shows lemma1: "sem_reg r v = \<L> (reg2nfa r v)"
+  apply (rule set_eqI)
+  proof (induction r)
+case ESet
+  then show ?case apply (simp add:\<L>_def NFA_accept_def)
+    by (meson Delta1Empty LTS_Empty LTS_Step1 insertI1)
+next
+  case (LChr x xa)
+  then show ?case apply (simp add:\<L>_def NFA_accept_def)
+    by (smt (verit) LTS_is_reachable.simps equals0D fst_eqD regexp.distinct(29) singleton_iff snd_eqD)
+next
+  case (Concat r1 r2)
+  then show ?case apply (simp add:\<L>_def NFA_accept_def) apply(rule iffI)
+    subgoal 
+    proof -
+      assume a1:" ∃q p. x = q @ p ∧ LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) r1 q ε ∧ LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) r2 p ε"
+      from a1 show "LTS_is_reachable ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2LTS r1 v)} ∪ fst (trans2LTS r2 v))
+     (insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2LTS r1 v)} ∪ snd (trans2LTS r2 v))) (Concat r1 r2) x ε" 
+        apply auto
+        subgoal for q p 
+        proof -
+          assume a2:"LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) r1 q ε"
+          assume a3:"LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) r2 p ε"
+          have c1:"LTS_is_reachable ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2LTS r1 v)}) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2LTS r1 v)}) (Concat r1 r2) q (Concat ε r2)"
+            using a2 by(rule DeltLTSlemma1)
+          have c2:"LTS_is_reachable ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2LTS r1 v)} ∪ fst (trans2LTS r2 v))
+          (insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2LTS r1 v)} ∪ snd (trans2LTS r2 v))) (Concat r1 r2) q (Concat ε r2)"
+            using c1 by (metis (no_types, lifting) Un_insert_right subLTSlemma)
+          have c3:"LTS_is_reachable ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2LTS r1 v)} ∪ fst (trans2LTS r2 v))
+          (insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2LTS r1 v)} ∪ snd (trans2LTS r2 v))) (Concat ε r2) [] r2"
+            using LTS_is_reachable.simps by fastforce
+          have c4:"LTS_is_reachable ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2LTS r1 v)} ∪ fst (trans2LTS r2 v))
+          (insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2LTS r1 v)} ∪ snd (trans2LTS r2 v))) r2 p ε"
+            using a3 by (smt (z3) Un_commute Un_insert_right subLTSlemma)
+          show ?thesis using c2 c3 c4 by (smt (z3) append_Nil2 joinLTSlemma)
+        qed
+        done
+    qed
+    subgoal 
+      sorry      
+    done
+next
+  case (Alter r1 r2)
+  then show ?case apply (simp add:\<L>_def NFA_accept_def) apply (rule iffI) 
+    subgoal 
+    proof -
+      assume a1:"LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) r1 x ε ∨ LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) r2 x ε"
+      from a1 show "LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)) (insert (Alter r1 r2, r1) (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)))) (Alter r1 r2) x ε"
+        apply auto 
+        subgoal 
+        proof -
+          assume a2:"LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) r1 x ε"
+          have c1:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)) (insert (Alter r1 r2, r1) (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)))) (Alter r1 r2) [] r1"
+            using LTS_is_reachable.simps by fastforce
+          have c2:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)) (insert (Alter r1 r2, r1) (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)))) r1 x ε" using a2
+            by (metis Un_insert_right subLTSlemma)
+          then show ?thesis using c1 c2 joinLTSlemma by fastforce
+        qed
+        subgoal
+        proof -
+          assume a2:"LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) r2 x ε"
+          have c1:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)) (insert (Alter r1 r2, r1) (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)))) (Alter r1 r2) [] r2"
+            using LTS_is_reachable.simps by fastforce
+          have c2:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)) (insert (Alter r1 r2, r1) (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)))) r2 x ε" using a2
+            by (smt (z3) Un_commute Un_insert_right subLTSlemma)
+          then show ?thesis using c1 c2 joinLTSlemma by fastforce
+        qed
+        done
+    qed
+    subgoal
+    proof 
+      assume a1:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)) (insert (Alter r1 r2, r1) (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)))) (Alter r1 r2) x ε"
+      have "LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)) r1 x ε"
+        using a1 
+        apply (induction rule:LTS_is_reachable.cases)
+        subgoal for q by auto
+        subgoal for q q'' l q' apply auto subgoal 
 
+    done
+next
+  case Dot
+  then show ?case apply (simp add:\<L>_def NFA_accept_def)
+    by (smt (verit) LTS_is_reachable.simps Pair_inject emptyE imageE insertI1 regexp.distinct(59) rev_image_eqI singletonD)
+next
+  case (Star r)
+  then show ?case sorry
+next
+  case (Plus r)
+  then show ?case sorry
+next
+  case (Ques r)
+  then show ?case sorry
+next
+  case ε
+  then show ?case apply (simp add:\<L>_def NFA_accept_def) 
+    by (meson Delta1Empty LTS_Empty)
+qed
+done
+   
 theorem tranl_eq :
   fixes r v  
   assumes a:"v \<noteq> {}"
@@ -801,17 +902,11 @@ next
       assume a1:"sem_reg r v = {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w ε}"
       and a2:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, \<epsilon>) (insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) x ε"
       and a3:"x ≠ []" 
-      from a2 a3 have "LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, r) (snd (trans2LTS r v))) (Ques r) x ε"
-        proof (induction rule: LTS_is_reachable.cases)
-          case (LTS_Empty q)
-          then show ?case by auto 
-        next
-          case (LTS_Step1 q q'' l q')
-          then show ?case apply auto subgoal sledgehammer
-        next
-          case (LTS_Step2 a σ q q'' w q')
-          then show ?case sorry
-        qed
+      show "LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε" proof (rule ccontr)
+        assume a4:"¬ LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε"
+        have "¬ LTS_is_reachable (fst (trans2LTS r v))  (insert (Ques r, r)  (snd (trans2LTS r v))) (Ques r) x ε" using a4 
+         
+          
         
 
    qed
