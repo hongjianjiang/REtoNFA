@@ -922,7 +922,7 @@ next
       show "LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε" proof (rule ccontr)
         assume a4:"¬ LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε"
         have "¬ LTS_is_reachable (fst (trans2LTS r v))  (insert (Ques r, r)  (snd (trans2LTS r v))) (Ques r) x ε" using a4 
-         
+          sledgehammer
           
         
 

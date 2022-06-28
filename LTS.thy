@@ -26,21 +26,13 @@ inductive LTS_is_reachable :: "('q, 'a) LTS \<Rightarrow>  ('q * 'q) set \<Right
   LTS_Step2[intro!]: "LTS_is_reachable \<Delta> \<Delta>' q (a # w) q'" if "a \<in> \<sigma>" and "(q, \<sigma>, q'') \<in> \<Delta>" and "LTS_is_reachable \<Delta> \<Delta>' q'' w q'"
 
 
+thm LTS_is_reachable.cases 
+thm LTS_is_reachable.induct
+
 lemma Delta1Empty: "LTS_is_reachable d1 d2 p l q \<Longrightarrow> d1 =  {} \<Longrightarrow> l = []"
   by (induction rule: LTS_is_reachable.induct) auto 
 
-fun getQ1 ::"('q, 'a) LTS \<Rightarrow> 'q set" where
-"getQ1 \<Delta> = {fst x| x. x\<in>\<Delta>} \<union> {snd (snd x)| x. x\<in> \<Delta>}"
-
-fun getQ2 ::"('q * 'q) set \<Rightarrow> 'q set" where
-"getQ2 \<Delta>1 = {fst x| x. x\<in>\<Delta>1} \<union> {snd x| x. x\<in> \<Delta>1}"
-
-
-
-
-lemma "LTS_is_reachable d1 ({(q,p)} \<union> d2) q x \<epsilon> \<Longrightarrow>q \<notin> (getQ1 d1 \<union> getQ2 d2) \<and> q \<noteq> \<epsilon> \<Longrightarrow>
-    LTS_is_reachable d1 d2 p x \<epsilon>"
-  nitpick
+  
 
 lemma subLTSlemma:"LTS_is_reachable \<Delta> \<Delta>' q x y \<Longrightarrow> LTS_is_reachable ( \<Delta> \<union> l1) (\<Delta>' \<union> l2) q x y"
   proof (induction rule: LTS_is_reachable.induct)

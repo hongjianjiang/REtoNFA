@@ -4,7 +4,9 @@ section "Regexp definition and semantics"
 
 datatype ('v)regexp = ESet | LChr 'v| Concat "'v regexp" "'v regexp"|
                       Alter "('v) regexp" "('v) regexp"| Dot|
-                      Star "'v regexp" | Plus "('v) regexp" | Ques "('v) regexp" | \<epsilon>         
+                      Star "'v regexp" | Plus "('v) regexp" | Ques "('v) regexp" | \<epsilon>    
+
+datatype t_regexp = t_ESet | t_LChr | t_Concat | t_Alter | t_Dot | t_Star | t_Plus | t_Ques | t_\<epsilon>
 
 inductive_set star :: "'v list set \<Rightarrow> 'v list set" 
   for r :: "'v list set" where
