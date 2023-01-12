@@ -67,6 +67,7 @@ qed
 lemma try1: "LTS_is_reachable  \<Delta> \<Delta>' q l q' \<Longrightarrow>  LTS_is_reachable  \<Delta> (\<Delta>' \<union> a ) q l q'"
   by (metis subLTSlemma sup.idem)
 
+
 lemma DeltLTSlemma2:"\<exists>l. LTS_is_reachable \<Delta> \<Delta>' q l q' \<Longrightarrow> \<exists>l. LTS_is_reachable ({(f q a, va, f q' a)| q va q'. (q, va, q') \<in> \<Delta>}) ({(f q a, f q' a)| q q'. (q, q') \<in> \<Delta>'}) (f q a) l (f q' a)"
   apply(rule exE) apply auto subgoal for la  proof -
     assume "LTS_is_reachable \<Delta> \<Delta>' q la q'" 

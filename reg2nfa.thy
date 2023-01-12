@@ -16,7 +16,7 @@ fun renameDelta1 :: "('v regexp * 'v set * 'v regexp) set \<Rightarrow> ('v rege
 fun renameDelta2 :: "('v regexp * 'v regexp) set \<Rightarrow> ('v regexp => 'v regexp)  \<Rightarrow> ('v regexp  *'v regexp) set" where  
     "renameDelta2 ss f = {(f q, f q')| q q'.(q, q')\<in> ss}"
 
-fun getType :: "'v regexp \<Rightarrow> t_regexp" where 
+primrec getType :: "'v regexp \<Rightarrow> t_regexp" where 
   "getType (LChr v) = t_LChr"|
   "getType (ESet) = t_ESet"|
   "getType \<epsilon> = t_\<epsilon>"|
@@ -40,7 +40,7 @@ primrec len_reg :: "'v regexp \<Rightarrow> nat" where
 
 primrec trans2LTS :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> ('v regexp \<times> 'v set \<times> 'v regexp) set * ('v regexp * 'v regexp) set" where 
     "trans2LTS (LChr v) alp_set= ({(LChr v, {v}, \<epsilon>)}, {})"|
-    "trans2LTS (ESet) alp_set= ({}, {(ESet,\<epsilon>)})"|
+    "trans2LTS (ESet) alp_set= ({}, {(ESet, \<epsilon>)})"|
     "trans2LTS (\<epsilon>) alp_set = ({}, {(\<epsilon>, \<epsilon>)})"|
     "trans2LTS (Dot) alp_set = ({(Dot, alp_set, \<epsilon>)},{})"|
     "trans2LTS (Concat r1 r2) alp_set =(renameDelta1 (fst (trans2LTS r1 alp_set)) (ConcatRegexp r2) \<union> 
@@ -56,11 +56,9 @@ primrec trans2LTS :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> ('v regexp \<
     "trans2LTS (Star r) alp_set = (renameDelta1 (fst (trans2LTS r alp_set)) (ConcatRegexp (Star r)), 
                                   (renameDelta2 (snd (trans2LTS r alp_set)) (ConcatRegexp (Star r))) \<union> 
                                   {(Star r, \<epsilon>),(Star r,Concat r (Star r)), (Concat \<epsilon> (Star r), Star r)})"|
-    "trans2LTS (Plus r) alp_set = ((renameDelta1 (fst (trans2LTS r alp_set)) (ConcatRegexp2 (Star r))) \<union> 
-                                  (renameDelta1 (fst (trans2LTS r alp_set)) (ConcatRegexp (Star r))), 
-                                  {(Plus r, Concat (Concat r (Star r)) (Star r)),(Concat (Concat \<epsilon> (Star r)) (Star r),Concat (Star r) (Star r)),(Concat (Star r) (Star r), \<epsilon>), 
-                                  (Concat (Star r) (Star r), Concat r (Star r)),(Concat \<epsilon> (Star r), Concat (Star r) (Star r))} \<union> 
-                                  (renameDelta2 (snd (trans2LTS r alp_set)) (ConcatRegexp2 (Star r))) \<union> (renameDelta2 (snd (trans2LTS r alp_set)) (ConcatRegexp (Star r))))"|
+    "trans2LTS (Plus r) alp_set = ((renameDelta1 (fst (trans2LTS r alp_set)) (ConcatRegexp (Star r))), 
+                                  {(Plus r, Concat r (Star r)),  ((Concat \<epsilon> (Star r)), (Star r)),((Star r), \<epsilon>)} \<union> 
+                                  (renameDelta2 (snd (trans2LTS r alp_set)) (ConcatRegexp (Star r))))"|
     "trans2LTS (Ques r) alp_set = (fst (trans2LTS r alp_set), {(Ques r, \<epsilon>), (Ques r, r)} \<union> 
                                   snd (trans2LTS r alp_set))"
 
@@ -69,7 +67,7 @@ primrec reg2q :: "'v regexp \<Rightarrow> 'v set \<Rightarrow>  ('v regexp) set"
     "reg2q (LChr p) a =  {(LChr p), \<epsilon>}"|
     "reg2q (Alter r1 r2) a = {(Alter r1 r2)} \<union> reg2q r1 a \<union> reg2q r2 a"|
     "reg2q (Star r) a = {Star r, \<epsilon>} \<union> ConcatRegexp (Star r) ` reg2q r a" |
-    "reg2q (Plus r) a = {Plus r, \<epsilon>} \<union> ConcatRegexp2 (Star r) ` reg2q r a \<union> ConcatRegexp (Star r)` reg2q r a" |
+    "reg2q (Plus r) a = {Plus r, \<epsilon>} \<union> ConcatRegexp (Star r)` reg2q r a" |
     "reg2q (Ques r) a = {(Ques r)} \<union> reg2q r a" |
     "reg2q ESet a = {ESet, \<epsilon>}" |
     "reg2q \<epsilon> a = {\<epsilon>}" |
@@ -265,6 +263,8 @@ next
     qed      
    done    
 qed
+
+
 
 
 lemma transExist: "v \<noteq> {} \<Longrightarrow> \<exists>x. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε"
@@ -501,7 +501,35 @@ next
   then show ?case sorry
 next
   case (Ques r)
-  then show ?case sorry
+  then show ?case     
+    apply(unfold \<L>_def NFA_accept_def)
+    apply auto
+    subgoal
+      by (meson LTS_Empty LTS_Step1 insertI1)
+    subgoal
+    proof -
+      assume a1:"(⋀x. (x ∈ sem_reg r v) = LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε)"
+      assume a2:"LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε"
+      show "LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, ε) (insert (Ques r, r) (snd (trans2LTS r v))))
+     (Ques r) x ε" 
+      proof -
+        have c1:"LTS_is_reachable (fst (trans2LTS r v))(insert (Ques r, r) (snd (trans2LTS r v)))
+     (Ques r) [] r " by (meson LTS_Empty LTS_Step1 insertI1)
+        from a2 have c2:"LTS_is_reachable (fst (trans2LTS r v))(insert (Ques r, r) (snd (trans2LTS r v)))
+     r x \<epsilon> " using try1 
+          by (metis Un_commute insert_is_Un)
+        from c2 have c3:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, ε) (insert (Ques r, r) (snd (trans2LTS r v))))
+     r x ε" using try1
+          by (metis Un_commute insert_is_Un)
+        from c1 have c4:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, ε) (insert (Ques r, r) (snd (trans2LTS r v))))
+     (Ques r) [] r" 
+          using LTS_is_reachable.simps by fastforce
+        from c3 c4 show?thesis 
+          by (meson LTS_Step1 insert_subset subset_insertI)
+      qed
+    qed
+    subgoal sorry
+    done
 next
   case ε
   then show ?case apply (simp add:\<L>_def NFA_accept_def) 
@@ -663,6 +691,123 @@ next
   qed
   done
 next
+  case (Ques r)
+  then show ?case     
+    apply(unfold \<L>_def NFA_accept_def)
+    apply auto 
+    subgoal 
+    proof -
+      assume "sem_reg r v = {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w \<epsilon>}"
+      show "LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, \<epsilon>) (insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) [] \<epsilon>"
+        by (metis LTS_Empty LTS_Step1 insertI1)
+    qed
+    subgoal for x
+    proof -
+      assume a1:"sem_reg r v = {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w ε}"
+      assume a2:"LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε"
+      show "LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, \<epsilon>) (insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) x ε"
+      proof -
+        from a2 have c1:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, \<epsilon>) (insert (Ques r, r) (snd (trans2LTS r v)))) r x ε"
+          using subLTSlemma by (metis Un_insert_right sup_bot.right_neutral)
+        have "LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, \<epsilon>) (insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) x ε"
+          using c1
+          by (smt (verit, best) LTS_Step1 insertI1 insert_commute snd_conv)
+        thus ?thesis by auto
+      qed
+    qed
+    subgoal for x
+    proof -
+      assume a1:"sem_reg r v = {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w ε}"
+      and a2:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, \<epsilon>) (insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) x ε"
+      and a3:"x ≠ []" 
+      show "LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε" sorry
+    qed
+    done  
+next
+  case (Star r)
+  then show ?case 
+     apply(unfold \<L>_def NFA_accept_def)
+     apply auto 
+    subgoal for x 
+    proof -
+      assume a1:"sem_reg r v = {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w \<epsilon>}"
+      assume a2:"x \<in> star {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w \<epsilon>}"
+      show "LTS_is_reachable {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}
+           (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
+           (Star r) x \<epsilon>" using a2 
+      proof (induction x)
+        case zero
+        then show ?case
+          by (smt (verit, best) LTS_Empty LTS_Step1 insertI1)
+      next
+        case (step x y)
+        then show ?case apply auto 
+        proof -
+          assume a1:"LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x \<epsilon>"
+          assume a2:"y \<in> star {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w \<epsilon>}"
+          assume a3:"LTS_is_reachable {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}
+                     (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
+                     (Star r) y \<epsilon>"
+          show "LTS_is_reachable {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}
+                     (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
+                     (Star r) (x @ y) \<epsilon>"
+          proof -
+            have c1:"LTS_is_reachable {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}
+                     (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
+                    (Star r) [] (Concat r (Star r))"
+              by (meson LTS_Empty LTS_Step1 insertI1 insertI2)
+            have c2:"LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}) ({(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})
+                    (Concat r (Star r)) x (Concat \<epsilon> (Star r))"
+              using a1 by(simp add:DeltLTSlemma1)
+            have c4:"LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)} \<union> fst (trans2LTS r v))
+                    ({(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})
+                    (Concat r (Star r)) x (Concat \<epsilon> (Star r))"
+              using c2 by (metis (mono_tags, lifting) Collect_cong Collect_disj_eq subLTSlemma)
+            have c5:"LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)} \<union> fst (trans2LTS r v)) 
+                     ((insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)}))
+                     (Concat r (Star r)) x (Concat \<epsilon> (Star r))"
+              using c4 by (smt (verit, best) Collect_cong Collect_disj_eq Un_insert_right c2 fst_eqD snd_eqD subLTSlemma)
+            have c6:"LTS_is_reachable  ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)} \<union> fst (trans2LTS r v))
+                    ((insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
+                    (Concat r (Star r)) x (Concat \<epsilon> (Star r))"
+              using c5 by (metis (no_types, lifting) Un_insert_right subLTSlemma sup_idem) 
+            have c7:"LTS_is_reachable
+                    ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)})
+                    (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
+                    (Concat r (Star r)) x (Concat \<epsilon> (Star r))"
+              by (metis (no_types, lifting) Un_absorb Un_insert_right c2 subLTSlemma)
+            have c8:"LTS_is_reachable
+                    ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)})
+                    (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
+                    (Star r) x (Concat \<epsilon> (Star r))"
+              using c1 c7 by (smt (z3) LTS_Step1 insertI1 insert_commute snd_conv)
+            have c9:"LTS_is_reachable
+                    ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)})
+                    (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
+                    (Concat \<epsilon> (Star r)) [] (Star r)"
+              by (smt (verit, best) LTS_Empty LTS_Step1 insertI1 insert_commute)
+            have c10:"LTS_is_reachable
+                    ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)})
+                    (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
+                    (Star r) x (Star r)"
+              using c8 c9 joinLTSlemma by fastforce              
+            thus ?thesis using a3 c10 joinLTSlemma 
+              by force 
+          qed
+        qed
+      qed
+    qed
+    subgoal for x 
+    proof -
+      assume a1:"sem_reg r v = {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w \<epsilon>}"
+      assume a2:"LTS_is_reachable {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}
+                 (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
+                 (Star r) x \<epsilon>"
+      show "x \<in> star {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w \<epsilon>}"
+        sorry
+    qed
+    done
+next
   case (Plus r)
   then show ?case  
     apply(unfold \<L>_def NFA_accept_def)
@@ -791,7 +936,7 @@ next
                 qed
               thus ?thesis using 2 3 joinLTSlemma by fastforce
         qed
-     qed
+      qed
     subgoal for x 
     proof -
       assume "sem_reg r v = {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w \<epsilon>}"
@@ -805,126 +950,6 @@ next
         sorry 
     qed
     done
-next
-  case (Star r)
-  then show ?case 
-     apply(unfold \<L>_def NFA_accept_def)
-     apply auto 
-    subgoal for x 
-    proof -
-      assume a1:"sem_reg r v = {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w \<epsilon>}"
-      assume a2:"x \<in> star {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w \<epsilon>}"
-      show "LTS_is_reachable {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}
-           (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
-           (Star r) x \<epsilon>" using a2 
-      proof (induction x)
-        case zero
-        then show ?case
-          by (smt (verit, best) LTS_Empty LTS_Step1 insertI1)
-      next
-        case (step x y)
-        then show ?case apply auto 
-        proof -
-          assume a1:"LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x \<epsilon>"
-          assume a2:"y \<in> star {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w \<epsilon>}"
-          assume a3:"LTS_is_reachable {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}
-                     (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
-                     (Star r) y \<epsilon>"
-          show "LTS_is_reachable {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}
-                     (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
-                     (Star r) (x @ y) \<epsilon>"
-          proof -
-            have c1:"LTS_is_reachable {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}
-                     (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
-                    (Star r) [] (Concat r (Star r))"
-              by (meson LTS_Empty LTS_Step1 insertI1 insertI2)
-            have c2:"LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}) ({(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})
-                    (Concat r (Star r)) x (Concat \<epsilon> (Star r))"
-              using a1 by(simp add:DeltLTSlemma1)
-            have c4:"LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)} \<union> fst (trans2LTS r v))
-                    ({(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})
-                    (Concat r (Star r)) x (Concat \<epsilon> (Star r))"
-              using c2 by (metis (mono_tags, lifting) Collect_cong Collect_disj_eq subLTSlemma)
-            have c5:"LTS_is_reachable ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)} \<union> fst (trans2LTS r v)) 
-                     ((insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)}))
-                     (Concat r (Star r)) x (Concat \<epsilon> (Star r))"
-              using c4 by (smt (verit, best) Collect_cong Collect_disj_eq Un_insert_right c2 fst_eqD snd_eqD subLTSlemma)
-            have c6:"LTS_is_reachable  ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)} \<union> fst (trans2LTS r v))
-                    ((insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
-                    (Concat r (Star r)) x (Concat \<epsilon> (Star r))"
-              using c5 by (metis (no_types, lifting) Un_insert_right subLTSlemma sup_idem) 
-            have c7:"LTS_is_reachable
-                    ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)})
-                    (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
-                    (Concat r (Star r)) x (Concat \<epsilon> (Star r))"
-              by (metis (no_types, lifting) Un_absorb Un_insert_right c2 subLTSlemma)
-            have c8:"LTS_is_reachable
-                    ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)})
-                    (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
-                    (Star r) x (Concat \<epsilon> (Star r))"
-              using c1 c7 by (smt (z3) LTS_Step1 insertI1 insert_commute snd_conv)
-            have c9:"LTS_is_reachable
-                    ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)})
-                    (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
-                    (Concat \<epsilon> (Star r)) [] (Star r)"
-              by (smt (verit, best) LTS_Empty LTS_Step1 insertI1 insert_commute)
-            have c10:"LTS_is_reachable
-                    ({(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)})
-                    (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
-                    (Star r) x (Star r)"
-              using c8 c9 joinLTSlemma by fastforce              
-            thus ?thesis using a3 c10 joinLTSlemma 
-              by force 
-          qed
-        qed
-      qed
-    qed
-    subgoal for x 
-    proof -
-      assume a1:"sem_reg r v = {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w \<epsilon>}"
-      assume a2:"LTS_is_reachable {(Concat q (Star r), va, Concat q' (Star r)) |q va q'. (q, va, q') \<in> fst (trans2LTS r v)}
-                 (insert (Star r, \<epsilon>) (insert (Star r, Concat r (Star r)) (insert (Concat \<epsilon> (Star r), Star r) {(Concat q (Star r), Concat q' (Star r)) |q q'. (q, q') \<in> snd (trans2LTS r v)})))
-                 (Star r) x \<epsilon>"
-      show "x \<in> star {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w \<epsilon>}"
-        sorry
-    qed
-    done
-next
-  case (Ques r)
-  then show ?case     
-    apply(unfold \<L>_def NFA_accept_def)
-    apply auto 
-    subgoal 
-    proof -
-      assume "sem_reg r v = {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w \<epsilon>}"
-      show "LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, \<epsilon>) (insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) [] \<epsilon>"
-        by (metis LTS_Empty LTS_Step1 insertI1)
-    qed
-    subgoal for x
-    proof -
-      assume a1:"sem_reg r v = {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w ε}"
-      assume a2:"LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε"
-      show "LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, \<epsilon>) (insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) x ε"
-      proof -
-        from a2 have c1:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, \<epsilon>) (insert (Ques r, r) (snd (trans2LTS r v)))) r x ε"
-          using subLTSlemma by (metis Un_insert_right sup_bot.right_neutral)
-        have "LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, \<epsilon>) (insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) x ε"
-          using c1
-          by (smt (verit, best) LTS_Step1 insertI1 insert_commute snd_conv)
-        thus ?thesis by auto
-      qed
-    qed
-    subgoal for x
-    proof -
-      assume a1:"sem_reg r v = {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w ε}"
-      and a2:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, \<epsilon>) (insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) x ε"
-      and a3:"x ≠ []" 
-      show "LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε" proof (rule ccontr)
-        assume a4:"¬ LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε"
-        have "¬ LTS_is_reachable (fst (trans2LTS r v))  (insert (Ques r, r)  (snd (trans2LTS r v))) (Ques r) x ε" using a4 
-         
-          
-        
 
-   qed
+
 end
