@@ -62,6 +62,25 @@ primrec trans2LTS :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> ('v regexp \<
     "trans2LTS (Ques r) alp_set = (fst (trans2LTS r alp_set), {(Ques r, \<epsilon>), (Ques r, r)} \<union> 
                                   snd (trans2LTS r alp_set))"
 
+
+fun getRegexpFromDelta1 :: "('v regexp \<times> 'v set \<times> 'v regexp) set => ('v regexp) set" where
+"getRegexpFromDelta1 ss = {q| q v q' . (q, v, q')\<in> ss} \<union> {q'| q v q' . (q, v, q')\<in> ss} "
+
+fun getRegexpFromDelta2 :: "('v regexp \<times> 'v regexp) set => ('v regexp) set" where
+"getRegexpFromDelta2 ss = {q| q q' . (q, q')\<in> ss} \<union> {q'| q q' . (q, q')\<in> ss} "
+
+
+fun getALLRegexpFromLTS :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> 'v regexp set" where 
+"getALLRegexpFromLTS r v = getRegexpFromDelta1 (fst (trans2LTS r v)) \<union> getRegexpFromDelta2 (snd (trans2LTS r v))"
+
+
+lemma [simp]:"r2 \<notin> getRegexpFromDelta1 (renameDelta1 (fst (trans2LTS r1 alp_set)) (ConcatRegexp r2))"  
+  by(induction r2) auto
+
+lemma "r1 \<in> getALLRegexpFromLTS r1 v"
+  by(induction r1) auto
+
+
 primrec reg2q :: "'v regexp \<Rightarrow> 'v set \<Rightarrow>  ('v regexp) set" where
     "reg2q Dot a = {Dot, \<epsilon>}"|
     "reg2q (LChr p) a =  {(LChr p), \<epsilon>}"|
@@ -72,6 +91,28 @@ primrec reg2q :: "'v regexp \<Rightarrow> 'v set \<Rightarrow>  ('v regexp) set"
     "reg2q ESet a = {ESet, \<epsilon>}" |
     "reg2q \<epsilon> a = {\<epsilon>}" |
     "reg2q (Concat r1 r2) a = ConcatRegexp r2 ` reg2q r1 a \<union> reg2q r2 a"
+
+ 
+fun reg2nfa :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> ('v regexp,'v) NFA_rec" where 
+    "reg2nfa r a= \<lparr>  \<Q> = reg2q r a,
+                  \<Sigma> = alp_reg  r a,
+                  \<Delta> = fst (trans2LTS r a),
+                  \<Delta>' = snd (trans2LTS r a),
+                  \<I> ={r}, 
+                  \<F> ={\<epsilon>}\<rparr> " 
+
+definition LQ :: "('q, 'a) NFA_rec => 'q \<Rightarrow> 'a list set" where 
+ "LQ 𝒜 q = {w. NFA_accept_Q 𝒜 q w}"
+
+section "function correctness of transition from regexp expression to  nondeterministic finite automaton"
+
+lemma [simp]:"0 < len_reg r" 
+  by (induct r) auto
+
+lemma [simp]:"finite (reg2q q v)"  by(induction q) auto
+
+value "reg2q (Star ESet) {a}"
+lemma "\<forall> q \<in> reg2q r v. len_reg q \<le> len_reg r"
 
 lemma AlterR1NotExists: "\<forall>q \<in> reg2q r1 v. (getType q = t_Alter \<and> len_reg q \<noteq> len_reg (Alter r1 r2)) \<or> getType q \<noteq> t_Alter"
     apply (induction r1 arbitrary:r2) 
@@ -102,30 +143,21 @@ lemma AlterR2NotExists: "\<forall>q \<in> reg2q r2 v. (getType q = t_Alter \<and
       by (metis (no_types, opaque_lifting) Suc_eq_plus1 add.assoc add.commute len_reg.simps(7))
     subgoal for r1 by auto
     done
- 
+
+lemma "q \<in> reg2q r1 v"
 
 lemma "Alter r1 r2 \<notin> (reg2q r1 v)"
   using AlterR1NotExists getType.simps(6) by blast
 
 lemma "Alter r1 r2 \<notin> (reg2q r2 v)"
   using AlterR2NotExists getType.simps(6) by blast
- 
-fun reg2nfa :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> ('v regexp,'v) NFA_rec" where 
-    "reg2nfa r a= \<lparr>  \<Q> = reg2q r a,
-                  \<Sigma> = alp_reg  r a,
-                  \<Delta> = fst (trans2LTS r a),
-                  \<Delta>' = snd (trans2LTS r a),
-                  \<I> ={r}, 
-                  \<F> ={\<epsilon>}\<rparr> " 
 
-definition LQ :: "('q, 'a) NFA_rec => 'q \<Rightarrow> 'a list set" where 
- "LQ 𝒜 q = {w. NFA_accept_Q 𝒜 q w}"
-
-section "function correctness of transition from regexp expression to  nondeterministic finite automaton"
-
-lemma [simp]:"0 < len_reg r" 
-  by (induct r) auto
+lemma "q ∈ reg2q r2 v ⟹
+    LTS_is_reachable ({(Concat q r2, va, Concat q' r2) |q va q'. (q, va, q') ∈ fst (trans2LTS r1 v)} ∪ fst (trans2LTS r2 v)) (insert (Concat ε r2, r2) ({(Concat q r2, Concat q' r2) |q q'. (q, q') ∈ snd (trans2LTS r1 v)} ∪ snd (trans2LTS r2 v))) q x
+     ε ⟹
+    LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) q x ε"
   
+
 theorem uniqueInitalState:"\<I> (reg2nfa r v) = {r}"
   apply (induct r)
   by auto
@@ -170,7 +202,12 @@ next
     done
 next
   case (Concat r1 r2)
-  then show ?case sorry
+  then show ?case  apply(unfold LQ_def NFA_accept_Q_def ) apply auto prefer 3
+    subgoal for q x 
+      by (metis (no_types, lifting) Un_commute Un_insert_right subLTSlemma)
+      prefer 3
+    subgoal for q x
+
 next
   case (Alter r1 r2)
   fix r1 r2 

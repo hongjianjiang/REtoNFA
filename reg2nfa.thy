@@ -73,6 +73,27 @@ primrec reg2q :: "'v regexp \<Rightarrow> 'v set \<Rightarrow>  ('v regexp) set"
     "reg2q \<epsilon> a = {\<epsilon>}" |
     "reg2q (Concat r1 r2) a = ConcatRegexp r2 ` reg2q r1 a \<union> reg2q r2 a"
 
+ 
+fun reg2nfa :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> ('v regexp,'v) NFA_rec" where 
+    "reg2nfa r a= \<lparr>  \<Q> = reg2q r a,
+                  \<Sigma> = alp_reg  r a,
+                  \<Delta> = fst (trans2LTS r a),
+                  \<Delta>' = snd (trans2LTS r a),
+                  \<I> ={r}, 
+                  \<F> ={\<epsilon>}\<rparr> " 
+
+definition LQ :: "('q, 'a) NFA_rec => 'q \<Rightarrow> 'a list set" where 
+ "LQ 𝒜 q = {w. NFA_accept_Q 𝒜 q w}"
+
+section "function correctness of transition from regexp expression to  nondeterministic finite automaton"
+
+lemma [simp]:"0 < len_reg r" 
+  by (induct r) auto
+
+lemma [simp]:"finite (reg2q q v)"  by(induction q) auto
+
+lemma "\<forall> q \<in> reg2q r v. len_reg q \<le> len_reg r"
+
 lemma AlterR1NotExists: "\<forall>q \<in> reg2q r1 v. (getType q = t_Alter \<and> len_reg q \<noteq> len_reg (Alter r1 r2)) \<or> getType q \<noteq> t_Alter"
     apply (induction r1 arbitrary:r2) 
     apply simp apply simp subgoal for r21 r22 r1 apply auto 
@@ -109,23 +130,8 @@ lemma "Alter r1 r2 \<notin> (reg2q r1 v)"
 
 lemma "Alter r1 r2 \<notin> (reg2q r2 v)"
   using AlterR2NotExists getType.simps(6) by blast
- 
-fun reg2nfa :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> ('v regexp,'v) NFA_rec" where 
-    "reg2nfa r a= \<lparr>  \<Q> = reg2q r a,
-                  \<Sigma> = alp_reg  r a,
-                  \<Delta> = fst (trans2LTS r a),
-                  \<Delta>' = snd (trans2LTS r a),
-                  \<I> ={r}, 
-                  \<F> ={\<epsilon>}\<rparr> " 
 
-definition LQ :: "('q, 'a) NFA_rec => 'q \<Rightarrow> 'a list set" where 
- "LQ 𝒜 q = {w. NFA_accept_Q 𝒜 q w}"
 
-section "function correctness of transition from regexp expression to  nondeterministic finite automaton"
-
-lemma [simp]:"0 < len_reg r" 
-  by (induct r) auto
-  
 theorem uniqueInitalState:"\<I> (reg2nfa r v) = {r}"
   apply (induct r)
   by auto
@@ -404,6 +410,15 @@ qed
   done
 
 
+lemma "¬ LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) r2 x ε \<Longrightarrow> ¬ LTS_is_reachable (fst (trans2LTS r2 v)) ((insert (Alter r1 r2, r2) (snd (trans2LTS r2 v)))) (Alter r1 r2) x ε"
+  apply (induct r2)
+  subgoal apply (simp add:trans2LTS_def) apply auto 
+    by (metis Delta1Empty LTS_Empty LTS_Step1 insertI1)
+  subgoal for xa apply (simp add:trans2LTS_def) apply auto 
+    by (smt (verit) LTS_is_reachable.simps Pair_inject regexp.distinct(19) regexp.distinct(29) regexp.distinct(51) singletonD)
+  subgoal for r21 r22 
+    sledgehammer
+
 theorem tranl_eq1 :
   fixes r v  
   assumes a:"v \<noteq> {}"
@@ -535,7 +550,7 @@ next
   then show ?case apply (simp add:\<L>_def NFA_accept_def) 
     by (meson Delta1Empty LTS_Empty)
 qed
-   
+
 theorem tranl_eq :
   fixes r v  
   assumes a:"v \<noteq> {}"
@@ -641,7 +656,7 @@ next
        let ?trans1 = "(fst (trans2LTS r1 v) \<union> fst (trans2LTS r2 v))"
        let ?trans2 = "(insert (Alter r1 r2, r1) (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) \<union> snd (trans2LTS r2 v))))"
        show "LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) r1 x ε"
-         sorry
+         nitpick
      qed
      done
  next
@@ -720,7 +735,12 @@ next
       assume a1:"sem_reg r v = {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r w ε}"
       and a2:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, \<epsilon>) (insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) x ε"
       and a3:"x ≠ []" 
-      show "LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε" sorry
+      show "LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε"  
+    proof
+      from a2 have "LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, \<epsilon>) (insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) [] r"
+        by (meson LTS_Empty LTS_Step1 insertI1 insertI2)
+      from this have "LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, r) (snd (trans2LTS r v))) (Ques r) [] r"
+        by (meson LTS_Empty LTS_Step1 insertI1)
     qed
     done  
 next
