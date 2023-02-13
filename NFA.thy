@@ -34,4 +34,7 @@ definition NFA_accept_Q :: "('q, 'a) NFA_rec \<Rightarrow> 'q  \<Rightarrow> 'a 
 
 definition \<L> where "\<L> \<A> = {w. NFA_accept \<A> w}"
 
+
+definition LQ :: "('q, 'a) NFA_rec => 'q \<Rightarrow> 'a list set" where 
+ "LQ \<A> q = {w. NFA_accept_Q \<A> q w}"
 end
