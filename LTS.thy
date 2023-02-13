@@ -48,18 +48,19 @@ lemma removeExtraTrans1: "LTS_is_reachable (\<Delta>1 \<union> \<Delta>2) (\<Del
 lemma removeExtraTrans2: "LTS_is_reachable (\<Delta>1 \<union> \<Delta>2) (\<Delta>1' \<union> \<Delta>2') ini l end \<Longrightarrow> \<Delta>1 \<noteq> \<Delta>2 \<Longrightarrow> \<Delta>1' = \<Delta>2' \<Longrightarrow> LTS_is_reachable (\<Delta>1 \<union> \<Delta>2) \<Delta>1' ini l end "
   by simp
 
-lemma removeExtraTrans3: "LTS_is_reachable (\<Delta>1 \<union> \<Delta>2) (\<Delta>1' \<union> \<Delta>2') ini l end \<Longrightarrow> \<Delta>1 \<inter> \<Delta>2 = {} \<Longrightarrow> \<Delta>1' \<inter> \<Delta>2' = {} \<Longrightarrow> \<forall>p \<sigma>. (ini, \<sigma>, p) \<notin> \<Delta>2 \<Longrightarrow> \<forall>p. (p, ini) \<notin> \<Delta>2' \<Longrightarrow> ini \<noteq> end 
-      \<Longrightarrow> \<forall>(p, \<sigma>, q) \<in> \<Delta>1. (q, m) \<notin> \<Delta>2' \<Longrightarrow> \<forall>p  \<sigma>  q \<sigma>1 m. (p, \<sigma>, q) \<in> \<Delta>1 \<and> (q, \<sigma>1, m) \<notin> \<Delta>2  \<Longrightarrow> \<Delta>1 \<noteq> {} \<Longrightarrow> \<Delta>2 \<noteq> {} \<Longrightarrow> \<Delta>1' \<noteq> {} \<and> \<Delta>2' \<noteq> {} \<Longrightarrow> l \<noteq> [] \<Longrightarrow> (ini, \<sigma> ,p) \<in> \<Delta>1 \<or> (ini, p) \<in> \<Delta>1'\<Longrightarrow>LTS_is_reachable \<Delta>1 \<Delta>1' ini l end"
+lemma removeExtraTrans3: "LTS_is_reachable (\<Delta>1 \<union> \<Delta>2) (\<Delta>1' \<union> \<Delta>2') ini l end \<Longrightarrow> \<Delta>1 \<noteq> \<Delta>2 \<Longrightarrow> \<Delta>1' \<noteq> \<Delta>2' \<Longrightarrow> 
+      \<forall>p q m \<sigma> \<sigma>'. (p, \<sigma>, q) \<in> \<Delta>1 \<and> (q, \<sigma>, m) \<notin> \<Delta>2  \<Longrightarrow> \<forall>p. (ini, p) \<notin> \<Delta>2' \<Longrightarrow> \<forall>\<sigma> p. (ini, \<sigma>, p) \<notin> \<Delta>1 
+      \<Longrightarrow>  LTS_is_reachable \<Delta>1 \<Delta>1' ini l end"
     proof (induction rule: LTS_is_reachable.induct)
       case (LTS_Empty q)
-      then show ?case apply auto done
+      then show ?case by auto
     next
       case (LTS_Step1 q q'' l q')
       then show ?case 
-        by (metis equals0I old.prod.exhaust)
+        by presburger
     next
       case (LTS_Step2 a \<sigma> q q'' w q')
-      then show ?case apply auto done
+      then show ?case by auto
     qed
 
 
@@ -98,10 +99,6 @@ next
   case (LTS_Step2 a \<sigma> q q'' w q')
   then show ?case by auto
 qed
-
-
-lemma try1: "LTS_is_reachable  \<Delta> \<Delta>' q l q' \<Longrightarrow>  LTS_is_reachable  \<Delta> (\<Delta>' \<union> a ) q l q'"
-  by (metis subLTSlemma sup.idem)
 
 lemma DeltLTSlemma2:"\<exists>l. LTS_is_reachable \<Delta> \<Delta>' q l q' \<Longrightarrow> \<exists>l. LTS_is_reachable ({(f q a, va, f q' a)| q va q'. (q, va, q') \<in> \<Delta>}) ({(f q a, f q' a)| q q'. (q, q') \<in> \<Delta>'}) (f q a) l (f q' a)"
   apply(rule exE) apply auto subgoal for la  proof -
