@@ -29,29 +29,6 @@ inductive LTS_is_reachable :: "('q, 'a) LTS \<Rightarrow>  ('q * 'q) set \<Right
 thm LTS_is_reachable.cases 
 thm LTS_is_reachable.induct
 
-lemma removeExtraConstrans: "LTS_is_reachable \<Delta> (insert (e1, e2) \<Delta>') ini l end \<Longrightarrow> \<forall>q \<sigma>. (q, \<sigma>, e1) \<notin> \<Delta> \<Longrightarrow> \<forall>q. (q, e1) \<notin> \<Delta>' \<Longrightarrow> ini \<noteq> e1 \<Longrightarrow> LTS_is_reachable \<Delta> \<Delta>' ini l end"
-  proof (induction rule: LTS_is_reachable.induct)
-    case (LTS_Empty q)
-    then show ?case by auto
-  next
-    case (LTS_Step1 q q'' l q')
-    then show ?case 
-      by (metis LTS_is_reachable.LTS_Step1 insert_iff prod.inject)
-  next
-    case (LTS_Step2 a \<sigma> q q'' w q')
-    then show ?case by auto
-  qed
-
-lemma removeExtraTrans1: "LTS_is_reachable (\<Delta>1 \<union> \<Delta>2) (\<Delta>1' \<union> \<Delta>2') ini l end \<Longrightarrow> \<Delta>1 = \<Delta>2 \<Longrightarrow> \<Delta>1' = \<Delta>2' \<Longrightarrow> LTS_is_reachable \<Delta>1 \<Delta>1' ini l end "
-  by simp
-
-lemma removeExtraTrans2: "LTS_is_reachable (\<Delta>1 \<union> \<Delta>2) (\<Delta>1' \<union> \<Delta>2') ini l end \<Longrightarrow> \<Delta>1 \<noteq> \<Delta>2 \<Longrightarrow> \<Delta>1' = \<Delta>2' \<Longrightarrow> LTS_is_reachable (\<Delta>1 \<union> \<Delta>2) \<Delta>1' ini l end "
-  by simp
-
-lemma removeExtraTrans3: "LTS_is_reachable (\<Delta>1 \<union> \<Delta>2) (\<Delta>1' \<union> \<Delta>2') ini l end \<Longrightarrow> \<Delta>1 \<noteq> \<Delta>2 \<Longrightarrow> \<Delta>1' \<noteq> \<Delta>2' \<Longrightarrow> LTS_is_reachable (\<Delta>1 \<union> \<Delta>2) \<Delta>1' ini l end "
-  sorry
-
-
 lemma Delta1Empty: "LTS_is_reachable d1 d2 p l q \<Longrightarrow> d1 =  {} \<Longrightarrow> l = []"
   by (induction rule: LTS_is_reachable.induct) auto 
 
@@ -73,7 +50,6 @@ lemma subLTSlemma:"LTS_is_reachable \<Delta> \<Delta>' q x y \<Longrightarrow> L
 lemma subLTSlemma1:"LTS_is_reachable \<Delta> \<Delta>' q x y \<Longrightarrow> LTS_is_reachable (\<Delta> \<union> {(f q a, va, f q' a)|q va q'. (q,va,q') \<in> \<Delta>}) (\<Delta>' \<union> l1) q x y"
   by (simp add: subLTSlemma)
 
-
 lemma DeltLTSlemma1:"LTS_is_reachable \<Delta> \<Delta>' q l q' \<Longrightarrow> LTS_is_reachable ({(f q a, va, f q' a)| q va q'. (q, va, q') \<in> \<Delta>}) ({(f q a, f q' a)| q q'. (q, q') \<in> \<Delta>'}) (f q a) l (f q' a)"
 proof (induction rule: LTS_is_reachable.induct)
   case (LTS_Empty q)
@@ -90,6 +66,7 @@ qed
 
 lemma try1: "LTS_is_reachable  \<Delta> \<Delta>' q l q' \<Longrightarrow>  LTS_is_reachable  \<Delta> (\<Delta>' \<union> a ) q l q'"
   by (metis subLTSlemma sup.idem)
+
 
 lemma DeltLTSlemma2:"\<exists>l. LTS_is_reachable \<Delta> \<Delta>' q l q' \<Longrightarrow> \<exists>l. LTS_is_reachable ({(f q a, va, f q' a)| q va q'. (q, va, q') \<in> \<Delta>}) ({(f q a, f q' a)| q q'. (q, q') \<in> \<Delta>'}) (f q a) l (f q' a)"
   apply(rule exE) apply auto subgoal for la  proof -
