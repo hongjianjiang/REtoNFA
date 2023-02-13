@@ -26,13 +26,9 @@ inductive LTS_is_reachable :: "('q, 'a) LTS \<Rightarrow>  ('q * 'q) set \<Right
   LTS_Step2[intro!]: "LTS_is_reachable \<Delta> \<Delta>' q (a # w) q'" if "a \<in> \<sigma>" and "(q, \<sigma>, q'') \<in> \<Delta>" and "LTS_is_reachable \<Delta> \<Delta>' q'' w q'"
 
 
-thm LTS_is_reachable.cases 
-thm LTS_is_reachable.induct
-
 lemma Delta1Empty: "LTS_is_reachable d1 d2 p l q \<Longrightarrow> d1 =  {} \<Longrightarrow> l = []"
   by (induction rule: LTS_is_reachable.induct) auto 
 
-  
 
 lemma subLTSlemma:"LTS_is_reachable \<Delta> \<Delta>' q x y \<Longrightarrow> LTS_is_reachable ( \<Delta> \<union> l1) (\<Delta>' \<union> l2) q x y"
   proof (induction rule: LTS_is_reachable.induct)
@@ -46,9 +42,11 @@ lemma subLTSlemma:"LTS_is_reachable \<Delta> \<Delta>' q x y \<Longrightarrow> L
     case (LTS_Step2 a \<sigma> q q'' w q')
     then show ?case by auto
   qed
- 
+
+
 lemma subLTSlemma1:"LTS_is_reachable \<Delta> \<Delta>' q x y \<Longrightarrow> LTS_is_reachable (\<Delta> \<union> {(f q a, va, f q' a)|q va q'. (q,va,q') \<in> \<Delta>}) (\<Delta>' \<union> l1) q x y"
   by (simp add: subLTSlemma)
+
 
 lemma DeltLTSlemma1:"LTS_is_reachable \<Delta> \<Delta>' q l q' \<Longrightarrow> LTS_is_reachable ({(f q a, va, f q' a)| q va q'. (q, va, q') \<in> \<Delta>}) ({(f q a, f q' a)| q q'. (q, q') \<in> \<Delta>'}) (f q a) l (f q' a)"
 proof (induction rule: LTS_is_reachable.induct)
@@ -67,6 +65,7 @@ qed
 lemma try1: "LTS_is_reachable  \<Delta> \<Delta>' q l q' \<Longrightarrow>  LTS_is_reachable  \<Delta> (\<Delta>' \<union> a ) q l q'"
   by (metis subLTSlemma sup.idem)
 
+
 lemma DeltLTSlemma2:"\<exists>l. LTS_is_reachable \<Delta> \<Delta>' q l q' \<Longrightarrow> \<exists>l. LTS_is_reachable ({(f q a, va, f q' a)| q va q'. (q, va, q') \<in> \<Delta>}) ({(f q a, f q' a)| q q'. (q, q') \<in> \<Delta>'}) (f q a) l (f q' a)"
   apply(rule exE) apply auto subgoal for la  proof -
     assume "LTS_is_reachable \<Delta> \<Delta>' q la q'" 
@@ -79,10 +78,10 @@ lemma DeltLTSlemma2:"\<exists>l. LTS_is_reachable \<Delta> \<Delta>' q l q' \<Lo
       done
     then show ?thesis by auto
   qed
-  done
+done
  
 
-lemma joinLTSlemma:"LTS_is_reachable  \<Delta> \<Delta>' q x p \<Longrightarrow>  LTS_is_reachable  \<Delta> \<Delta>' p y q''\<Longrightarrow> LTS_is_reachable  \<Delta> \<Delta>' q (x@y) q''"
+lemma joinLTSlemma:"LTS_is_reachable  \<Delta> \<Delta>' q x p \<Longrightarrow>  LTS_is_reachable  \<Delta> \<Delta>' p y q''\<Longrightarrow> LTS_is_reachable  \<Delta> \<Delta>' q (x @ y) q''"
 proof (induction rule: LTS_is_reachable.induct)
 case (LTS_Empty q)
 then show ?case by auto
@@ -94,6 +93,9 @@ next
   then show ?case by auto
 qed
 
-lemma joinLTSlemma1:"\<exists>x. LTS_is_reachable  \<Delta> \<Delta>' q x p \<Longrightarrow>  \<exists>y. LTS_is_reachable  \<Delta> \<Delta>' p y q''\<Longrightarrow> \<exists>x y. LTS_is_reachable  \<Delta> \<Delta>' q (x@y) q''"
+
+lemma joinLTSlemma1:"\<exists>x. LTS_is_reachable  \<Delta> \<Delta>' q x p \<Longrightarrow>  \<exists>y. LTS_is_reachable  \<Delta> \<Delta>' p y q''\<Longrightarrow> \<exists>x y. LTS_is_reachable  \<Delta> \<Delta>' q (x @ y) q''"
   by (meson joinLTSlemma)     
+
+
 end
