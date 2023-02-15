@@ -239,12 +239,12 @@ lemma alterNotExistsInTrans4:"∀q. (q, Alter r1 r2) ∉ snd (trans2LTS r1 v) �
   apply (simp add: alterNotExistsInTrans2)
   by (simp add: alterNotExistsInTrans21)  
 
-lemma trans1NotEqual: "r1 ≠ r2 \<Longrightarrow> fst (trans2LTS r1 v) ≠ fst (trans2LTS r2 v)" 
+(*lemma trans1NotEqual: "r1 ≠ r2 \<Longrightarrow> fst (trans2LTS r1 v) ≠ fst (trans2LTS r2 v)" 
   sorry
 
 lemma trans2NotEqual: "r1 ≠ r2 \<Longrightarrow> snd (trans2LTS r1 v) ≠ snd (trans2LTS r2 v)" 
   sorry
-
+*)
 theorem uniqueInitalState: "\<I> (reg2nfa r v) = {r}"
   apply (induct r)
   by auto
@@ -308,8 +308,21 @@ next
       assume a1:"∀q∈reg2q r1 v. sem_reg q v = {w. LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q w ε}" and 
              a2:"q ∈ reg2q r1 v" and 
              a3:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)) (insert (Alter r1 r2, r1) (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)))) q x ε"
-      show "LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q x ε " proof -
-        from a1 a2 a3 have c1:"case r2 of r \<Rightarrow> r1 = r2 \<Longrightarrow> LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q x ε" apply auto proof -
+      show "LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q x ε " proof (cases ‹r1 = r2›)
+        case True
+        then show ?thesis apply auto proof -
+          assume e1:"r1 = r2"
+          from e1 a3 have c1:"LTS_is_reachable (fst (trans2LTS r1 v)) (insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) q x ε" by auto 
+          from a2 have c2:"Alter r1 r2 \<notin> reg2q r1 v" by (simp add: alterNotInTrans1)
+          from c1 c2 show "LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) q x ε" by (metis alterNotExistsInTrans2 alterNotExitsInTrans1 e1 local.a2 removeExtraConstrans)
+        qed
+      next
+        case False
+        then show ?thesis using a1 a2 a3 removeExtraTrans3 
+          assume e1: "r1 ≠ r2" 
+          
+      qed
+        (*from a1 a2 a3 have c1:"case r2 of r \<Rightarrow> r1 = r2 \<Longrightarrow> LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q x ε" apply auto proof -
           assume a11:"LTS_is_reachable (fst (trans2LTS r2 v)) (insert (Alter r2 r2, r2) (snd (trans2LTS r2 v))) q x ε" and a12:"r1 = r2" 
           from a2 a12 have c11:"q ∈ reg2q r2 v" apply auto done
           from c11 have c12:"q ≠ Alter r2 r2" using alterNotInTrans2 by auto
@@ -322,9 +335,8 @@ next
             by (smt (verit, del_insts) alterNotExistsInTrans4 alterNotExitsInTrans3 insertE insert_commute insert_def snd_eqD subLTSlemma sup.right_idem sup_commute)
           from a2 a3 d1 d2 have d3:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v))  (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)) q x ε" using removeExtraConstrans
             by (metis alterNotExistsInTrans4 alterNotExitsInTrans3)
-          from c1 a2 a3 d3 d1 show "LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q x ε" using removeExtraTrans3 apply auto 
-            by (metis (no_types, opaque_lifting) prod.exhaust_sel prod.inject regexp.inject(3) sup_assoc trans1NotEqual trans2LTS.simps(6))
-        qed
+          from c1 a2 a3 d3 d1 show "LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q x ε" sledgehammer using removeExtraTrans3 sledgehammer
+        qed*)
         from c1 c2 show?thesis apply auto done
       qed
     qed

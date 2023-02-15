@@ -42,25 +42,38 @@ lemma removeExtraConstrans: "LTS_is_reachable \<Delta> (insert (e1, e2) \<Delta>
     then show ?case by auto
   qed
 
+
+lemma removeExtraConstrans1: "LTS_is_reachable (insert (e1, \<sigma> e2) \<Delta>)  \<Delta>' ini l end \<Longrightarrow> \<forall>q \<sigma>. (q, \<sigma>, e1) \<notin> \<Delta> \<Longrightarrow> \<forall>q. (q, e1) \<notin> \<Delta>' \<Longrightarrow> ini \<noteq> e1 \<Longrightarrow> LTS_is_reachable \<Delta> \<Delta>' ini l end"
+      proof (induction rule: LTS_is_reachable.induct)
+        case (LTS_Empty q)
+        then show ?case apply auto done
+      next
+        case (LTS_Step1 q q'' l q')
+        then show ?case by (metis LTS_is_reachable.LTS_Step1)
+      next
+        case (LTS_Step2 a \<sigma> q q'' w q')
+        then show ?case apply auto done
+      qed
+
+
 lemma removeExtraTrans1: "LTS_is_reachable (\<Delta>1 \<union> \<Delta>2) (\<Delta>1' \<union> \<Delta>2') ini l end \<Longrightarrow> \<Delta>1 = \<Delta>2 \<Longrightarrow> \<Delta>1' = \<Delta>2' \<Longrightarrow> LTS_is_reachable \<Delta>1 \<Delta>1' ini l end "
   by simp
 
 lemma removeExtraTrans2: "LTS_is_reachable (\<Delta>1 \<union> \<Delta>2) (\<Delta>1' \<union> \<Delta>2') ini l end \<Longrightarrow> \<Delta>1 \<noteq> \<Delta>2 \<Longrightarrow> \<Delta>1' = \<Delta>2' \<Longrightarrow> LTS_is_reachable (\<Delta>1 \<union> \<Delta>2) \<Delta>1' ini l end "
   by simp
 
-lemma removeExtraTrans3: "LTS_is_reachable (\<Delta>1 \<union> \<Delta>2) (\<Delta>1' \<union> \<Delta>2') ini l end \<Longrightarrow> \<Delta>1 \<noteq> \<Delta>2 \<Longrightarrow> \<Delta>1' \<noteq> \<Delta>2' \<Longrightarrow> 
-      \<forall>p q m \<sigma> \<sigma>'. (p, \<sigma>, q) \<in> \<Delta>1 \<and> (q, \<sigma>, m) \<notin> \<Delta>2  \<Longrightarrow> \<forall>p. (ini, p) \<notin> \<Delta>2' \<Longrightarrow> \<forall>\<sigma> p. (ini, \<sigma>, p) \<notin> \<Delta>1 
-      \<Longrightarrow>  LTS_is_reachable \<Delta>1 \<Delta>1' ini l end"
+lemma removeExtraTrans3: "LTS_is_reachable \<Delta>1 (\<Delta>1' \<union> \<Delta>2') ini l end \<Longrightarrow> \<forall>q p \<sigma> n.(q, n) \<in> \<Delta>2' \<and> ((n, \<sigma>, p) \<notin> \<Delta>1 \<or> (n, p) \<notin> \<Delta>1') \<and> \<not> LTS_is_reachable \<Delta>1 \<Delta>2' ini l end
+      \<Longrightarrow> LTS_is_reachable \<Delta>1 \<Delta>1' ini l end" 
     proof (induction rule: LTS_is_reachable.induct)
       case (LTS_Empty q)
-      then show ?case by auto
+      then show ?case apply auto done 
     next
       case (LTS_Step1 q q'' l q')
-      then show ?case 
-        by presburger
+      then show ?case apply auto 
+        by (metis Collect_cong Collect_mem_eq LTS_is_reachable.LTS_Step1 Un_insert_right insertI1 insert_absorb surj_pair)
     next
       case (LTS_Step2 a \<sigma> q q'' w q')
-      then show ?case by auto
+      then show ?case apply auto done
     qed
 
 
