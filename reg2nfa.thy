@@ -245,6 +245,8 @@ lemma alterNotExistsInTrans4:"∀q. (q, Alter r1 r2) ∉ snd (trans2LTS r1 v) �
 lemma trans2NotEqual: "r1 ≠ r2 \<Longrightarrow> snd (trans2LTS r1 v) ≠ snd (trans2LTS r2 v)" 
   sorry
 *)
+
+
 theorem uniqueInitalState: "\<I> (reg2nfa r v) = {r}"
   apply (induct r)
   by auto
@@ -318,10 +320,19 @@ next
         qed
       next
         case False
-        then show ?thesis using a1 a2 a3 removeExtraTrans3 
+        then show ?thesis 
+        proof -
           assume e1: "r1 ≠ r2" 
-          
+          from a2 have c1:"Alter r1 r2 \<notin> reg2q r1 v" by (simp add: alterNotInTrans1)
+          from c1 a2 have c2:"q \<noteq> Alter r1 r2" 
+            by auto
+          from c2 have c3:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v))(snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)) q x ε" 
+            by (metis UnI2 alterNotExistsInTrans4 alterNotExitsInTrans3 insert_iff local.a3 removeExtraConstrans snd_conv trans2LTS.simps(6))
+          from a1 a2 e1 c3 show "LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q x ε"  sorry
+        qed
       qed
+    qed
+    done
         (*from a1 a2 a3 have c1:"case r2 of r \<Rightarrow> r1 = r2 \<Longrightarrow> LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q x ε" apply auto proof -
           assume a11:"LTS_is_reachable (fst (trans2LTS r2 v)) (insert (Alter r2 r2, r2) (snd (trans2LTS r2 v))) q x ε" and a12:"r1 = r2" 
           from a2 a12 have c11:"q ∈ reg2q r2 v" apply auto done
@@ -336,11 +347,11 @@ next
           from a2 a3 d1 d2 have d3:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v))  (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)) q x ε" using removeExtraConstrans
             by (metis alterNotExistsInTrans4 alterNotExitsInTrans3)
           from c1 a2 a3 d3 d1 show "LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q x ε" sledgehammer using removeExtraTrans3 sledgehammer
-        qed*)
+        qed
         from c1 c2 show?thesis apply auto done
       qed
     qed
-    done
+    done*)
   from a2 have sub2:"∀q∈𝒬 (reg2nfa r2 v). sem_reg q v = LQ (reg2nfa (Alter r1 r2) v) q"
     apply(unfold LQ_def NFA_accept_Q_def ) apply auto 
     subgoal for q x by (smt (verit, best) Un_insert_right subLTSlemma sup_commute)
