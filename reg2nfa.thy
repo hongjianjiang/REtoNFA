@@ -62,11 +62,6 @@ primrec trans2LTS :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> ('v regexp \<
     "trans2LTS (Ques r) alp_set = (fst (trans2LTS r alp_set), {(Ques r, \<epsilon>), (Ques r, r)} \<union> 
                                   snd (trans2LTS r alp_set))"
 
-lemma "fst (trans2LTS r v) \<noteq> {} \<Longrightarrow> \<forall> (q, \<sigma>, p) \<in> fst (trans2LTS r v). p \<noteq> (Alter r r1)"
-  apply (induct r)
-  apply auto
-  sorry
-
 primrec reg2q :: "'v regexp \<Rightarrow> 'v set \<Rightarrow>  ('v regexp) set" where
     "reg2q Dot a = {Dot, \<epsilon>}"|
     "reg2q (LChr p) a =  {(LChr p), \<epsilon>}"|
@@ -78,6 +73,9 @@ primrec reg2q :: "'v regexp \<Rightarrow> 'v set \<Rightarrow>  ('v regexp) set"
     "reg2q \<epsilon> a = {\<epsilon>}" |
     "reg2q (Concat r1 r2) a = ConcatRegexp r2 ` reg2q r1 a \<union> reg2q r2 a"
 
+value "reg2q (Concat Dot Dot) {a}"
+
+value "snd (trans2LTS (Concat Dot Dot) {a})"
 
 fun reg2nfa :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> ('v regexp,'v) NFA_rec" where 
     "reg2nfa r a= \<lparr>  \<Q> = reg2q r a,
@@ -125,27 +123,121 @@ lemma AlterR2NotExists: "\<forall>q \<in> reg2q r2 v. (getType q = t_Alter \<and
     subgoal for r1 by auto
     done
 
-
-  
-
-
 lemma alterNotInTrans1: "Alter r1 r2 \<notin> (reg2q r1 v)"
   using AlterR1NotExists getType.simps(6) by blast
 
 lemma alterNotInTrans2: "Alter r1 r2 \<notin> (reg2q r2 v)"
   using AlterR2NotExists getType.simps(6) by blast
 
-lemma alterNotExitsInTrans1:"∀q σ. (q, σ, Alter r2 r2) ∉ fst (trans2LTS r2 v)" 
-  sorry
+lemma t1:"∀(q, σ, p) \<in> fst (trans2LTS r v). p \<in> reg2q r v \<and> q \<in> reg2q r v"
+  apply(induction r)
+  apply auto
+  done
 
-lemma alterNotExistsInTrans2:"∀q. (q, Alter r2 r2) ∉ snd (trans2LTS r2 v)"
-  sorry
+lemma t11:"∀(q, σ, p) \<in> fst (trans2LTS r v). p \<in> reg2q r v \<and> p \<in> reg2q r v"
+  apply(induction r)
+  apply auto
+  done
+
+lemma a2:"\<epsilon> \<in> reg2q r v"
+  apply (induct r)
+  apply auto
+  done
+
+lemma a3:"r \<in> reg2q r v"
+  apply (induct r)
+  apply auto
+  done
+
+lemma t2:"∀(q, p) \<in> snd (trans2LTS r v). q \<in> reg2q r v"
+proof(induction r)
+  case ESet
+  then show ?case apply auto done
+next
+  case (LChr x)
+  then show ?case apply auto done
+next
+  case (Concat r21 r22)
+  then show ?case apply auto by (simp add: a2)
+next
+  case (Alter r21 r22)
+  then show ?case apply auto done
+next
+  case Dot
+  then show ?case apply auto done
+next
+  case (Star r2)
+  then show ?case apply auto by (simp add: a2)
+next
+  case (Ques r2)
+  then show ?case apply auto done
+next
+  case ε
+  then show ?case apply auto done
+qed
+
+lemma t3:"∀(q, p) \<in> snd (trans2LTS r v). p \<in> reg2q r v"
+proof(induction r)
+  case ESet
+  then show ?case apply auto done
+next
+  case (LChr x)
+  then show ?case apply auto done
+next
+  case (Concat r1 r2)
+  then show ?case apply auto 
+    by (simp add: a3)
+next
+  case (Alter r1 r2)
+  then show ?case apply auto  
+     apply (simp add: a3)
+    by (simp add: a3)
+next
+  case Dot
+  then show ?case apply auto done
+next
+  case (Star r)
+  then show ?case apply auto 
+    by (simp add: a3)
+next
+  case (Ques r)
+  then show ?case apply auto 
+     apply (simp add: a2)
+    by (simp add: a3)
+next
+  case ε
+  then show ?case apply auto done
+qed  
+
+lemma t4:"n \<notin> reg2q r v \<Longrightarrow> ∀(q, p) \<in> snd (trans2LTS r v). n \<noteq> q \<and> n \<noteq> p"
+  using t2 t3 by blast
+
+lemma t5:"n \<notin> reg2q r v \<Longrightarrow> ∀(q, σ, p) \<in> fst (trans2LTS r v). n \<noteq> q \<and> n \<noteq> p"
+  using t2 t3 t1 by fastforce
+
+lemma alterNotExitsInTrans1:"∀q σ. (q, σ, Alter r1 r2) ∉ fst (trans2LTS r1 v)" 
+  using alterNotInTrans1 t5
+  by fastforce
+
+lemma alterNotExitsInTrans11:"∀q σ. (q, σ, Alter r1 r2) ∉ fst (trans2LTS r2 v)" 
+  using alterNotInTrans2 t5  by fastforce
+
+lemma alterNotExistsInTrans2:"∀q. (q, Alter r1 r2) ∉ snd (trans2LTS r1 v)"
+  using alterNotInTrans1 t4 apply auto by blast
+
+lemma alterNotExistsInTrans21:"∀q. (q, Alter r1 r2) ∉ snd (trans2LTS r2 v)"
+  using alterNotInTrans2 t4 apply auto by blast
 
 lemma alterNotExitsInTrans3:"∀q σ. (q, σ, Alter r1 r2) ∉ fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)" 
-  sorry
+  using alterNotExitsInTrans1
+  apply auto 
+  apply (simp add: alterNotExitsInTrans1)
+  by (simp add: alterNotExitsInTrans11)
 
 lemma alterNotExistsInTrans4:"∀q. (q, Alter r1 r2) ∉ snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)" 
-  sorry
+  apply auto  
+  apply (simp add: alterNotExistsInTrans2)
+  by (simp add: alterNotExistsInTrans21)  
 
 lemma trans1NotEqual: "r1 ≠ r2 \<Longrightarrow> fst (trans2LTS r1 v) ≠ fst (trans2LTS r2 v)" 
   sorry
@@ -230,7 +322,7 @@ next
             by (smt (verit, del_insts) alterNotExistsInTrans4 alterNotExitsInTrans3 insertE insert_commute insert_def snd_eqD subLTSlemma sup.right_idem sup_commute)
           from a2 a3 d1 d2 have d3:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v))  (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)) q x ε" using removeExtraConstrans
             by (metis alterNotExistsInTrans4 alterNotExitsInTrans3)
-          from c1 a2 a3 d3 d1 show "LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q x ε" using removeExtraTrans3 
+          from c1 a2 a3 d3 d1 show "LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q x ε" using removeExtraTrans3 apply auto 
             by (metis (no_types, opaque_lifting) prod.exhaust_sel prod.inject regexp.inject(3) sup_assoc trans1NotEqual trans2LTS.simps(6))
         qed
         from c1 c2 show?thesis apply auto done
