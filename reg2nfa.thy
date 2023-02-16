@@ -106,8 +106,6 @@ lemma AlterR1NotExists: "\<forall>q \<in> reg2q r1 v. (getType q = t_Alter \<and
     subgoal for r2 apply auto done
     done
 
-
-  
 lemma AlterR2NotExists: "\<forall>q \<in> reg2q r2 v. (getType q = t_Alter \<and> len_reg q \<noteq> len_reg (Alter r1 r2)) \<or> getType q \<noteq> t_Alter"
     apply (induction r2 arbitrary:r1) 
     apply simp apply simp subgoal for r21 r22 r1 apply auto 
@@ -123,8 +121,7 @@ lemma AlterR2NotExists: "\<forall>q \<in> reg2q r2 v. (getType q = t_Alter \<and
     done
 
 
-lemma QuesNotExists: "\<forall>q \<in> reg2q r v. (getType q = t_Ques \<and> len_reg q < len_reg (Ques r)) \<or> getType q \<noteq> t_Ques" 
-  apply(induction r) apply auto done
+lemma QuesNotExists: "\<forall>q \<in> reg2q r v. (getType q = t_Ques \<and> len_reg q < len_reg (Ques r)) \<or> getType q \<noteq> t_Ques"   by (induction r) auto 
 
 lemma quesNotInQ: "Ques r \<notin> (reg2q r v)"
   using QuesNotExists using getType.simps(8) by blast
@@ -134,6 +131,22 @@ lemma alterNotInTrans1: "Alter r1 r2 \<notin> (reg2q r1 v)"
 
 lemma alterNotInTrans2: "Alter r1 r2 \<notin> (reg2q r2 v)"
   using AlterR2NotExists getType.simps(6) by blast
+
+
+lemma noSameEndNodeInTrans:"∀σ. (\<epsilon>, σ, \<epsilon>) ∉ fst (trans2LTS r v)"
+  by (induction r) auto 
+
+lemma noSameNodeInTransAux: "q \<notin> reg2q r v \<Longrightarrow> ∀σ. (q, σ, q)  ∉ fst (trans2LTS r v)"
+  sorry
+
+lemma noSameStartNodeInTrans: "∀σ. (Ques r, σ, Ques r)  ∉ fst (trans2LTS r v)"
+  by (simp add: noSameNodeInTransAux quesNotInQ)
+
+
+
+lemma noSameEndNodeInTrans1:"∀σ p. (\<epsilon>, σ, p) ∉ fst (trans2LTS r v)"
+  by(induction r) auto
+
 
 lemma t1:"∀(q, σ, p) \<in> fst (trans2LTS r v). p \<in> reg2q r v \<and> q \<in> reg2q r v"  by (induct r) auto
 
@@ -223,18 +236,13 @@ lemma alterNotExistsInTrans22:"∀q. (Alter r1 r2, q) ∉ snd (trans2LTS r1 v)" 
 
 lemma alterNotExistsInTrans21:"∀q. (q, Alter r1 r2) ∉ snd (trans2LTS r2 v)" using alterNotInTrans2 t4 apply auto by blast
 
-
 lemma alterNotExistsInTrans23:"∀q. (Alter r1 r2, q) ∉ snd (trans2LTS r2 v)" using alterNotInTrans2 t4 apply auto by blast
-
 
 lemma alterNotExitsInTrans3:"∀q σ. (q, σ, Alter r1 r2) ∉ fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)"   using alterNotExitsInTrans1  by (simp add: alterNotExitsInTrans11)
 
-lemma alterNotExistsInTrans4:"∀q. (q, Alter r1 r2) ∉ snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)" 
-  apply (simp add: alterNotExistsInTrans2) by (simp add: alterNotExistsInTrans21)  
+lemma alterNotExistsInTrans4:"∀q. (q, Alter r1 r2) ∉ snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)"   apply (simp add: alterNotExistsInTrans2) by (simp add: alterNotExistsInTrans21)  
 
-
-lemma QuesNotExistsInTrans1: "\<forall>(q, \<sigma>, p) \<in> fst (trans2LTS r v). q \<noteq> Ques r"
-  using quesNotInQ t1 by fastforce
+lemma QuesNotExistsInTrans1: "\<forall>(q, \<sigma>, p) \<in> fst (trans2LTS r v). q \<noteq> Ques r"  using quesNotInQ t1 by fastforce
 
 lemma QuesNotExistsInTrans2: "\<forall>(q, p) \<in> snd (trans2LTS r v). q \<noteq> Ques r" using quesNotInQ t2 by blast
 
@@ -242,17 +250,16 @@ lemma QuesNotExistsInTrans3: "\<forall>(q, \<sigma>, p) \<in> fst (trans2LTS r v
 
 lemma QuesNotExistsInTrans4: "\<forall>(q, p) \<in> snd (trans2LTS r v). p \<noteq> Ques r"  using quesNotInQ t3 by fastforce
 
-
 lemma QuesNotExistsInTrans5: "\<forall>p. (p, Ques r)\<notin> snd (trans2LTS r v)"  using quesNotInQ t3 by fastforce
 
 lemma QuesNotExistsInTrans6: "\<forall>(q, \<sigma>, p) \<in> fst (trans2LTS r v). p \<noteq> Ques r \<Longrightarrow> \<forall>p \<sigma>. (p, \<sigma>, Ques r)\<notin> fst (trans2LTS r v)" apply auto done
-
 
 lemma trans1NotEqual: "r1 ≠ r2 \<Longrightarrow> fst (trans2LTS r1 v) ≠ fst (trans2LTS r2 v)" 
   sorry
 
 lemma trans2NotEqual: "r1 ≠ r2 \<Longrightarrow> snd (trans2LTS r1 v) ≠ snd (trans2LTS r2 v)" 
   sorry
+
 
 theorem uniqueInitalState: "\<I> (reg2nfa r v) = {r}"
   apply (induct r)
@@ -445,6 +452,7 @@ next
 next
   case (Star r)
   then show ?case sorry
+      
 next
   case (Ques r)
   then show ?case unfolding LQ_def NFA_accept_Q_def apply auto
@@ -474,9 +482,11 @@ next
         proof - 
           assume a1: "x = a # list"
           from a1 have c1:"x \<noteq> []" apply auto done
-          from c1 a4 have c2: "LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, r) (snd (trans2LTS r v))) (Ques r) x ε" 
+          assume tmp :"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, ε) (snd (trans2LTS r v))) (Ques r) x ε"
+          from tmp c1 noSameEndNodeInTrans noSameStartNodeInTrans noSameEndNodeInTrans1 removeFromAtoEndTrans 
+          have c2: "LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) (Ques r) x ε" 
             sorry
-          from c2 have c3:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, r) (snd (trans2LTS r v))) r x ε" by(simp add:insertHeadofTrans2None2 QuesNotExistsInTrans1 QuesNotExistsInTrans2) 
+            from c2 have c3:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, r) (snd (trans2LTS r v))) r x ε" by(simp add:insertHeadofTrans2None2 QuesNotExistsInTrans1 QuesNotExistsInTrans2)
           from c3 have c4:"LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε" by(simp add:insertHeadofTrans2None3 QuesNotExistsInTrans1 QuesNotExistsInTrans2 QuesNotExistsInTrans3 QuesNotExistsInTrans4) 
           from a3 a2 have c5:"\<not>LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε" by (simp add: reg2nfa.a3)
           from c4 c5 have c6:"False" apply auto done
