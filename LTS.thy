@@ -77,11 +77,9 @@ lemma removeExtraTrans3: "LTS_is_reachable \<Delta>1 (\<Delta>1' \<union> \<Delt
     qed
 
 
-
 lemma Delta1Empty: "LTS_is_reachable d1 d2 p l q \<Longrightarrow> d1 =  {} \<Longrightarrow> l = []"
   by (induction rule: LTS_is_reachable.induct) auto 
 
-  
 
 lemma subLTSlemma:"LTS_is_reachable \<Delta> \<Delta>' q x y \<Longrightarrow> LTS_is_reachable ( \<Delta> \<union> l1) (\<Delta>' \<union> l2) q x y"
   proof (induction rule: LTS_is_reachable.induct)
@@ -142,4 +140,35 @@ qed
 
 lemma joinLTSlemma1:"\<exists>x. LTS_is_reachable  \<Delta> \<Delta>' q x p \<Longrightarrow>  \<exists>y. LTS_is_reachable  \<Delta> \<Delta>' p y q''\<Longrightarrow> \<exists>x y. LTS_is_reachable  \<Delta> \<Delta>' q (x@y) q''"
   by (meson joinLTSlemma)     
+
+
+lemma insertHeadofTrans2:"LTS_is_reachable d1 d2 p l q \<Longrightarrow> LTS_is_reachable d1 (insert (n, p) d2) n l q"
+  by (metis LTS_Step1 Un_insert_right insertI1 subLTSlemma sup.idem)
+
+lemma insertHeadofTrans2None:"LTS_is_reachable d1 d2 p l q \<Longrightarrow> LTS_is_reachable d1 (insert (p, q) d2) p  l q"
+  by (metis Un_insert_right subLTSlemma sup.idem)
+
+lemma insertHeadofTrans2None1:"LTS_is_reachable d1 d2 ini l end \<Longrightarrow> LTS_is_reachable d1 (insert (p, q) d2) ini  l end"
+  by (metis Un_insert_right subLTSlemma sup.idem)
+
+lemma insertHeadofTrans2None2:"LTS_is_reachable d1 (insert (r1, r2) d2) r1 l end \<Longrightarrow> \<forall>(p, \<sigma>, q) \<in> d1. p \<noteq> r1 \<Longrightarrow> \<forall>(p, q) \<in> d2. p \<noteq> r1 \<Longrightarrow> r1 \<noteq> end \<Longrightarrow> LTS_is_reachable d1 (insert (r1, r2) d2) r2 l end"
+proof (induction rule: LTS_is_reachable.induct)
+  case (LTS_Empty q)
+  then show ?case apply fastforce done
+next
+  case (LTS_Step1 q q'' l q')
+  then show ?case 
+    by fastforce
+next
+  case (LTS_Step2 a \<sigma> q q'' w q')
+  then show ?case apply auto done
+qed
+
+lemma removeFromAtoEndTrans:"LTS_is_reachable d1 (insert (r1, end) d2) ini l end \<Longrightarrow> l \<noteq> [] \<Longrightarrow> \<forall>(p, \<sigma>, q) \<in> d1. p \<noteq> r1 \<Longrightarrow>  \<forall>(p, \<sigma>, q) \<in> d1. q \<noteq> r1 \<Longrightarrow>
+ \<forall>(p, q) \<in> d2. p \<noteq> r1 \<Longrightarrow> \<forall>(p, q) \<in> d2. q \<noteq> r1 \<Longrightarrow>  \<forall>(p, \<sigma>, q) \<in> d1. p \<noteq> r1 \<and> q \<noteq> end \<Longrightarrow> \<forall>(p, q) \<in> d2. (p = end \<and> q = end) \<or> p \<noteq> end \<Longrightarrow>  LTS_is_reachable d1 d2 ini l end"
+  sorry
+
+lemma insertHeadofTrans2None3:"LTS_is_reachable d1 (insert (r1, ini) d2) ini l end \<Longrightarrow> \<forall>(p, \<sigma>, q) \<in> d1. p \<noteq> r1 \<Longrightarrow>  \<forall>(p, \<sigma>, q) \<in> d1. q \<noteq> r1 \<Longrightarrow> \<forall>(p, q) \<in> d2. p \<noteq> r1 \<Longrightarrow> \<forall>(p, q) \<in> d2. q \<noteq> r1 \<Longrightarrow> r1 \<noteq> end \<Longrightarrow> LTS_is_reachable d1 d2 ini l end"
+  sorry
+
 end
