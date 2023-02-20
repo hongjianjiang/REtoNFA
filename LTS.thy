@@ -38,7 +38,8 @@ lemma removeExtraConstrans: "LTS_is_reachable \<Delta> (insert (e1, e2) \<Delta>
     then show ?case by auto
   qed
 
-
+lemma "\<not> LTS_is_reachable \<Delta> \<Delta>' ini l end\<Longrightarrow> \<not> LTS_is_reachable \<Delta>1 \<Delta>1' ini l end \<Longrightarrow> \<forall>(q, \<sigma>, p) \<in> \<Delta>. q \<noteq> ini \<Longrightarrow> \<forall>(q, \<sigma>, p) \<in> \<Delta>1. q \<noteq> ini \<Longrightarrow> \<forall>(q, p) \<in> \<Delta>'. q = end \<longrightarrow> p = end \<Longrightarrow> \<forall>(q, p) \<in> \<Delta>1'. q = end \<longrightarrow> p = end \<Longrightarrow> \<not> LTS_is_reachable (\<Delta> \<union> \<Delta>1) (\<Delta>' \<union> \<Delta>1') ini l end"
+  nitpick
 
 
 lemma removeExtraConstrans1: "LTS_is_reachable (insert (e1, \<sigma> e2) \<Delta>)  \<Delta>' ini l end \<Longrightarrow> \<forall>q \<sigma>. (q, \<sigma>, e1) \<notin> \<Delta> \<Longrightarrow> \<forall>q. (q, e1) \<notin> \<Delta>' \<Longrightarrow> ini \<noteq> e1 \<Longrightarrow> LTS_is_reachable \<Delta> \<Delta>' ini l end"
