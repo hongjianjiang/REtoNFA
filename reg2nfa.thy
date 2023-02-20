@@ -133,19 +133,13 @@ lemma alterNotInTrans2: "Alter r1 r2 \<notin> (reg2q r2 v)"
   using AlterR2NotExists getType.simps(6) by blast
 
 
-lemma noSameEndNodeInTrans:"∀σ. (\<epsilon>, σ, \<epsilon>) ∉ fst (trans2LTS r v)"
-  by (induction r) auto 
+lemma noStartInSecond:"∀p σ. (p, σ, Ques r) ∉ fst (trans2LTS r v)" sorry
 
-lemma noSameNodeInTransAux: "q \<notin> reg2q r v \<Longrightarrow> ∀σ. (q, σ, q)  ∉ fst (trans2LTS r v)"
-  sorry
+lemma noEndInFirst:"∀σ p. (\<epsilon>, σ, p) ∉ fst (trans2LTS r v)" apply(induction r) by auto 
 
-lemma noSameStartNodeInTrans: "∀σ. (Ques r, σ, Ques r)  ∉ fst (trans2LTS r v)"
-  by (simp add: noSameNodeInTransAux quesNotInQ)
+lemma noStartInSecond1 :"∀p. (p, Ques r) ∉ snd (trans2LTS r v)" sorry
 
-
-
-lemma noSameEndNodeInTrans1:"∀σ p. (\<epsilon>, σ, p) ∉ fst (trans2LTS r v)"
-  by(induction r) auto
+lemma noEndInFirst1:"∀p. (\<epsilon>, p) ∉ snd (trans2LTS r v) ∧ p ≠ \<epsilon>" apply(induction r) apply auto 
 
 
 lemma t1:"∀(q, σ, p) \<in> fst (trans2LTS r v). p \<in> reg2q r v \<and> q \<in> reg2q r v"  by (induct r) auto
@@ -244,7 +238,12 @@ lemma alterNotExistsInTrans4:"∀q. (q, Alter r1 r2) ∉ snd (trans2LTS r1 v) �
 
 lemma QuesNotExistsInTrans1: "\<forall>(q, \<sigma>, p) \<in> fst (trans2LTS r v). q \<noteq> Ques r"  using quesNotInQ t1 by fastforce
 
+lemma QuesNotExistsInTrans11: "\<forall>q \<sigma>. (q, \<sigma>, Ques r) \<notin> fst (trans2LTS r v) "  using quesNotInQ t1 by fastforce
+
 lemma QuesNotExistsInTrans2: "\<forall>(q, p) \<in> snd (trans2LTS r v). q \<noteq> Ques r" using quesNotInQ t2 by blast
+
+lemma QuesNotExistsInTrans21: "\<forall>q p.(q, Ques r)\<notin>  snd (trans2LTS r v)"  by (simp add: noStartInSecond1)
+
 
 lemma QuesNotExistsInTrans3: "\<forall>(q, \<sigma>, p) \<in> fst (trans2LTS r v). p \<noteq> Ques r" using quesNotInQ t11 by fastforce
 
@@ -254,11 +253,9 @@ lemma QuesNotExistsInTrans5: "\<forall>p. (p, Ques r)\<notin> snd (trans2LTS r v
 
 lemma QuesNotExistsInTrans6: "\<forall>(q, \<sigma>, p) \<in> fst (trans2LTS r v). p \<noteq> Ques r \<Longrightarrow> \<forall>p \<sigma>. (p, \<sigma>, Ques r)\<notin> fst (trans2LTS r v)" apply auto done
 
-lemma trans1NotEqual: "r1 ≠ r2 \<Longrightarrow> fst (trans2LTS r1 v) ≠ fst (trans2LTS r2 v)" 
-  sorry
+value "fst (trans2LTS (Alter Dot Dot) {a})"
 
-lemma trans2NotEqual: "r1 ≠ r2 \<Longrightarrow> snd (trans2LTS r1 v) ≠ snd (trans2LTS r2 v)" 
-  sorry
+value "fst (trans2LTS Dot {a})"
 
 
 theorem uniqueInitalState: "\<I> (reg2nfa r v) = {r}"
@@ -268,6 +265,19 @@ theorem uniqueInitalState: "\<I> (reg2nfa r v) = {r}"
 theorem uniqueFinalState:"\<F> (reg2nfa r v) = {\<epsilon>}"
   apply(induct r)
   by auto 
+
+lemma ll1:"\<forall>(q,\<sigma>,p) \<in> fst (trans2LTS r v). q \<noteq> \<epsilon>"
+  apply(induction r)
+         apply auto done
+
+lemma ll2:"\<forall>(q,p) \<in> snd (trans2LTS r v). q = \<epsilon> \<longrightarrow> p = \<epsilon>" 
+  apply(induction r) apply auto done
+
+lemma aux_lemma1 :"LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) ε l q' \<Longrightarrow> q' = \<epsilon>" 
+  using ll1 ll2 apply auto apply(induction rule:LTS_is_reachable.induct) 
+    apply auto 
+  apply (metis (mono_tags, lifting) case_prod_conv) 
+  by blast
 
 theorem tranl_aux:
   fixes r v 
@@ -344,7 +354,7 @@ next
              a2:"q ∈ reg2q r1 v" and 
              a3:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)) (insert (Alter r1 r2, r1) (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)))) q x ε"
       show "LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q x ε " proof (cases ‹r1 = r2›)
-        case True
+     case True
         then show ?thesis apply auto proof -
           assume e1:"r1 = r2"
           from e1 a3 have c1:"LTS_is_reachable (fst (trans2LTS r1 v)) (insert (Alter r1 r2, r1) (snd (trans2LTS r1 v))) q x ε" by auto 
@@ -361,7 +371,8 @@ next
             by auto
           from c2 have c3:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v))(snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)) q x ε" 
             by (metis UnI2 alterNotExistsInTrans4 alterNotExitsInTrans3 insert_iff local.a3 removeExtraConstrans snd_conv trans2LTS.simps(6))
-          from a1 a2 e1 c3 show "LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q x ε"  sorry
+          from a1 a2 e1 c3 show "LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q x ε" 
+            by (metis alterNotInTrans2 fst_conv reg2nfa.a3 sup.idem trans1NotEqual trans2LTS.simps(6))
         qed
       qed
     qed
@@ -423,7 +434,16 @@ next
         from c311 c351 show ?thesis  by (meson LTS_Step1 insert_iff)
       qed
     qed
-    subgoal for x sorry 
+    subgoal for x proof -
+      assume a1:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)) (insert (Alter r1 r2, r1) (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)))) (Alter r1 r2) x ε"
+      have c1:"r1 \<noteq> Alter r1 r2" apply auto done
+      from a1 c1 have c2:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)) (insert (Alter r1 r2, r1) (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)))) r1 x ε" 
+        using alterNotInTrans1 by (metis a3 fst_conv sup.idem trans1NotEqual trans2LTS.simps(6))
+      from c2 have c3:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v)) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)) r1 x ε" by (metis a3 alterNotExistsInTrans4 alterNotExitsInTrans3 alterNotInTrans2 c1 insertE removeExtraConstrans snd_conv)
+      assume a2:"∀q∈reg2q r1 v. sem_reg q v = {w. LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) q w ε}" and a3:"∀q∈reg2q r2 v. sem_reg q v = {w. LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) q w ε}" and a4:"x ∉ sem_reg r2 v"
+      from a3 a4 have c4:"\<not> LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) r2 x ε" by (simp add: reg2nfa.a3)
+      from c3 c4 show ?thesis by (metis alterNotInTrans2 fst_conv reg2nfa.a3 sup.idem trans1NotEqual trans2LTS.simps(6)) 
+    qed
     done
   show ?thesis using  sub1 sub2 sub3 by auto
 qed
@@ -452,7 +472,6 @@ next
 next
   case (Star r)
   then show ?case sorry
-      
 next
   case (Ques r)
   then show ?case unfolding LQ_def NFA_accept_Q_def apply auto
@@ -473,26 +492,35 @@ next
       assume a2:"∀q∈reg2q r v. sem_reg q v = {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) q w ε}"
          and a3:"x ∉ sem_reg r v" 
          and a4:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, ε) (insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) x ε"
-      show "x = []" proof (cases x)
-        case Nil
-        then show ?thesis apply auto done
-      next
-        case (Cons a list)
-        then show ?thesis 
-        proof - 
-          assume a1: "x = a # list"
-          from a1 have c1:"x \<noteq> []" apply auto done
-          assume tmp :"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, ε) (snd (trans2LTS r v))) (Ques r) x ε"
-          from tmp c1 noSameEndNodeInTrans noSameStartNodeInTrans noSameEndNodeInTrans1 removeFromAtoEndTrans 
-          have c2: "LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) (Ques r) x ε" 
-            sorry
-            from c2 have c3:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, r) (snd (trans2LTS r v))) r x ε" by(simp add:insertHeadofTrans2None2 QuesNotExistsInTrans1 QuesNotExistsInTrans2)
-          from c3 have c4:"LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε" by(simp add:insertHeadofTrans2None3 QuesNotExistsInTrans1 QuesNotExistsInTrans2 QuesNotExistsInTrans3 QuesNotExistsInTrans4) 
-          from a3 a2 have c5:"\<not>LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε" by (simp add: reg2nfa.a3)
-          from c4 c5 have c6:"False" apply auto done
-          from c6 show ?thesis apply auto done
+      show "x = []" proof (rule ccontr)
+        assume a1:"x \<noteq> []"
+        from  a4 a1 have c1:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, r) (snd (trans2LTS r v))) (Ques r) x ε" proof (induction rule: LTS_is_reachable.induct)
+          case (LTS_Empty q)
+          then show ?case apply auto done 
+        next
+          case (LTS_Step1 q q'' l q')
+          then show ?case apply auto subgoal proof -
+              assume a1:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, ε) (insert (Ques r, r) (snd (trans2LTS r v)))) ε l q'"
+              from a1 have c1:"LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) ε l q'" by (metis QuesNotExistsInTrans5 insertE noStartInSecond quesNotInQ reg2nfa.a3 regexp.distinct(55) removeExtraConstrans snd_conv)
+              from c1 have c2:"q' = \<epsilon>" by(simp add:aux_lemma1) 
+              from c1 c2 have c3:"l= []"  by (metis empty_iff insertE local.a2 mem_Collect_eq reg2nfa.a2 sem_reg.simps(8))
+              assume a2:"l \<noteq>[]"
+              from a2 c3 have "False" by auto
+              then show?thesis by auto
+            qed
+            subgoal by (metis QuesNotExistsInTrans5 insertE insertHeadofTrans2 noStartInSecond old.prod.inject removeExtraConstrans)
+            subgoal by (smt (verit) LTS_is_reachable.LTS_Step1 QuesNotExistsInTrans5 insertE insertHeadofTrans2None1 noStartInSecond quesNotInQ reg2nfa.a3 removeExtraConstrans snd_conv)
+            done
+        next
+          case (LTS_Step2 a σ q q'' w q')
+          then show ?case apply auto by (metis QuesNotExistsInTrans5 insertE insertHeadofTrans2None1 noStartInSecond quesNotInQ reg2nfa.a3 removeExtraConstrans snd_conv)
         qed
-      qed
+        from c1 have c2:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, r) (snd (trans2LTS r v))) r x ε" using insertHeadofTrans2None2 apply auto  by (simp add: QuesNotExistsInTrans1 QuesNotExistsInTrans2 insertHeadofTrans2None2)
+        have temp : "r \<noteq> Ques r" by auto
+        from c2 temp have c3:"LTS_is_reachable (fst (trans2LTS r v))  (snd (trans2LTS r v)) r x ε" apply(simp add: removeExtraConstrans QuesNotExistsInTrans11 QuesNotExistsInTrans21) done
+        from a2 a3 have c4:"\<not> LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r x ε" by (simp add: reg2nfa.a3)
+        from c3 c4 show "False" by auto
+      qed        
     qed
     subgoal for q x proof -
       assume a1:" ∀q∈reg2q r v. sem_reg q v = {w. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) q w ε}"

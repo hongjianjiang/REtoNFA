@@ -39,17 +39,19 @@ lemma removeExtraConstrans: "LTS_is_reachable \<Delta> (insert (e1, e2) \<Delta>
   qed
 
 
+
+
 lemma removeExtraConstrans1: "LTS_is_reachable (insert (e1, \<sigma> e2) \<Delta>)  \<Delta>' ini l end \<Longrightarrow> \<forall>q \<sigma>. (q, \<sigma>, e1) \<notin> \<Delta> \<Longrightarrow> \<forall>q. (q, e1) \<notin> \<Delta>' \<Longrightarrow> ini \<noteq> e1 \<Longrightarrow> LTS_is_reachable \<Delta> \<Delta>' ini l end"
-      proof (induction rule: LTS_is_reachable.induct)
-        case (LTS_Empty q)
-        then show ?case apply auto done
-      next
-        case (LTS_Step1 q q'' l q')
-        then show ?case by (metis LTS_is_reachable.LTS_Step1)
-      next
-        case (LTS_Step2 a \<sigma> q q'' w q')
-        then show ?case apply auto done
-      qed
+  proof (induction rule: LTS_is_reachable.induct)
+    case (LTS_Empty q)
+    then show ?case apply auto done
+  next
+    case (LTS_Step1 q q'' l q')
+    then show ?case by (metis LTS_is_reachable.LTS_Step1)
+  next
+    case (LTS_Step2 a \<sigma> q q'' w q')
+    then show ?case apply auto done
+  qed
 
 
 lemma removeExtraTrans1: "LTS_is_reachable (\<Delta>1 \<union> \<Delta>2) (\<Delta>1' \<union> \<Delta>2') ini l end \<Longrightarrow> \<Delta>1 = \<Delta>2 \<Longrightarrow> \<Delta>1' = \<Delta>2' \<Longrightarrow> LTS_is_reachable \<Delta>1 \<Delta>1' ini l end "
@@ -159,14 +161,4 @@ next
   case (LTS_Step2 a \<sigma> q q'' w q')
   then show ?case apply auto done
 qed
-
-lemma removeFromAtoEndTrans:"LTS_is_reachable d1 (insert (ini, end) d2) ini l end \<Longrightarrow> l \<noteq> [] \<Longrightarrow> \<forall>\<sigma>. (end, \<sigma>, end) \<notin> d1  \<Longrightarrow>  \<forall>p \<sigma>. (p, \<sigma>, ini) \<notin> d1 \<Longrightarrow> \<forall>\<sigma> p. (end, \<sigma>, p) \<notin>  d1 
-\<Longrightarrow>  \<forall>p. (p, ini) \<notin> d2 \<Longrightarrow> \<forall>p. (end, p) \<notin> d2 \<and> p \<noteq> end \<Longrightarrow>  
-    LTS_is_reachable d1 d2 ini l end"
-  nitpick
-
-lemma insertHeadofTrans2None3:"LTS_is_reachable d1 (insert (r1, ini) d2) ini l end \<Longrightarrow> \<forall>(p, \<sigma>, q) \<in> d1. p \<noteq> r1 \<Longrightarrow>  \<forall>(p, \<sigma>, q) \<in> d1. q \<noteq> r1 \<Longrightarrow> \<forall>(p, q) \<in> d2. p \<noteq> r1 \<Longrightarrow> \<forall>(p, q) \<in> d2. q \<noteq> r1 \<Longrightarrow> r1 \<noteq> end \<Longrightarrow> LTS_is_reachable d1 d2 ini l end"
-  sorry
-
-
 end
