@@ -276,6 +276,9 @@ lemma aux_lemma1 :"LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) 
   apply (metis (mono_tags, lifting) case_prod_conv) 
   by blast
 
+lemma "LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) ε x ε \<Longrightarrow> x = []"
+  sorry
+
 theorem tranl_aux:
   fixes r v 
   shows "\<forall>q \<in> \<Q> (reg2nfa r v).sem_reg q v = LQ (reg2nfa r v) q"
@@ -471,6 +474,7 @@ next
   subgoal for x sorry
   subgoal for q qa p sorry
   subgoal for q x sorry
+  done 
 next
   case (Ques r)
   then show ?case unfolding LQ_def NFA_accept_Q_def apply auto
