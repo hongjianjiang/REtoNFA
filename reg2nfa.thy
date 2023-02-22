@@ -412,10 +412,10 @@ theorem Soundness_Proof :
   shows " \<forall> q \<in> \<L> (reg2nfa r v). q\<in> sem_reg r v"
 proof(induction r)
   case ESet
-  then show ?case sorry
+  then show ?case apply(unfold \<L>_def NFA_accept_def) apply auto by (simp add: Delta1Empty)
 next
   case (LChr x)
-  then show ?case sorry
+  then show ?case apply(unfold \<L>_def NFA_accept_def) apply auto by (smt (verit, ccfv_SIG) LTS_is_reachable.simps empty_iff old.prod.inject regexp.distinct(25) singletonD)
 next
   case (Concat r1 r2)
   then show ?case sorry
@@ -424,17 +424,36 @@ next
   then show ?case sorry
 next
   case Dot
-  then show ?case sorry
+  then show ?case apply(unfold \<L>_def NFA_accept_def) apply auto  by (smt (verit, best) LTS_is_reachable.simps Pair_inject empty_iff image_eqI regexp.distinct(49) singletonD)
 next
   case (Star r)
   then show ?case sorry
 next
   case (Ques r)
-  then show ?case sorry
+  then show ?case apply(unfold \<L>_def NFA_accept_def) apply auto subgoal for q  proof (rule ccontr) 
+      assume a1:"q ≠ []" and a2:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, ε) (insert (Ques r, r) (snd (trans2LTS r v)))) (Ques r) q ε"
+      have temp : "r \<noteq> Ques r" by auto
+      from a1 a2 have c1:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, r) (snd (trans2LTS r v))) (Ques r) q ε"  by (smt (verit) LTS_is_reachable.simps QuesNotExistsInTrans11 QuesNotExistsInTrans5 Un_insert_left empty_transition insert_iff regexp.distinct(55) removeExtraConstrans snd_conv trans2LTS.simps(8))
+      from c1 have c2:"LTS_is_reachable (fst (trans2LTS r v)) (insert (Ques r, r) (snd (trans2LTS r v))) r q ε" using insertHeadofTrans2None2 apply auto  by (simp add: QuesNotExistsInTrans1 QuesNotExistsInTrans2 insertHeadofTrans2None2)
+      from c2 temp have c3:"LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r q ε" by(simp add: removeExtraConstrans QuesNotExistsInTrans11 QuesNotExistsInTrans21)
+      assume a3:"∀q. LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) r q ε ⟶ q ∈ sem_reg r v" 
+      from a3 c3 have c3:"q ∈ sem_reg r v" by auto
+      assume a4:"q ∉ sem_reg r v" 
+      from c3 a4 show "False" by auto
+    qed
+    done  
 next
   case ε
-  then show ?case sorry
+  then show ?case apply(unfold \<L>_def NFA_accept_def) apply auto by (simp add: Delta1Empty)
 qed
+
+theorem Correctness_Proof : 
+  fixes r v  
+  assumes a:"v \<noteq> {}"
+  shows "\<L> (reg2nfa r v) =  sem_reg r v" 
+  apply auto 
+  apply (simp add: Soundness_Proof assms)
+  by (metis Completeness_Proof assms reg2nfa.simps)
 
 
 theorem tranl_aux:
