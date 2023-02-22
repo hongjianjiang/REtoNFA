@@ -38,14 +38,6 @@ lemma removeExtraConstrans: "LTS_is_reachable \<Delta> (insert (e1, e2) \<Delta>
     then show ?case by auto
   qed
 
-lemma aux1:"LTS_is_reachable \<Delta> \<Delta>' ini [] end \<Longrightarrow> \<forall>(p,q) \<in> \<Delta>'. p = ini \<longrightarrow> q = ini \<Longrightarrow> \<forall>(p,\<sigma>,q) \<in> \<Delta>. p \<noteq> ini \<Longrightarrow> ini = end"
-  apply(induction rule:LTS_is_reachable.induct) apply auto
-  by (metis (mono_tags, lifting) case_prodD)
-
-lemma "LTS_is_reachable \<Delta> \<Delta>' end l end \<Longrightarrow> \<forall>(q, \<sigma>, p) \<in> \<Delta>. q \<noteq> end \<Longrightarrow> \<forall>(q, p) \<in> \<Delta>'. q = end \<longrightarrow> p = end \<Longrightarrow> l = []"
-  nitpick
-
-
 lemma removeExtraConstrans1: "LTS_is_reachable (insert (e1, \<sigma> e2) \<Delta>)  \<Delta>' ini l end \<Longrightarrow> \<forall>q \<sigma>. (q, \<sigma>, e1) \<notin> \<Delta> \<Longrightarrow> \<forall>q. (q, e1) \<notin> \<Delta>' \<Longrightarrow> ini \<noteq> e1 \<Longrightarrow> LTS_is_reachable \<Delta> \<Delta>' ini l end"
   proof (induction rule: LTS_is_reachable.induct)
     case (LTS_Empty q)
