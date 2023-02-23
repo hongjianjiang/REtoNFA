@@ -33,8 +33,10 @@ lemma " LTS_is_reachable {} {} q [] q"
 thm "LTS_is_reachable.induct"
 thm "LTS_is_reachable.simps"
 thm "LTS_is_reachable.cases"
-lemma "LTS_is_reachable \<Delta> \<Delta>' p l p  \<Longrightarrow> \<forall>(n1, \<sigma>, n2) \<in> \<Delta>. n1 \<noteq> p  \<Longrightarrow> \<forall>(n1, n2) \<in> \<Delta>'. n1 \<noteq> p \<Longrightarrow> l = []"
-  sledgehammer
+
+lemma empty_transtion: "LTS_is_reachable \<Delta> \<Delta>' p l p  \<Longrightarrow> \<forall>(n1, \<sigma>, n2) \<in> \<Delta>. n1 \<noteq> p  \<Longrightarrow> \<forall>(n1, n2) \<in> \<Delta>'. n1 \<noteq> p \<Longrightarrow> l = []"
+  using LTS_is_reachable.simps by fastforce
+
 proof(induction rule:LTS_is_reachable.cases)
   case (LTS_Empty q)
   then show ?case apply auto done

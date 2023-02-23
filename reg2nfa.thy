@@ -41,7 +41,7 @@ primrec len_reg :: "'v regexp \<Rightarrow> nat" where
 primrec trans2LTS :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> ('v regexp \<times> 'v set \<times> 'v regexp) set * ('v regexp * 'v regexp) set" where 
     "trans2LTS (LChr v) alp_set= ({(LChr v, {v}, \<epsilon>)}, {})"|
     "trans2LTS (ESet) alp_set= ({}, {(ESet, \<epsilon>)})"|
-    "trans2LTS (\<epsilon>) alp_set = ({}, {(\<epsilon>, \<epsilon>)})"|
+    "trans2LTS (\<epsilon>) alp_set = ({}, {})"|
     "trans2LTS (Dot) alp_set = ({(Dot, alp_set, \<epsilon>)},{})"|
     "trans2LTS (Concat r1 r2) alp_set =(renameDelta1 (fst (trans2LTS r1 alp_set)) (ConcatRegexp r2) \<union> 
                                         (fst (trans2LTS r2 alp_set)),
@@ -256,15 +256,15 @@ lemma noStartInSecond1 :"∀p. (p, Ques r) ∉ snd (trans2LTS r v)" by (simp add
 
 lemma QuesNotExistsInTrans21: "\<forall>q p.(q, Ques r)\<notin>  snd (trans2LTS r v)"  by (simp add: noStartInSecond1)
 
-lemma aux1:"\<nexists> \<sigma> p. ( \<epsilon>, \<sigma>, p) \<in> fst (trans2LTS r v)" 
+lemma aux1:"\<forall>(q, \<sigma>, p) \<in> fst (trans2LTS r v). q \<noteq> \<epsilon>  "
   using noEndInFirst by force
 
-lemma aux2:"\<forall>(q, p) \<in> snd (trans2LTS r v). q=\<epsilon> \<longrightarrow>  p = \<epsilon>"
+lemma aux2:"\<forall>(q, p) \<in> snd (trans2LTS r v). q \<noteq> \<epsilon>  "
   apply(induction r) apply auto done
 
-
-lemma empty_transition: "LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) \<epsilon> x \<epsilon> \<Longrightarrow> x = []"
-sorry
+lemma empty_transition: "LTS_is_reachable (fst (trans2LTS r v)) (snd (trans2LTS r v)) ε l ε \<Longrightarrow> l = []" 
+  by (simp add:empty_transtion aux1 aux2)  
+ 
 
 theorem uniqueInitalState: "\<I> (reg2nfa r v) = {r}"
   apply (induct r)
@@ -406,6 +406,8 @@ next
 qed
 
 
+ 
+
 theorem Soundness_Proof :
   fixes r v  
   assumes a:"v \<noteq> {}"
@@ -418,16 +420,34 @@ next
   then show ?case apply(unfold \<L>_def NFA_accept_def) apply auto by (smt (verit, ccfv_SIG) LTS_is_reachable.simps empty_iff old.prod.inject regexp.distinct(25) singletonD)
 next
   case (Concat r1 r2)
-  then show ?case sorry
+  then show ?case apply(unfold \<L>_def NFA_accept_def) apply auto sorry
 next
   case (Alter r1 r2)
-  then show ?case sorry
+  then show ?case subgoal  apply(unfold \<L>_def NFA_accept_def) apply auto 
+      subgoal for q proof(rule ccontr) 
+        assume a1:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v))
+     (insert (Alter r1 r2, r1) (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v)))) (Alter r1 r2) q ε"
+        from a1 have c1:"LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v))
+     (insert (Alter r1 r2, r1) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v))) (Alter r1 r2) q ε \<or> LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v))
+     (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v))) (Alter r1 r2) q ε"  by (smt (verit) LTS_is_reachable.simps Un_iff alterNotExistsInTrans4 alterNotExitsInTrans3 insert_commute insert_iff old.prod.inject prod.collapse removeExtraConstrans trans2LTS.simps(6))
+        assume a2:"q ∉ sem_reg r2 v" and a3:"∀q. LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) r2 q ε ⟶ q ∈ sem_reg r2 v" 
+        from a2 a3 have c2:"\<not> LTS_is_reachable (fst (trans2LTS r2 v)) (snd (trans2LTS r2 v)) r2 q ε" by auto
+        assume a4:"q ∉ sem_reg r1 v" and a5:"∀q. LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) r1 q ε ⟶ q ∈ sem_reg r1 v"
+        from a4 a5 have c3:"\<not> LTS_is_reachable (fst (trans2LTS r1 v)) (snd (trans2LTS r1 v)) r1 q ε" by auto
+        have c4:"\<not> LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v))
+     (insert (Alter r1 r2, r1) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v))) (Alter r1 r2) q ε" sorry
+        have c5:"\<not> LTS_is_reachable (fst (trans2LTS r1 v) ∪ fst (trans2LTS r2 v))
+     (insert (Alter r1 r2, r2) (snd (trans2LTS r1 v) ∪ snd (trans2LTS r2 v))) (Alter r1 r2) q ε" sorry
+        from c4 c5 c1 show "False" by auto
+      qed
+      done
+    done
 next
   case Dot
   then show ?case apply(unfold \<L>_def NFA_accept_def) apply auto  by (smt (verit, best) LTS_is_reachable.simps Pair_inject empty_iff image_eqI regexp.distinct(49) singletonD)
 next
   case (Star r)
-  then show ?case sorry
+  then show ?case apply(unfold \<L>_def NFA_accept_def) apply auto sorry
 next
   case (Ques r)
   then show ?case apply(unfold \<L>_def NFA_accept_def) apply auto subgoal for q  proof (rule ccontr) 
@@ -454,9 +474,7 @@ theorem Correctness_Proof :
   apply auto 
   apply (simp add: Soundness_Proof assms)
   by (metis Completeness_Proof assms reg2nfa.simps)
-
-
-theorem tranl_aux:
+(*theorem tranl_aux:
   fixes r v 
   shows "\<forall>q \<in> \<Q> (reg2nfa r v).sem_reg q v = LQ (reg2nfa r v) q"
 proof(induction r)
@@ -734,5 +752,5 @@ next
       by (meson Delta1Empty list.discI)
     qed      
    done    
-qed
+qed*)
 end
