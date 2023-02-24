@@ -43,14 +43,12 @@ primrec irev :: "(('v regexp \<times> 'v set \<times> 'v regexp) set * ('v regex
 "irev [] r1 r2= []"|
 "irev (a # ls) r1 r2= (let trans1 = fst a in let trans2 = snd a in [(trans1,(insert (r1, r2) trans2))]) @ irev ls r1 r2"
 
+fun f :: "'v list \<Rightarrow> 'v list\<Rightarrow> ('v * 'v) list" where
+"f [] ys = []"|
+"f xs [] = []"|
+"f (x#xs) (y#ys) = [(x, y)] @ f (x#xs) ys" 
 
- 
-primrec irev1 :: "'v list \<Rightarrow> 'v list \<Rightarrow> 'v regexp \<Rightarrow> 'v list" where
-  "irev1 [] ys r = []"
-| "irev1 xs [] r = xs"
-| "irev1 (x # xs) (y # ys) r  = [x,y] @  irev1 (x #xs) (ys) r @ irev1 xs (y # ys) r"
-
-
+value "f [a,b] [c,d]"
 
 primrec trans2LTS :: "'v regexp \<Rightarrow> 'v set \<Rightarrow> (('v regexp \<times> 'v set \<times> 'v regexp) set * ('v regexp * 'v regexp) set) list" where 
     "trans2LTS (LChr v) alp_set= [({(LChr v, {v}, \<epsilon>)}, {})]"|

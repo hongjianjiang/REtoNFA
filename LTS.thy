@@ -33,26 +33,15 @@ lemma " LTS_is_reachable {} {} q [] q"
 thm "LTS_is_reachable.induct"
 thm "LTS_is_reachable.simps"
 thm "LTS_is_reachable.cases"
-lemma "LTS_is_reachable \<Delta> \<Delta>' p l p  \<Longrightarrow> \<forall>(n1, \<sigma>, n2) \<in> \<Delta>. n1 \<noteq> p  \<Longrightarrow> \<forall>(n1, n2) \<in> \<Delta>'. n1 \<noteq> p \<Longrightarrow> l = []"
-  sledgehammer
-proof(induction rule:LTS_is_reachable.cases)
-  case (LTS_Empty q)
-  then show ?case apply auto done
-next
-  case (LTS_Step1 q q'' l q')
-  then show ?case apply auto proof -
-    assume a1:"\<forall>x\<in>\<Delta>'. case x of (n1, n2) \<Rightarrow> n1 = q \<longrightarrow> n2 = q"
- and a2:"(q, q'') \<in> \<Delta>' "
-    from a1 a2 have c1:"q'' = q" by auto 
-    assume a3:"LTS_is_reachable \<Delta> \<Delta>' q'' l q"
-    from c1 a3 have c2:"LTS_is_reachable \<Delta> \<Delta>' q l q" by auto 
-    from c2 show " l = []" sledgehammer
-next
-  case (LTS_Step2 a \<sigma> q q'' w q')
-  then show ?case apply auto done 
-qed
-   
-lemma removeExtraConstrans: "LTS_is_reachable \<Delta> (insert (e1, e2) \<Delta>') ini l end \<Longrightarrow> \<forall>q \<sigma>. (q, \<sigma>, e1) \<notin> \<Delta> \<Longrightarrow> \<forall>q. (q, e1) \<notin> \<Delta>' \<Longrightarrow> ini \<noteq> e1 \<Longrightarrow> LTS_is_reachable \<Delta> \<Delta>' ini l end"
+
+lemma empty_transtion: "LTS_is_reachable \<Delta> \<Delta>' p l p  \<Longrightarrow> \<forall>(n1, \<sigma>, n2) \<in> \<Delta>. n1 \<noteq> p  \<Longrightarrow> \<forall>(n1, n2) \<in> \<Delta>'. n1 \<noteq> p \<Longrightarrow> l = []"
+  using LTS_is_reachable.simps by fastforce
+
+
+
+lemma removeExtraConstrans: "LTS_is_reachable \<Delta> (insert (e1, e2) \<Delta>') ini l end \<Longrightarrow> 
+                            \<forall>q \<sigma>. (q, \<sigma>, e1) \<notin> \<Delta> \<Longrightarrow> \<forall>q. (q, e1) \<notin> \<Delta>' \<Longrightarrow> ini \<noteq> e1 
+                            \<Longrightarrow> LTS_is_reachable \<Delta> \<Delta>' ini l end"
   proof (induction rule: LTS_is_reachable.induct)
     case (LTS_Empty q)
     then show ?case by auto
@@ -163,6 +152,10 @@ qed
 lemma joinLTSlemma1:"\<exists>x. LTS_is_reachable  \<Delta> \<Delta>' q x p \<Longrightarrow>  \<exists>y. LTS_is_reachable  \<Delta> \<Delta>' p y q''\<Longrightarrow> \<exists>x y. LTS_is_reachable  \<Delta> \<Delta>' q (x@y) q''"
   by (meson joinLTSlemma)     
 
+lemma "LTS_is_reachable d1 (insert (ini, end) d2) ini l end \<Longrightarrow> l \<noteq> [] \<Longrightarrow>\<forall>(q, \<sigma>, p) \<in> d1. q \<noteq> end \<Longrightarrow> 
+       LTS_is_reachable d1 d2 ini l end"
+  nitpick
+
 
 lemma insertHeadofTrans2:"LTS_is_reachable d1 d2 p l q \<Longrightarrow> LTS_is_reachable d1 (insert (n, p) d2) n l q"
   by (metis LTS_Step1 Un_insert_right insertI1 subLTSlemma sup.idem)
@@ -173,7 +166,8 @@ lemma insertHeadofTrans2None:"LTS_is_reachable d1 d2 p l q \<Longrightarrow> LTS
 lemma insertHeadofTrans2None1:"LTS_is_reachable d1 d2 ini l end \<Longrightarrow> LTS_is_reachable d1 (insert (p, q) d2) ini  l end"
   by (metis Un_insert_right subLTSlemma sup.idem)
 
-lemma insertHeadofTrans2None2:"LTS_is_reachable d1 (insert (r1, r2) d2) r1 l end \<Longrightarrow> \<forall>(p, \<sigma>, q) \<in> d1. p \<noteq> r1 \<Longrightarrow> \<forall>(p, q) \<in> d2. p \<noteq> r1 \<Longrightarrow> r1 \<noteq> end \<Longrightarrow> LTS_is_reachable d1 (insert (r1, r2) d2) r2 l end"
+lemma insertHeadofTrans2None2:"LTS_is_reachable d1 (insert (r1, r2) d2) r1 l end \<Longrightarrow> \<forall>(p, \<sigma>, q) \<in> d1. p \<noteq> r1 \<Longrightarrow>
+ \<forall>(p, q) \<in> d2. p \<noteq> r1 \<Longrightarrow> r1 \<noteq> end \<Longrightarrow> LTS_is_reachable d1 (insert (r1, r2) d2) r2 l end"
 proof (induction rule: LTS_is_reachable.induct)
   case (LTS_Empty q)
   then show ?case apply fastforce done
@@ -184,5 +178,6 @@ next
 next
   case (LTS_Step2 a \<sigma> q q'' w q')
   then show ?case apply auto done
-qed
+      qed
+
 end
