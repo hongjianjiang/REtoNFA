@@ -26,17 +26,9 @@ inductive LTS_is_reachable :: "('q, 'a) LTS \<Rightarrow>  ('q * 'q) set \<Right
   LTS_Step2[intro!]: "LTS_is_reachable \<Delta> \<Delta>' q (a # w) q'" if "a \<in> \<sigma>" and "(q, \<sigma>, q'') \<in> \<Delta>" and "LTS_is_reachable \<Delta> \<Delta>' q'' w q'"
 
 
-lemma " LTS_is_reachable {} {} q [] q"
-  apply auto
-  done
-
-thm "LTS_is_reachable.induct"
-thm "LTS_is_reachable.simps"
-thm "LTS_is_reachable.cases"
 
 lemma empty_transtion: "LTS_is_reachable \<Delta> \<Delta>' p l p  \<Longrightarrow> \<forall>(n1, \<sigma>, n2) \<in> \<Delta>. n1 \<noteq> p  \<Longrightarrow> \<forall>(n1, n2) \<in> \<Delta>'. n1 \<noteq> p \<Longrightarrow> l = []"
   using LTS_is_reachable.simps by fastforce
-
 
 
 lemma removeExtraConstrans: "LTS_is_reachable \<Delta> (insert (e1, e2) \<Delta>') ini l end \<Longrightarrow> 
@@ -121,7 +113,6 @@ next
   case (LTS_Step2 a \<sigma> q q'' w q')
   then show ?case by auto
 qed
-
 
 
 lemma DeltLTSlemma3:"LTS_is_reachable \<Delta> \<Delta>' q l q' \<Longrightarrow> LTS_is_reachable ({(f q, va, f q')| q va q'. (q, va, q') \<in> \<Delta>}) ({(f q, f q')| q q'. (q, q') \<in> \<Delta>'}) (f q) l (f q')"
