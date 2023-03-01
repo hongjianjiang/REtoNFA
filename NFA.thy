@@ -39,7 +39,6 @@ lemma inverse_concat_lemma: "single_LTS_reachable_by_path q (xa @ y) ⟹ ∃p qa
 fun judge ::"bool set \<Rightarrow> bool" where
 "judge bs = (True \<in> bs)"
 
-lemma ""
 
 definition NFA_accept :: "('a, 'b) NFA_rec \<Rightarrow> 'b list \<Rightarrow> bool" where
   "NFA_accept \<A> w = judge ((single_LTS_reachable_by_path w) `  (Δ 𝒜))"
