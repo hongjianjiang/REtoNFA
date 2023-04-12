@@ -38,8 +38,8 @@ definition
 
 definition
  or :: " 'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
-"or= (\<lambda>(ql,vlTrue,dl,fl)(qr,vlFalse,dr,fr).
-   ([],vlTrue\<union>vlFalse,
+"or= (\<lambda>(ql,vl1,dl,fl)(qr,vl2,dr,fr).
+   ([],vl1\<union>vl2,
     \<lambda>a s. case s of
             [] \<Rightarrow> (2 ## dl a ql) \<union> (3 ## dr a qr)
           | left#s \<Rightarrow> if left = 2 then 2 ## dl a s
@@ -49,8 +49,8 @@ definition
 
 definition
  conc :: "'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
-"conc = (\<lambda>(ql,vlTrue, dl,fl)(qr,vlFalse, dr,fr).
-   (2#ql,vlTrue \<union> vlFalse,
+"conc = (\<lambda>(ql,vl1, dl,fl)(qr,vl2, dr,fr).
+   (2#ql,vl1 \<union> vl2,
     \<lambda>a s. case s of
             [] \<Rightarrow> {}
           | left#s \<Rightarrow> if left =2  then (2 ## dl a s) \<union>
@@ -78,11 +78,9 @@ definition
 
 definition
  inter :: " 'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
-"inter= (\<lambda>(ql,vlTrue,dl,fl)(qr,vlFalse,dr,fr).
-   ([],vlTrue\<union>vlFalse,
-      \<lambda>a s. case s of 
-              [] \<Rightarrow> mapLR (dl a ql) (dr a qr)
-          | left#s \<Rightarrow>  mapLR (dl a (take_first_list 4 (left #s))) (dr a (take_second_list 4 (left#s))),
+"inter= (\<lambda>(ql,vl1,dl,fl)(qr,vl2,dr,fr).
+   (ql@[4]@qr,vl1\<union>vl2,
+      \<lambda>a s.  mapLR (dl a (take_first_list 4 s)) (dr a (take_second_list 4 s)),
     \<lambda>s.  fl (take_first_list 4 (s)) \<and> fr (take_second_list 4 (s))))"
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
@@ -388,6 +386,10 @@ done
 lemma fin_inter[iff]:
  "\<And>L R. fin (inter L R) (p) = (fin L (take_first_list 4 p) \<and> fin R (take_second_list 4 p))"
 by(simp add:inter_def)
+ 
+lemma start_inter:
+  "\<And>L R. start(inter L R) = start L @ [4] @ start R"
+by (simp add:inter_def)
 
 
 (******************************************************)
