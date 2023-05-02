@@ -89,6 +89,8 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
 value "accepts (rexp2na (Inter (Atom 1) (Atom 1)) {1::nat}) [1]"
  
 value "start (rexp2na (Inter (Alter (Atom (3::nat)) (Atom 2)) (Alter (Atom 2) (Atom 3))) {1})"
+value "next (rexp2na (Inter (Alter (Atom (3::nat)) (Atom 2)) (Alter (Atom 2) (Atom 3))) {1}) 3 [0]"
+
 value "accepts (rexp2na (One) {1::nat}) []"
 
 value "start (rexp2na (Inter (Zero) (Zero)) {1::nat})"
@@ -253,21 +255,23 @@ by (simp add:inter_def)
 
 
 lemma step_inter[iff]:
-"\<And>L R. (p,q) : step (inter L R) a = (\<exists>r1 r2. q = [length r1] @ r1 @ r2 \<and> (take (hd p) (tl p), r1) \<in> step L a \<and> (drop (hd p) (tl p),r2) \<in> step R a)"
+"\<And>L R. (p,q) : step (inter L R) a = (\<exists>r1 r2. q = [length r1] @ r1 @ r2 
+                                      \<and> (take (hd p) (tl p), r1) \<in> step L a 
+                                      \<and> (drop (hd p) (tl p),r2) \<in> step R a)"
   apply (simp add:inter_def step_def) 
   done
 
 (** From the start  **)
 lemma start_step_inter[iff]:
- "\<And>L R r1 r2. (start(inter L R),length r1 # r1 @ r2) : step(inter L R) a = 
-         ((start L,r1) : step L a \<and> (start R, r2) \<in> step R a )"
- apply (simp add:inter_def step_def)  apply auto
+ "\<And>L R r1 r2. (start(inter L R),q) : step(inter L R) a = 
+         (\<exists> r1 r2. q = length r1 # r1 @ r2 \<and> (start L,r1) : step L a \<and> (start R, r2) \<in> step R a )"
+ apply (simp add:inter_def step_def)  
 done
  
-lemma steps_inter1[iff]:"\<And>a b. (length a # a @ b, q) \<in> steps (inter L R) w = ((a,c) \<in> steps L w \<and> (b,d) \<in> steps R w)"
-  apply (induct "w") 
-  apply simp subgoal for a b c d apply auto done
-  apply force
+lemma steps_inter1:"(p, q) \<in> steps (inter L R) w = 
+((take (hd p) (tl p) ,take (hd q) (tl q)) \<in> steps L w \<and> (drop (hd p) (tl p), (drop (hd q) (tl q))) \<in> steps R w)"
+  apply (case_tac "w") 
+  apply simp subgoal 
   done
 
  
@@ -276,7 +280,7 @@ lemma steps_inter:"\<And>c d. (start (inter L R) ,q) \<in> steps (inter L R) w =
     (\<exists>c d. q = length c # c @ d \<and> (start L,c) \<in> steps L w \<and> (start R, d) \<in> steps R w)"
   apply(induct w) 
    apply simp subgoal by auto
-  apply simp nitpick
+  apply simp  
   by fastforce
 
 lemma accepts_inter:

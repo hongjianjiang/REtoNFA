@@ -26,6 +26,7 @@ primrec steps :: "('a,'s)na \<Rightarrow> 'a list \<Rightarrow> ('s * 's)set" wh
 "steps A [] = Id" |
 "steps A (a#w) = step A a  O  steps A w"
 
+
 lemma steps_append[simp]:
  "steps A (v@w) = steps A v  O  steps A w"
 by(induct v, simp_all add:O_assoc)

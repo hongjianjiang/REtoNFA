@@ -261,6 +261,34 @@ lemma step_inter[iff]:
   apply (simp add:inter_def step_def) 
   done
 
+lemma inter_steps_left:"\<And>L R p. (p, q) \<in> steps (inter L R) w \<Longrightarrow> ((take (hd p) (tl p), take (hd q) (tl q))\<in> steps L w)"
+  apply (induct w)
+  apply simp 
+  apply simp
+  apply force
+  done
+
+lemma inter_steps_right:"\<And>L R p. (p, q) \<in> steps (inter L R) w \<Longrightarrow> ((drop (hd p) (tl p), drop (hd q) (tl q))\<in> steps R w)"
+  apply (induct w)
+  apply simp  
+  apply simp 
+  apply force
+  done
+
+lemma inter_steps_from_left_right :"\<And>L R p p1. (p, q) \<in> steps L w \<and> (p1, q1) \<in> steps R w \<Longrightarrow> ((length p # p @ p1, length q # q @ q1) \<in> steps (inter L R) w)"
+  apply(induction w)
+  apply simp 
+  apply simp 
+  apply force 
+  done
+
+lemma inter_steps_to_left_right:"\<And>L R p. (p, q) \<in> steps (inter L R) w \<Longrightarrow> ((take (hd p) (tl p), take (hd q) (tl q))\<in> steps L w \<and> (drop (hd p) (tl p), drop (hd q) (tl q))\<in> steps R w)"
+  apply (induct w) 
+  apply simp 
+  apply simp 
+  apply force
+  done
+
 (** From the start  **)
 lemma start_step_inter[iff]:
  "\<And>L R r1 r2. (start(inter L R),q) : step(inter L R) a = 
@@ -268,28 +296,23 @@ lemma start_step_inter[iff]:
  apply (simp add:inter_def step_def)  
 done
  
-lemma steps_inter1:"(p, q) \<in> steps (inter L R) w = 
-((take (hd p) (tl p) ,take (hd q) (tl q)) \<in> steps L w \<and> (drop (hd p) (tl p), (drop (hd q) (tl q))) \<in> steps R w)"
-  apply (case_tac "w") 
-  apply simp subgoal 
-  done
 
- 
 
-lemma steps_inter:"\<And>c d. (start (inter L R) ,q) \<in> steps (inter L R) w = 
-    (\<exists>c d. q = length c # c @ d \<and> (start L,c) \<in> steps L w \<and> (start R, d) \<in> steps R w)"
+lemma steps_inter:"\<And>L R. (start (inter L R) ,q) \<in> steps (inter L R) w  \<Longrightarrow> 
+    ((start L,take (hd q) (tl q)) \<in> steps L w \<and> (start R, (drop (hd q) (tl q))) \<in> steps R w)"
   apply(induct w) 
-   apply simp subgoal by auto
   apply simp  
-  by fastforce
+  apply force 
+  apply simp  
+  by (metis append_eq_conv_conj inter_steps_left inter_steps_right list.sel(1) list.sel(3) steps.simps(2))
 
 lemma accepts_inter:
  "accepts (inter L R) w = (accepts L w \<and> accepts R w)"
   apply (simp add: accepts_conv_steps)  
-    apply (case_tac w)
-   apply simp  
-  sorry
-
+  apply (case_tac w)
+  apply simp  
+  apply simp  
+  by (metis (no_types, opaque_lifting) append_eq_conv_conj inter_steps_from_left_right inter_steps_left inter_steps_right list.sel(1) list.sel(3) steps.simps(2))
 
 (******************************************************)
 (*                      conc                        *)
@@ -347,6 +370,8 @@ lemma True_False_step_conc[iff]:
          (fin L p \<and> (start R,q) : step R a)"
 by simp
 
+ 
+
 lemma True_steps_concD[rule_format]:
  "\<forall>p. (2#p,q) : steps (conc L R) w \<longrightarrow> 
      ((\<exists>r. (p,r) : steps L w \<and> q = 2#r)  \<or> 
@@ -386,7 +411,7 @@ lemma True_steps_conc:
             (\<exists>s. (start R,s) : step R a \<and> 
             (\<exists>t. (s,t) : steps R v \<and> q = 3#t)))))"
 by(force dest!: True_steps_concD intro!: True_True_steps_concI)
-
+ 
 (** starting from the start **)
 lemma start_conc:
   "\<And>L R. start(conc L R) = 2#start L"
@@ -398,7 +423,7 @@ lemma final_conc:
   apply (simp add:conc_def split: list.split) 
   apply blast
 done
-
+                                                                        
 lemma accepts_conc:
  "accepts (conc L R) w = (\<exists>u v. w = u@v \<and> accepts L u \<and> accepts R v)"
   apply (simp add: accepts_conv_steps True_steps_conc final_conc start_conc)
@@ -565,21 +590,19 @@ apply force
 (***** Correctness of rFalsen *****)
 lemma accepts_rexp2na:
  "\<And>w. accepts (rexp2na r v) w = (w : lang r v)"
-apply (induct "r")
-     apply (simp add: accepts_conv_steps)
-          apply simp
-        
-         apply (simp add: accepts_atom)
-  
+  apply (induct "r")
+  apply (simp add: accepts_conv_steps)
+  apply simp   
+  apply (simp add: accepts_atom)
   apply (simp)
-       apply (simp add: accepts_conc Regular_Set.conc_def) 
-   apply (simp add: accepts_star in_star_iff_concat subset_iff Ball_def)
-   apply (simp add: accepts_dot)
+  apply (simp add: accepts_conc Regular_Set.conc_def) 
+  apply (simp add: accepts_star in_star_iff_concat subset_iff Ball_def)
+  apply (simp add: accepts_dot)
   subgoal for r w apply auto done
   subgoal for r w  
-    apply (simp add: accepts_star in_star_iff_concat subset_iff Ball_def)
-    by auto 
+  apply (simp add: accepts_star in_star_iff_concat subset_iff Ball_def)
+  by auto 
   prefer 2
-   apply (simp add:accepts_inter)
+  apply (simp add:accepts_inter)
   sorry
 end
