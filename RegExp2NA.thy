@@ -9,20 +9,10 @@ imports Regular_Exp NA
 begin
 
 type_synonym 'a bitsNA = "('a, nat list)na"
-(*Use nat to represent state where 2 equals True, 3 equals False and 4 equals Split*)
 
+(*Use nat to represent state where 2 equals to True, 3 equals to False*)
 fun mapLR ::"nat list set \<Rightarrow> nat list set \<Rightarrow> nat list set" where 
-"mapLR A B = {a @ [4] @ b|a b. a\<in>A \<and> b\<in>B}"
-
-fun index_of :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
-"index_of x [] = 0"| 
-"index_of x (y # ys) = (if x = y then 0 else 1 + index_of x ys)"
-
-fun take_first_list :: "'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where 
-"take_first_list a A = take (index_of a A) A"
-
-fun take_second_list :: "'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where 
-"take_second_list a A = drop ((index_of a A)+1) A"
+"mapLR A B = {[length a] @ a @ b|a b. a \<in> A \<and> b \<in> B}"
 
 definition
 "atom"  :: "'a \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
@@ -67,7 +57,6 @@ definition
  plus :: "'a bitsNA \<Rightarrow> 'a bitsNA" where
 "plus = (\<lambda>(q,vs,d,f). (q, vs, \<lambda>a s. d a s \<union> (if f s then d a q else {}), f))"
 
- 
 definition
  star :: "'a set \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
 "star vs A = or (epsilon vs) (plus A)"
@@ -79,9 +68,10 @@ definition
 definition
  inter :: " 'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
 "inter= (\<lambda>(ql,vl1,dl,fl)(qr,vl2,dr,fr).
-   (ql@[4]@qr,vl1\<union>vl2,
-      \<lambda>a s.  mapLR (dl a (take_first_list 4 s)) (dr a (take_second_list 4 s)),
-    \<lambda>s.  fl (take_first_list 4 (s)) \<and> fr (take_second_list 4 (s))))"
+   ([length ql] @ ql @ qr,vl1 \<inter> vl2,
+      \<lambda>a s. mapLR (dl a (take (hd s) (tl s))) (dr a (drop (hd s) (tl s))),
+    \<lambda>s. case s of [] \<Rightarrow> False | left # s \<Rightarrow> fl (take left s) \<and> fr (drop  left  s)))"
+
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
 "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -94,12 +84,17 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
 "rexp2na (Ques r) vs = or (rexp2na r vs) (epsilon vs)"|
 "rexp2na (Plus r) vs = or (rexp2na r vs) (star vs (rexp2na r vs))"|
 "rexp2na (Range r m) vs = range vs (rexp2na r vs) m" |
-"rexp2na (Inter r s) vs = inter (rexp2na r vs) (rexp2na s vs) "
+"rexp2na (Inter r s) vs = inter (rexp2na r vs) (rexp2na s vs)"
 
-value "accepts (rexp2na (Inter (Atom (1::nat)) (Atom 1)) {1}) [1]"
-value "accepts (rexp2na (Inter (Alter (Atom (1::nat)) (Atom 2)) (Alter (Atom 2) (Atom 1))) {1}) [2]"
-value "accepts (rexp2na (Inter (Times (Atom (1::nat)) (Atom 2)) (Alter (Atom 2) (Atom 1))) {1}) [2]"
+value "accepts (rexp2na (Inter (Atom 1) (Atom 1)) {1::nat}) [1]"
+ 
+value "start (rexp2na (Inter (Alter (Atom (3::nat)) (Atom 2)) (Alter (Atom 2) (Atom 3))) {1})"
+value "next (rexp2na (Inter (Alter (Atom (3::nat)) (Atom 2)) (Alter (Atom 2) (Atom 3))) {1}) 3 [0]"
 
+value "accepts (rexp2na (One) {1::nat}) []"
+
+value "start (rexp2na (Inter (Zero) (Zero)) {1::nat})"
+value "start (rexp2na ((Times (Atom 1) (Atom 2))) {1::nat})"
 declare split_paired_all[simp]
 
 (******************************************************)
@@ -204,7 +199,8 @@ lemma lift_True_over_steps_or[iff]:
   apply (induct "w")
   apply force  
   apply force
-done
+  done
+
 
 lemma lift_False_over_steps_or[iff]:
  "\<And>p. (3#p,q)\<in>steps (or L R) w = (\<exists>r. q = 3#r \<and> (p,r)\<in>steps R w)"
@@ -219,8 +215,7 @@ lemma start_step_or[iff]:
  "\<And>L R. (start(or L R),q) : step(or L R) a = 
          (\<exists>p. (q = 2#p \<and> (start L,p) : step L a) | 
                (q = 3#p \<and> (start R,p) : step R a))"
-  apply (simp add:or_def step_def)
-  apply blast
+  apply (simp add:or_def step_def) apply auto
 done
 
 lemma steps_or:
@@ -245,6 +240,56 @@ lemma accepts_or[iff]:
   (* get rid of case_tac: *)
   apply (case_tac "w = []")
 by auto
+
+(******************************************************)
+(*                     inter                          *)
+(******************************************************)
+
+lemma fin_inter[iff]:
+ "\<And>L R q. fin (inter L R) q = (\<exists>m n. q = m # n \<and> fin  L (take m n) \<and> fin R (drop m n))"
+  apply (simp add:inter_def) apply (case_tac q) apply auto done
+ 
+lemma start_inter[iff]:
+  "\<And>L R. start(inter L R) = [length (start L)] @ start L @ start R"
+by (simp add:inter_def)
+
+
+lemma step_inter[iff]:
+"\<And>L R. (p,q) : step (inter L R) a = (\<exists>r1 r2. q = [length r1] @ r1 @ r2 
+                                      \<and> (take (hd p) (tl p), r1) \<in> step L a 
+                                      \<and> (drop (hd p) (tl p),r2) \<in> step R a)"
+  apply (simp add:inter_def step_def) 
+  done
+
+(** From the start  **)
+lemma start_step_inter[iff]:
+ "\<And>L R r1 r2. (start(inter L R),q) : step(inter L R) a = 
+         (\<exists> r1 r2. q = length r1 # r1 @ r2 \<and> (start L,r1) : step L a \<and> (start R, r2) \<in> step R a )"
+ apply (simp add:inter_def step_def)  
+done
+ 
+lemma steps_inter1:"(p, q) \<in> steps (inter L R) w = 
+((take (hd p) (tl p) ,take (hd q) (tl q)) \<in> steps L w \<and> (drop (hd p) (tl p), (drop (hd q) (tl q))) \<in> steps R w)"
+  apply (case_tac "w") 
+  apply simp subgoal 
+  done
+
+ 
+
+lemma steps_inter:"\<And>c d. (start (inter L R) ,q) \<in> steps (inter L R) w = 
+    (\<exists>c d. q = length c # c @ d \<and> (start L,c) \<in> steps L w \<and> (start R, d) \<in> steps R w)"
+  apply(induct w) 
+   apply simp subgoal by auto
+  apply simp  
+  by fastforce
+
+lemma accepts_inter:
+ "accepts (inter L R) w = (accepts L w \<and> accepts R w)"
+  apply (simp add: accepts_conv_steps)  
+    apply (case_tac w)
+   apply simp  
+  sorry
+
 
 (******************************************************)
 (*                      conc                        *)
@@ -295,8 +340,8 @@ lemma True_True_steps_concI:
   apply simp
   apply simp
   apply fast
-done
-
+  done
+ 
 lemma True_False_step_conc[iff]:
  "\<And>L R. (2#p,3#q) : step (conc L R) a = 
          (fin L p \<and> (start R,q) : step R a)"
@@ -330,13 +375,14 @@ lemma True_steps_concD[rule_format]:
   apply (rule_tac x = "[]" in exI)
   apply simp
   apply blast
-done
+  done
+
 
 lemma True_steps_conc:
  "(2#p,q) : steps (conc L R) w = 
  ((\<exists>r. (p,r) : steps L w \<and> q = 2#r)  \<or>
   (\<exists>u a v. w = u@a#v \<and>
-            (\<exists>r. (p,r) : steps L u \<and> fin L r \<and> 
+            (\<exists>r. (p,r) : steps L u \<and> fin L r \<and>
             (\<exists>s. (start R,s) : step R a \<and> 
             (\<exists>t. (s,t) : steps R v \<and> q = 3#t)))))"
 by(force dest!: True_steps_concD intro!: True_True_steps_concI)
@@ -379,17 +425,6 @@ lemma accepts_conc:
   apply blast
 done
 
-(******************************************************)
-(*                     inter                          *)
-(******************************************************)
-
-lemma fin_inter[iff]:
- "\<And>L R. fin (inter L R) (p) = (fin L (take_first_list 4 p) \<and> fin R (take_second_list 4 p))"
-by(simp add:inter_def)
- 
-lemma start_inter:
-  "\<And>L R. start(inter L R) = start L @ [4] @ start R"
-by (simp add:inter_def)
 
 
 (******************************************************)
@@ -544,5 +579,7 @@ apply (induct "r")
   subgoal for r w  
     apply (simp add: accepts_star in_star_iff_concat subset_iff Ball_def)
     by auto 
-  done
+  prefer 2
+   apply (simp add:accepts_inter)
+  sorry
 end

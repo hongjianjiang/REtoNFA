@@ -47,4 +47,5 @@ abbreviation
   Cons_syn :: "'a \<Rightarrow> 'a list set \<Rightarrow> 'a list set" (infixr "##" 65) where
   "x ## S \<equiv> Cons x ` S"
 
+
 end
