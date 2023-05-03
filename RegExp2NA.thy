@@ -95,13 +95,7 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Range r m n) vs = range (rexp2na r vs) m n"
  
 declare split_paired_all[simp]
-
-value "start (rexp2na (Atom (1::nat)) {1::nat})"
-value "next (rexp2na (Atom (1::nat)) {1::nat}) 1 [3]"
-
-value "start (rexp2na (Range (Atom 1) 3 4) {1::nat})"
-value "next (rexp2na (Range (Atom 1) 3 4) {1::nat}) 1 [0,3]"
-value "accepts (rexp2na (Range (Alter (Atom 1) (Atom 2)) 2 4) {1::nat}) [1,2,2,2]"
+ 
 
 (******************************************************)
 (*                       atom                         *)
@@ -323,6 +317,18 @@ lemma accepts_inter:
   apply simp  
   apply simp  
 by (metis (no_types, opaque_lifting) append_eq_conv_conj inter_steps_from_left_right inter_steps_left inter_steps_right list.sel(1) list.sel(3) steps.simps(2))
+
+
+(******************************************************)
+(*                       range                        *)
+(******************************************************)
+  
+lemma accepts_range:
+"accepts (range A n m) w = (n \<le> m \<and> (\<exists>x. (x = m \<or> n \<le> x \<and> x < m) \<and> w \<in> lang r v ^^ x))"
+  apply (unfold range_def) apply (rule iffI)  
+  sorry
+
+
 
 (******************************************************)
 (*                      conc                        *)
@@ -585,17 +591,10 @@ lemma accepts_star:
   apply force
 done
 
-(******************************************************)
-(*                       range                         *)
-(******************************************************)
-
-lemma accepts_range:
-"accepts (range vs A n m) w = (n \<le> m \<and> (\<exists>x. (x = m \<or> n \<le> x \<and> x < m) \<and> w \<in> lang r v ^^ x))"
-  apply (unfold range_def) apply (rule iffI)  
-  sorry
-
 
 (***** Correctness of r *****)
+
+
 lemma accepts_rexp2na:
  "\<And>w. accepts (rexp2na r v) w = (w : lang r v)"
   apply (induct "r")
