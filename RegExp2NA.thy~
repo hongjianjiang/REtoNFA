@@ -52,44 +52,54 @@ definition
 
 definition
  epsilon :: "'a set \<Rightarrow> 'a bitsNA" where
-"epsilon vs= ([],vs,\<lambda>a s. {}, \<lambda>s. s=[])"
+ "epsilon vs= ([],vs,\<lambda>a s. {}, \<lambda>s. s=[])"
 
 definition
- plus :: "'a bitsNA \<Rightarrow> 'a bitsNA" where
-"plus = (\<lambda>(q,vs,d,f). (q, vs, \<lambda>a s. d a s \<union> (if f s then d a q else {}), f))"
+plus :: "'a bitsNA \<Rightarrow> 'a bitsNA" where
+ "plus = (\<lambda>(q,vs,d,f). (q, vs, \<lambda>a s. d a s \<union> (if f s then d a q else {}), f))"
 
 definition
- star :: "'a set \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
-"star vs A = or (epsilon vs) (plus A)"
-
-definition
- range :: "'a set \<Rightarrow> 'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
-"range vs A m n =  (if m = 0 then ([],vs,\<lambda>a s. {}, \<lambda>s. s=[]) else fold (conc) (replicate (m-1) A) A )"
+star :: "'a set \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
+ "star vs A = or (epsilon vs) (plus A)"
 
 definition
  inter :: " 'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
 "inter= (\<lambda>(ql,vl1,dl,fl)(qr,vl2,dr,fr).
    ([length ql] @ ql @ qr,vl1 \<inter> vl2,
-      \<lambda>a s. mapLR (dl a (take (hd s) (tl s))) (dr a (drop (hd s) (tl s))),
+    \<lambda>a s. mapLR (dl a (take (hd s) (tl s))) (dr a (drop (hd s) (tl s))),
     \<lambda>s. case s of [] \<Rightarrow> False | left # s \<Rightarrow> fl (take left s) \<and> fr (drop  left  s)))"
 
 
+definition
+range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
+  "range = (\<lambda>(q,vl, d,f) m n.
+   (n#q,vl,
+    \<lambda>a s. case s of
+            [] \<Rightarrow> {}
+          | left#s \<Rightarrow> if left \<noteq> 0 \<and> \<not> (f s) then ((left - 1) ## d a s) else if left \<noteq> 0 \<and> (f s) then (left - 1) ## d a q
+                              else {},
+    \<lambda>s. case s of [] \<Rightarrow> False | 
+                  left#s \<Rightarrow> (left \<le> (n - m) \<and> f s) \<or> (left = 0 \<and> s = q)))"
+
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
-"rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
-"rexp2na One   vs     = epsilon vs" |
-"rexp2na (Atom a)  vs  = atom a vs" |
-"rexp2na (Alter r s)  vs= or (rexp2na r vs) (rexp2na s vs)" |
-"rexp2na (Times r s) vs= conc (rexp2na r vs) (rexp2na s vs)" |
-"rexp2na (Star r)   vs = star vs (rexp2na r vs)" |
-"rexp2na Dot vs= dot vs" | 
-"rexp2na (Ques r) vs = or (rexp2na r vs) (epsilon vs)"|
-"rexp2na (Plus r) vs = or (rexp2na r vs) (star vs (rexp2na r vs))"|
-"rexp2na (Inter r s) vs = inter (rexp2na r vs) (rexp2na s vs)"|
-"rexp2na (Range r m n) vs = range vs (rexp2na r vs) m n"
+  "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
+  "rexp2na One   vs     = epsilon vs" |
+  "rexp2na (Atom a)  vs  = atom a vs" |
+  "rexp2na (Alter r s)  vs= or (rexp2na r vs) (rexp2na s vs)" |
+  "rexp2na (Times r s) vs= conc (rexp2na r vs) (rexp2na s vs)" |
+  "rexp2na (Star r)   vs = star vs (rexp2na r vs)" |
+  "rexp2na Dot vs= dot vs" | 
+  "rexp2na (Ques r) vs = or (rexp2na r vs) (epsilon vs)"|
+  "rexp2na (Plus r) vs = or (rexp2na r vs) (star vs (rexp2na r vs))"|
+  "rexp2na (Inter r s) vs = inter (rexp2na r vs) (rexp2na s vs)"|
+  "rexp2na (Range r m n) vs = range (rexp2na r vs) m n"
  
 declare split_paired_all[simp]
 
-value "accepts (rexp2na (Range (Alter (Atom 1) (Atom 2)) 3 3) {1::nat}) [1,2,2]"
+
+value "accepts (rexp2na (Range One 0 2) {1::nat}) []"
+value "start (rexp2na (Range Zero 0 0) {1::nat})"
+
 (******************************************************)
 (*                       atom                         *)
 (******************************************************)
@@ -227,6 +237,7 @@ lemma fin_start_or[iff]:
  "\<And>L R. fin (or L R) (start(or L R)) = (fin L (start L) | fin R (start R))"
   by (simp add:or_def)
 
+
 lemma accepts_or[iff]:
  "accepts (or L R) w = (accepts L w | accepts R w)"
   apply (simp add: accepts_conv_steps steps_or)
@@ -309,6 +320,21 @@ lemma accepts_inter:
   apply simp  
   apply simp  
 by (metis (no_types, opaque_lifting) append_eq_conv_conj inter_steps_from_left_right inter_steps_left inter_steps_right list.sel(1) list.sel(3) steps.simps(2))
+
+
+(******************************************************)
+(*                       range                        *)
+(******************************************************)
+  
+lemma fin_range[iff]:
+ "\<And>L m n q. fin (range L m n) q = (((hd q) \<le> n - m \<and> fin L (tl q)) \<or> ((hd q) = 0 \<and> q = []))"
+  apply(simp add:range_def) nitpick
+  sorry
+
+lemma start_range[iff]:
+  "\<And>L. start(range L m n) = (n # (start L))"
+ by (simp add:range_def)
+
 
 (******************************************************)
 (*                      conc                        *)
@@ -419,7 +445,9 @@ lemma final_conc:
   apply (simp add:conc_def split: list.split) 
   apply blast
 done
-                                                                        
+
+
+  
 lemma accepts_conc:
  "accepts (conc L R) w = (\<exists>u v. w = u@v \<and> accepts L u \<and> accepts R v)"
   apply (simp add: accepts_conv_steps True_steps_conc final_conc start_conc)
@@ -444,17 +472,18 @@ lemma accepts_conc:
   apply blast
   apply simp
   apply blast
-done  
+  done  
+
 
 (******************************************************)
 (*                     epsilon                        *)
 (******************************************************)
 
 lemma step_epsilon[simp]: "step (epsilon vs) a = {}"
-by(simp add:epsilon_def step_def)
+  by(simp add:epsilon_def step_def)
 
 lemma steps_epsilon: "((p,q) : steps (epsilon vs) w) = (w=[] \<and> p=q)"
-by (induct "w") auto
+  by (induct "w") auto
 
 lemma accepts_epsilon[iff]: "accepts (epsilon vs) w = (w = [])"
   apply (simp add: steps_epsilon accepts_conv_steps)
@@ -568,17 +597,10 @@ lemma accepts_star:
   apply force
 done
 
-(******************************************************)
-(*                       range                         *)
-(******************************************************)
-
-lemma accepts_range:
-"accepts (range vs A n m) w = (n \<le> m \<and> (\<exists>x. (x = m \<or> n \<le> x \<and> x < m) \<and> w \<in> lang r v ^^ x))"
-  apply (unfold range_def) apply (rule iffI)  
-  sorry
-
 
 (***** Correctness of r *****)
+
+
 lemma accepts_rexp2na:
  "\<And>w. accepts (rexp2na r v) w = (w : lang r v)"
   apply (induct "r")

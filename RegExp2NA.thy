@@ -74,12 +74,9 @@ definition
 range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
   "range = (\<lambda>(q,vl, d,f) m n.
    (n#q,vl,
-    \<lambda>a s. case s of
-            [] \<Rightarrow> {}
-          | left#s \<Rightarrow> if left \<noteq> 0 \<and> \<not> (f s) then ((left - 1) ## d a s) else if left \<noteq> 0 \<and> (f s) then (left - 1) ## d a q
-                              else {},
-    \<lambda>s. case s of [] \<Rightarrow> False | 
-                  left#s \<Rightarrow> (left \<le> (n - m) \<and> f s) \<or> (left = 0 \<and> s = q)))"
+    \<lambda>a s.  if hd s \<noteq> 0 \<and> \<not> (f (tl s)) then (((hd s) - 1) ## d a (tl s)) else if hd s \<noteq> 0 \<and> (f (tl s)) then ((hd s) - 1) ## d a q
+           else {},
+    \<lambda>s. ((hd s) \<le> (n - m) \<and> f (tl s)) \<or> (hd s) = 0))"
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -97,8 +94,9 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
 declare split_paired_all[simp]
 
 
-value "accepts (rexp2na (Range One 0 2) {1::nat}) []"
-value "start (rexp2na (Range Zero 0 0) {1::nat})"
+value "accepts (rexp2na (Range (Atom 1) 0 0) {1::nat}) []"
+value "start (rexp2na (Range (Atom 1) 0 0) {1::nat})"
+value "next (rexp2na (Range (Atom 1) 0 0) {1::nat}) 1 [0,2]"
 
 (******************************************************)
 (*                       atom                         *)
@@ -327,17 +325,22 @@ by (metis (no_types, opaque_lifting) append_eq_conv_conj inter_steps_from_left_r
 (******************************************************)
   
 lemma fin_range[iff]:
- "\<And>L m n q. fin (range L m n) q = (((hd q) \<le> n - m \<and> fin L (tl q)) \<or> ((hd q) = 0 \<and> q = []))"
-  apply(simp add:range_def) nitpick
-  sorry
-
+ "\<And>L m n q. fin (range L m n) q = ((hd q) \<le> n - m \<and> fin L (tl q)) \<or> (hd q = 0)"
+  apply(simp add:range_def)   
+  apply auto 
+done
+ 
 lemma start_range[iff]:
   "\<And>L. start(range L m n) = (n # (start L))"
  by (simp add:range_def)
 
 
+lemma accepts_range:
+"accepts (range A n m) w = (n \<le> m \<and> (\<exists>x . (x = m \<or> n \<le> x \<and> x < m) \<and> w : lang r v ^^ x))"
+sorry
+
 (******************************************************)
-(*                      conc                        *)
+(*                      conc                          *)
 (******************************************************)
 
 (** True/False in fin **)
@@ -619,6 +622,7 @@ lemma accepts_rexp2na:
   by auto 
   defer 1
   apply (simp add:accepts_inter)
+  apply simp
   apply (simp add:accepts_range)
   done
 end
