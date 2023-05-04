@@ -77,9 +77,9 @@ range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA"
     \<lambda>a s. case s of
             [] \<Rightarrow> {}
           | left#s \<Rightarrow> if left \<noteq> 0 \<and> \<not> (f s) then ((left - 1) ## d a s) else if left \<noteq> 0 \<and> (f s) then (left - 1) ## d a q
-                              else d a s,
+                              else {},
     \<lambda>s. case s of [] \<Rightarrow> False | 
-                  left#s \<Rightarrow> left \<le> (n - m) \<and> f s))"
+                  left#s \<Rightarrow> (left \<le> (n - m) \<and> f s) \<or> (left = 0 \<and> s = q)))"
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -95,7 +95,10 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Range r m n) vs = range (rexp2na r vs) m n"
  
 declare split_paired_all[simp]
- 
+
+
+value "accepts (rexp2na (Range One 0 2) {1::nat}) []"
+value "start (rexp2na (Range Zero 0 0) {1::nat})"
 
 (******************************************************)
 (*                       atom                         *)
@@ -323,11 +326,14 @@ by (metis (no_types, opaque_lifting) append_eq_conv_conj inter_steps_from_left_r
 (*                       range                        *)
 (******************************************************)
   
-lemma accepts_range:
-"accepts (range A n m) w = (n \<le> m \<and> (\<exists>x. (x = m \<or> n \<le> x \<and> x < m) \<and> w \<in> lang r v ^^ x))"
-  apply (unfold range_def) apply (rule iffI)  
+lemma fin_range[iff]:
+ "\<And>L m n q. fin (range L m n) q = (((hd q) \<le> n - m \<and> fin L (tl q)) \<or> ((hd q) = 0 \<and> q = []))"
+  apply(simp add:range_def) nitpick
   sorry
 
+lemma start_range[iff]:
+  "\<And>L. start(range L m n) = (n # (start L))"
+ by (simp add:range_def)
 
 
 (******************************************************)
