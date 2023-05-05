@@ -74,12 +74,9 @@ definition
 range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
   "range = (\<lambda>(q,vl, d,f) m n.
    (n#q,vl,
-    \<lambda>a s. case s of
-            [] \<Rightarrow> {}
-          | left#s \<Rightarrow> if left \<noteq> 0 \<and> \<not> (f s) then ((left - 1) ## d a s) else if left \<noteq> 0 \<and> (f s) then (left - 1) ## d a q
-                              else {},
-    \<lambda>s. case s of [] \<Rightarrow> False | 
-                  left#s \<Rightarrow> (left \<le> (n - m) \<and> f s) \<or> (left = 0 \<and> s = q)))"
+    \<lambda>a s.  if hd s \<noteq> 0 \<and> \<not> (f (tl s)) then (((hd s) - 1) ## d a (tl s)) else if hd s \<noteq> 0 \<and> (f (tl s)) then ((hd s) - 1) ## d a q
+           else {},
+    \<lambda>s. ((hd s) \<le> (n - m) \<and> f (tl s)) \<or> (hd s) = 0))"
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -97,8 +94,9 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
 declare split_paired_all[simp]
 
 
-value "accepts (rexp2na (Range One 0 2) {1::nat}) []"
-value "start (rexp2na (Range Zero 0 0) {1::nat})"
+value "accepts (rexp2na (Range (Atom 1) 0 0) {1::nat}) []"
+value "start (rexp2na (Range (Atom 1) 0 0) {1::nat})"
+value "next (rexp2na (Range (Atom 1) 0 0) {1::nat}) 1 [0,2]"
 
 (******************************************************)
 (*                       atom                         *)
@@ -213,7 +211,6 @@ lemma lift_False_over_steps_or[iff]:
 done
 
 (** From the start  **)
-
 lemma start_step_or[iff]:
  "\<And>L R. (start(or L R),q) : step(or L R) a = 
          (\<exists>p. (q = 2#p \<and> (start L,p) : step L a) | 
@@ -224,7 +221,7 @@ done
 lemma steps_or:
  "(start(or L R), q) : steps (or L R) w = 
   ( (w = [] \<and> q = start(or L R)) | 
-    (w \<noteq> [] \<and> (\<exists>p.  q = 2  # p \<and> (start L,p) : steps L w | 
+    (w \<noteq> [] \<and> (\<exists>p.  q = 2 # p \<and> (start L,p) : steps L w | 
                       q = 3 # p \<and> (start R,p) : steps R w)))"
   apply (case_tac "w")
   apply (simp)
@@ -327,17 +324,29 @@ by (metis (no_types, opaque_lifting) append_eq_conv_conj inter_steps_from_left_r
 (******************************************************)
   
 lemma fin_range[iff]:
- "\<And>L m n q. fin (range L m n) q = (((hd q) \<le> n - m \<and> fin L (tl q)) \<or> ((hd q) = 0 \<and> q = []))"
-  apply(simp add:range_def) nitpick
-  sorry
-
+ "\<And>L m n q. fin (range L m n) q = ((hd q) \<le> n - m \<and> fin L (tl q)) \<or> (hd q = 0)"
+  apply(simp add:range_def)   
+  apply auto 
+done
+ 
 lemma start_range[iff]:
   "\<And>L. start(range L m n) = (n # (start L))"
  by (simp add:range_def)
 
+lemma non_zero_step_range[iff]:"\<And>L. (n # p, q) \<in> step (range L m n) a = 
+          (\<exists>r. if \<not> fin L p \<and> n \<noteq> 0 then q = (n - 1) # r \<and> (p, r) \<in> step L a 
+          else if fin L p \<and> n \<noteq> 0 then q = (n - 1) # r \<and> (start L, r) \<in> step L a else False)"
+  apply(simp add:range_def step_def)
+  by blast
 
+lemma "\<And>L q. (start (range L m n), q) \<in> step (range L m n) a =  (\<exists>r. if \<not> fin L (start (range L m n)) \<and> n \<noteq> 0 then q = (n - 1) # r \<and> (start (range L m n), r) \<in> step L a 
+          else if fin L (start (range L m n)) \<and> n \<noteq> 0 then q = (n - 1) # r \<and> (start L, r) \<in> step L a else False)"
+  apply(simp add:range_def step_def)  nitpick
+lemma accepts_range:
+"accepts (range A n m) w = (n \<le> m \<and> (\<exists>x . (x = m \<or> n \<le> x \<and> x < m) \<and> w : lang r v ^^ x))"
+ 
 (******************************************************)
-(*                      conc                        *)
+(*                      conc                          *)
 (******************************************************)
 
 (** True/False in fin **)
@@ -445,8 +454,6 @@ lemma final_conc:
   apply (simp add:conc_def split: list.split) 
   apply blast
 done
-
-
   
 lemma accepts_conc:
  "accepts (conc L R) w = (\<exists>u v. w = u@v \<and> accepts L u \<and> accepts R v)"
@@ -619,6 +626,7 @@ lemma accepts_rexp2na:
   by auto 
   defer 1
   apply (simp add:accepts_inter)
+  apply simp
   apply (simp add:accepts_range)
   done
 end

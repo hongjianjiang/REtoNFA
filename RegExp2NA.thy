@@ -211,7 +211,6 @@ lemma lift_False_over_steps_or[iff]:
 done
 
 (** From the start  **)
-
 lemma start_step_or[iff]:
  "\<And>L R. (start(or L R),q) : step(or L R) a = 
          (\<exists>p. (q = 2#p \<and> (start L,p) : step L a) | 
@@ -222,7 +221,7 @@ done
 lemma steps_or:
  "(start(or L R), q) : steps (or L R) w = 
   ( (w = [] \<and> q = start(or L R)) | 
-    (w \<noteq> [] \<and> (\<exists>p.  q = 2  # p \<and> (start L,p) : steps L w | 
+    (w \<noteq> [] \<and> (\<exists>p.  q = 2 # p \<and> (start L,p) : steps L w | 
                       q = 3 # p \<and> (start R,p) : steps R w)))"
   apply (case_tac "w")
   apply (simp)
@@ -334,11 +333,30 @@ lemma start_range[iff]:
   "\<And>L. start(range L m n) = (n # (start L))"
  by (simp add:range_def)
 
+lemma non_zero_step_range[iff]:"\<And>L. (n # p, q) \<in> step (range L m n) a = 
+          (\<exists>r. if \<not> fin L p \<and> n \<noteq> 0 then q = (n - 1) # r \<and> (p, r) \<in> step L a 
+          else if fin L p \<and> n \<noteq> 0 then q = (n - 1) # r \<and> (start L, r) \<in> step L a else False)"
+  apply(simp add:range_def step_def)
+  by blast
 
+lemma step_from_start[iff]:"\<And>L q. (start (range L m n), q) \<in> step (range L m n) a =  
+          (\<exists>r. if \<not> fin L (tl (start (range L m n))) \<and> n \<noteq> 0 then q = (n - 1) # r \<and> (tl (start (range L m n)), r) \<in> step L a 
+          else if fin L (tl (start (range L m n))) \<and> n \<noteq> 0 then q = (n - 1) # r \<and> (start L, r) \<in> step L a else False)"
+  apply(simp add:range_def step_def)
+  apply auto 
+  done
+
+lemma t1:"\<And>L p. (n#p, q) \<in>  step (range L m n) a \<Longrightarrow> n \<noteq> 0"
+  apply (simp add:range_def step_def) 
+  using gr0I by fastforce
+
+lemma "\<And>L p. (n#p, q) \<in> steps (range L m n) w = (if n = 0 then q = 0 # p else (\<exists>r x. q = (n-r)#x \<and> m \<le> r \<and> r \<le> n \<and> (p, x) \<in> steps L (take r w)))"
+  apply(induct w)
+  subgoal apply simp nitpick
+  
 lemma accepts_range:
 "accepts (range A n m) w = (n \<le> m \<and> (\<exists>x . (x = m \<or> n \<le> x \<and> x < m) \<and> w : lang r v ^^ x))"
-sorry
-
+ 
 (******************************************************)
 (*                      conc                          *)
 (******************************************************)
@@ -448,8 +466,6 @@ lemma final_conc:
   apply (simp add:conc_def split: list.split) 
   apply blast
 done
-
-
   
 lemma accepts_conc:
  "accepts (conc L R) w = (\<exists>u v. w = u@v \<and> accepts L u \<and> accepts R v)"
