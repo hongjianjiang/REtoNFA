@@ -51,6 +51,15 @@ definition
                   left#s \<Rightarrow> left = 2 \<and> fl s \<and> fr qr | left = 3 \<and> fr s))"
 
 definition
+range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
+  "range = (\<lambda>(q,vl, d,f) m n.
+   (n#q,vl,
+    \<lambda>a s.  case s of 
+             [] \<Rightarrow> {} 
+           | left # s \<Rightarrow> if left = 0 then {} else (if f s then (left - 1) ## d a q else  (left ## d a  s)),
+    \<lambda>s. ((hd s) \<le> (n - m) \<and> f (tl s)) \<or> m = 0))"
+
+definition
  epsilon :: "'a set \<Rightarrow> 'a bitsNA" where
  "epsilon vs= ([],vs,\<lambda>a s. {}, \<lambda>s. s=[])"
 
@@ -69,14 +78,6 @@ definition
     \<lambda>a s. mapLR (dl a (take (hd s) (tl s))) (dr a (drop (hd s) (tl s))),
     \<lambda>s. case s of [] \<Rightarrow> False | left # s \<Rightarrow> fl (take left s) \<and> fr (drop  left  s)))"
 
-
-definition
-range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
-  "range = (\<lambda>(q,vl, d,f) m n.
-   (n#q,vl,
-    \<lambda>a s.  if hd s = 0 then {} else if  f ( tl s) then ((hd s) - 1) ## d a q else  (((hd s) - 1) ## d a (tl s)),
-    \<lambda>s. ((hd s) \<le> (n - m) \<and> f (tl s)) \<or> m = 0))"
-
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
   "rexp2na One   vs     = epsilon vs" |
@@ -93,7 +94,7 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
 declare split_paired_all[simp]
 
 
-value "accepts (rexp2na (Range (Atom 1) 0 0) {1::nat}) []"
+value "accepts (rexp2na (Range (Times (Atom 1) (Atom 2)) 1 2) {1::nat}) [1,2]"
 value "start (rexp2na (Range (Atom 1) 0 3) {1::nat})"
 value "next (rexp2na (Range (Atom 1) 0 0) {1::nat}) 1 [0,2]"
 
@@ -330,10 +331,9 @@ lemma start_range[iff]:
   "\<And>L. start(range L m n) = (n # (start L))"
  by (simp add:range_def)
 
-lemma non_zero_step_range[iff]:"\<And>L p. (n # p, q) \<in> step (range L m n) a \<Longrightarrow> (if m = 0 then False else (p, tl q) \<in> step L a)"
+lemma non_zero_step_range[iff]:"\<And>L p. (n#p, q) \<in> step (range L m n) a \<Longrightarrow> ((\<exists>r. q = n#r \<and> (p,r) \<in> step L a) \<or> (\<exists>r. fin L p \<and> q = (n-1) # r \<and> (start L, r) \<in> step L a))"
   apply(simp add:range_def step_def)
   nitpick
-  by blast
 
 lemma step_from_start[iff]:"\<And>L q. (start (range L m n), q) \<in> step (range L m n) a =  
           (\<exists>r. if \<not> fin L (tl (start (range L m n))) \<and> n \<noteq> 0 then q = (n - 1) # r \<and> (tl (start (range L m n)), r) \<in> step L a 
