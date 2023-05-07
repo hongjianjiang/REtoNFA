@@ -56,8 +56,9 @@ range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA"
    (n#q,vl,
     \<lambda>a s.  case s of 
              [] \<Rightarrow> {} 
-           | left # s \<Rightarrow> if left = 0 then {} else (if f s then (left - 1) ## d a q else  (left ## d a  s)),
-    \<lambda>s. ((hd s) \<le> (n - m) \<and> f (tl s)) \<or> m = 0))"
+           | left # s \<Rightarrow> if left = 0 then {} else (if f s then (left - 1) ## d a q else if s = [] then ((left) ## d a s) else left ## d a s),
+    \<lambda>s. ((hd s) \<le> (n - m + 1) \<and> f (tl s)) \<or> m = 0))"
+
 
 definition
  epsilon :: "'a set \<Rightarrow> 'a bitsNA" where
@@ -92,11 +93,11 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Range r m n) vs = range (rexp2na r vs) m n"
  
 declare split_paired_all[simp]
+ 
+value "accepts (rexp2na (Range (Alter (Atom 1) (Atom 2)) 0 4) {1::nat}) []"
+value "start (rexp2na (Range (Alter (Atom 1) (Atom 2)) 2 4) {1::nat})"
+value "next (rexp2na (Range (Times (Atom 1) (Atom 2)) 1 2) {1::nat}) 1 [4,2,2]"
 
-
-value "accepts (rexp2na (Range (Times (Atom 1) (Atom 2)) 1 2) {1::nat}) [1,2]"
-value "start (rexp2na (Range (Atom 1) 0 3) {1::nat})"
-value "next (rexp2na (Range (Atom 1) 0 0) {1::nat}) 1 [0,2]"
 
 (******************************************************)
 (*                       atom                         *)
@@ -322,7 +323,7 @@ by (metis (no_types, opaque_lifting) append_eq_conv_conj inter_steps_from_left_r
 (******************************************************)
   
 lemma fin_range[iff]:
- "\<And>L m n q. fin (range L m n) q = ((hd q) \<le> n - m \<and> fin L (tl q)) \<or> m = 0"
+ "\<And>L m n q. fin (range L m n) q = ((hd q) \<le> n - m + 1 \<and> fin L (tl q)) \<or> m = 0"
   apply(simp add:range_def)   
   apply auto 
 done
@@ -331,27 +332,26 @@ lemma start_range[iff]:
   "\<And>L. start(range L m n) = (n # (start L))"
  by (simp add:range_def)
 
-lemma non_zero_step_range[iff]:"\<And>L p. (n#p, q) \<in> step (range L m n) a \<Longrightarrow> ((\<exists>r. q = n#r \<and> (p,r) \<in> step L a) \<or> (\<exists>r. fin L p \<and> q = (n-1) # r \<and> (start L, r) \<in> step L a))"
+lemma non_zero_step_range:"\<And>L p. (n#p, q) \<in> step (range L m n) a \<Longrightarrow> ((\<exists>r. q = n#r \<and> (p,r) \<in> step L a) \<or> (\<exists>r. fin L p \<and> q = (n-1) # r \<and> (start L, r) \<in> step L a))"
   apply(simp add:range_def step_def)
-  nitpick
+  by (metis One_nat_def empty_iff image_iff)
 
-lemma step_from_start[iff]:"\<And>L q. (start (range L m n), q) \<in> step (range L m n) a =  
-          (\<exists>r. if \<not> fin L (tl (start (range L m n))) \<and> n \<noteq> 0 then q = (n - 1) # r \<and> (tl (start (range L m n)), r) \<in> step L a 
-          else if fin L (tl (start (range L m n))) \<and> n \<noteq> 0 then q = (n - 1) # r \<and> (start L, r) \<in> step L a else False)"
-  apply(simp add:range_def step_def)
-  apply auto 
+lemma start_range_eq:"\<And>L. (start (range L m n), q) \<in> step (range L m n) a = ((n # start L, q) \<in> step (range L m n) a)" 
+  apply (simp add:range_def)
   done
 
+lemma step_from_start:"\<And>L. (start (range L m n), q) \<in> step (range L m n) a \<Longrightarrow> (\<exists>r. q = n # r \<and> (start L, r) \<in> step L a) \<or> (\<exists>r. fin L (start L) \<and> q = (n - 1) # r \<and> (start L, r) \<in> step L a)"
+  by (meson non_zero_step_range start_range_eq)
  
  lemma "\<And>L p. (p, q) \<in> steps (range L m n) w \<Longrightarrow> (\<exists>r. (tl p, tl q) \<in> steps L r \<and> r = (rev (take (length r) (rev w))))"
   apply(induct w)
   subgoal for L p apply simp done 
   apply simp  
-
+sorry
 
 lemma accepts_range:
 "accepts (range A n m) w = (n \<le> m \<and> (\<exists>x . (x = m \<or> n \<le> x \<and> x < m) \<and> w : lang r v ^^ x))"
- 
+  sorry
 (******************************************************)
 (*                      conc                          *)
 (******************************************************)

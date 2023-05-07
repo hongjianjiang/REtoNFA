@@ -23,20 +23,22 @@ datatype (atoms: 'a) rexp =
 
 
 primrec lang :: "'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a lang" where
-"lang Zero vset= {}" |
-"lang One vset= {[]}" |
+"lang (Zero) vset= {}" |
+"lang (One) vset= {[]}" |
 "lang (Atom a) vset= {[a]}" |
 "lang (Alter r s) vset= (lang r vset) Un (lang s vset)" |
 "lang (Times r s) vset= conc (lang r vset) (lang s vset)" |
 "lang (Star r) vset= star(lang r vset)"|
-"lang Dot vset = (\<lambda>x. [x]) ` vset" |
+"lang (Dot) vset = (\<lambda>x. [x]) ` vset" |
 "lang (Ques r) vset = (lang r vset) \<union> {[]}"|
 "lang (Plus r) vset = star(lang r vset) \<union> (lang r vset)"|
 "lang (Range r m n) vset = \<Union>((\<lambda>x. (lang r vset) ^^ x) ` set [m..<n+1])"|
 "lang (Inter r s) vset = (lang r vset) \<inter> (lang s vset)"
 
 
-value "lang (Range (Alter (Atom (1::nat)) (Atom 2)) 4 4) {1::nat} "
+value "lang (Range (Alter (Times (Atom (1::nat)) (Atom 3)) (Atom 2)) 1 3) {1::nat} "
+
+
 abbreviation (input) regular_lang where "regular_lang A \<equiv> (\<exists>r vset. lang r vset = A)"
 (*
 primrec nullable :: "'a rexp \<Rightarrow> bool" where
