@@ -56,7 +56,7 @@ range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA"
    (n#q,vl,
     \<lambda>a s.  case s of 
              [] \<Rightarrow> {} 
-           | left # s \<Rightarrow> if left = 0 then {} else (if f s then (left - 1) ## d a q else if s = [] then ((left) ## d a s) else left ## d a s),
+           | left # s \<Rightarrow> if left = 0 then {} else (if f s then (left - 1) ## d a q else left ## d a s),
     \<lambda>s. ((hd s) \<le> (n - m + 1) \<and> f (tl s)) \<or> m = 0))"
 
 
@@ -94,7 +94,7 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
  
 declare split_paired_all[simp]
  
-value "accepts (rexp2na (Range (Alter (Atom 1) (Atom 2)) 0 4) {1::nat}) []"
+value "accepts (rexp2na (Range (Alter (Atom 1) (Atom 2)) 1 4) {1::nat}) [1]"
 value "start (rexp2na (Range (Alter (Atom 1) (Atom 2)) 2 4) {1::nat})"
 value "next (rexp2na (Range (Times (Atom 1) (Atom 2)) 1 2) {1::nat}) 1 [4,2,2]"
 
