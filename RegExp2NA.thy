@@ -79,6 +79,16 @@ definition
     \<lambda>a s. mapLR (dl a (take (hd s) (tl s))) (dr a (drop (hd s) (tl s))),
     \<lambda>s. case s of [] \<Rightarrow> False | left # s \<Rightarrow> fl (take left s) \<and> fr (drop  left  s)))"
 
+definition
+plusN :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
+  "plusN = (\<lambda>(q,vl, d,f) n.
+   (n#q,vl,
+    \<lambda>a s.  case s of 
+             [] \<Rightarrow> {} 
+           | left # s \<Rightarrow> (if f s then (left - 1) ## d a q else left ## d a s),
+    \<lambda>s. ((hd s) = 1 \<and> f (tl s))\<or> n = 0) )"
+
+
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
   "rexp2na One   vs     = epsilon vs" |
@@ -90,10 +100,13 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Ques r) vs = or (rexp2na r vs) (epsilon vs)"|
   "rexp2na (Plus r) vs = or (rexp2na r vs) (star vs (rexp2na r vs))"|
   "rexp2na (Inter r s) vs = inter (rexp2na r vs) (rexp2na s vs)"|
-  "rexp2na (Range r m n) vs = range (rexp2na r vs) m n"
+  "rexp2na (Range r m n) vs = range (rexp2na r vs) m n"|
+  "rexp2na (PlusN r n) vs = plusN (rexp2na r vs) n"
  
 declare split_paired_all[simp]
- 
+value "accepts (rexp2na (PlusN   (Atom 1) 0) {1::nat}) []"
+value "start (rexp2na (PlusN   (Atom 1) 4) {1::nat}) "
+
 value "accepts (rexp2na (Range (Alter (Atom 1) (Atom 2)) 1 4) {1::nat}) [1]"
 value "start (rexp2na (Range (Alter (Atom 1) (Atom 2)) 2 4) {1::nat})"
 value "next (rexp2na (Range (Times (Atom 1) (Atom 2)) 1 2) {1::nat}) 1 [4,2,2]"
@@ -343,15 +356,47 @@ lemma start_range_eq:"\<And>L. (start (range L m n), q) \<in> step (range L m n)
 lemma step_from_start:"\<And>L. (start (range L m n), q) \<in> step (range L m n) a \<Longrightarrow> (\<exists>r. q = n # r \<and> (start L, r) \<in> step L a) \<or> (\<exists>r. fin L (start L) \<and> q = (n - 1) # r \<and> (start L, r) \<in> step L a)"
   by (meson non_zero_step_range start_range_eq)
  
- lemma "\<And>L p. (p, q) \<in> steps (range L m n) w \<Longrightarrow> (\<exists>r. (tl p, tl q) \<in> steps L r \<and> r = (rev (take (length r) (rev w))))"
+lemma "\<And>L p. (p, q) \<in> steps (range L m n) w \<Longrightarrow> (\<exists>r. (tl p, tl q) \<in> steps L r \<and> r = (rev (take (length r) (rev w))))"
   apply(induct w)
   subgoal for L p apply simp done 
-  apply simp  
+  apply simp 
 sorry
 
 lemma accepts_range:
 "accepts (range A n m) w = (n \<le> m \<and> (\<exists>x . (x = m \<or> n \<le> x \<and> x < m) \<and> w : lang r v ^^ x))"
   sorry
+
+(******************************************************)
+(*                     plusN                          *)
+(******************************************************)
+
+lemma start_plusN[iff]: "\<And>L. start(plusN L n) = (n # (start L))"
+  apply(simp add:plusN_def)
+  done
+
+lemma fin_plusN[iff]:
+ "\<And>L n q. fin (plusN L n) q = ((hd q) = 1 \<and> fin L (tl q)) \<or> n = 0  "
+  apply(simp add:plusN_def)  
+  apply auto
+done
+
+lemma step_plusN[iff]:
+"\<And>L p. (m#p,q) : step (plusN L n) a = (if fin L p then (\<exists>r. q = (m - 1)# r \<and> (start L, r) : step L a) else (\<exists>r. (q = m # r) \<and> (p, r) \<in> step L a))"
+  apply (simp add:plusN_def step_def)  
+  by blast   
+
+lemma step_start_plusN[iff]:
+"\<And>L p. (start (plusN L n) ,q) : step (plusN L n) a = (if fin L (tl (start (plusN L n))) then (\<exists>r. q = ((hd (start (plusN L n))) - 1)# r \<and> (start L, r) : step L a) else (\<exists>r. (q = hd (start (plusN L n)) # r) \<and> (tl (start (plusN L n)), r) \<in> step L a))"
+  apply (simp add:plusN_def step_def)  
+  by blast  
+  
+lemma "\<And>L p. (n#p,q) : steps (plusN L n) w \<Longrightarrow> (n#p,n#q) : steps (plusN L n) w"
+  apply(simp add:plusN_def) 
+  apply(induction w) 
+  apply simp 
+  apply simp 
+  apply force
+
 (******************************************************)
 (*                      conc                          *)
 (******************************************************)
@@ -487,6 +532,7 @@ lemma accepts_conc:
   apply simp
   apply blast
   done  
+
 
 
 (******************************************************)
