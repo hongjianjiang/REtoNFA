@@ -12,6 +12,7 @@ type_synonym 'a bitsNA = "('a, nat list)na"
 
 (*Use nat to represent state where 2 equals to True, 3 equals to False*)
 
+
 fun mapLR ::"nat list set \<Rightarrow> nat list set \<Rightarrow> nat list set" where 
 "mapLR A B = {[length a] @ a @ b|a b. a \<in> A \<and> b \<in> B}"
 
@@ -394,8 +395,9 @@ lemma "\<And>L p. (n#p,q) : steps (plusN L n) w \<Longrightarrow> (\<exists>r. q
   apply simp
   apply simp
   sorry
+ 
 
-lemma accepts_plusN:" accepts (plusN (rexp2na r v) n) w = (\<exists>p. accepts (rexp2na r v) p \<and> w = concat (replicate n p))"
+lemma accepts_plusN: "accepts (plusN A n) w = (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w = [])"
   sorry
 
 
@@ -646,7 +648,6 @@ done
 (******************************************************)
 (*                       star                         *)
 (******************************************************)
-
 lemma accepts_star:
  "accepts (star vs A) w = (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w = concat us)"
   apply(unfold star_def)
@@ -679,9 +680,8 @@ lemma accepts_rexp2na:
   by auto 
   defer 1
   apply (simp add:accepts_inter)
-  apply simp
-  apply simp
-  apply (simp add:accepts_plusN)
+  apply simp                
+  apply (simp add:accepts_plusN) sledgehammer
   
   done
 end
