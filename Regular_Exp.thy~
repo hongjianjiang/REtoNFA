@@ -17,7 +17,8 @@ datatype (atoms: 'a) rexp =
   Ques "('a rexp)"|
   Plus "('a rexp)"|
   Range "('a rexp)" "nat" "nat"|
-  Inter "('a rexp)" "('a rexp)"
+  Inter "('a rexp)" "('a rexp)"|
+  PlusN "('a rexp)" "nat"
 
 
 
@@ -32,12 +33,13 @@ primrec lang :: "'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a lang" where
 "lang (Dot) vset = (\<lambda>x. [x]) ` vset" |
 "lang (Ques r) vset = (lang r vset) \<union> {[]}"|
 "lang (Plus r) vset = star(lang r vset) \<union> (lang r vset)"|
+"lang (Inter r s) vset = (lang r vset) \<inter> (lang s vset)"|
 "lang (Range r m n) vset = \<Union>((\<lambda>x. (lang r vset) ^^ x) ` set [m..<n+1])"|
-"lang (Inter r s) vset = (lang r vset) \<inter> (lang s vset)"
+"lang (PlusN r n) vset = (lang r vset) ^^ n"
 
 
 value "lang (Range (Alter (Times (Atom (1::nat)) (Atom 3)) (Atom 2)) 1 3) {1::nat} "
-
+value "lang (PlusN (Atom (1::nat)) 10) {1}"
 
 abbreviation (input) regular_lang where "regular_lang A \<equiv> (\<exists>r vset. lang r vset = A)"
 (*

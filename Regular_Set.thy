@@ -40,7 +40,7 @@ value "{[1::nat],[2]} ^^ 3"
 definition star :: "'a lang \<Rightarrow> 'a lang" where
 "star A = (\<Union>n. A ^^ n)"
 
-
+value "\<Union>i\<in>{{1::nat},{2}}.  {3} \<union> i"
 (*hide_const (open) lang_pow*)
 
 subsection\<open>@{term "(@@)"}\<close>
