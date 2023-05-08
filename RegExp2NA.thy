@@ -395,9 +395,14 @@ lemma "\<And>L p. (n#p,q) : steps (plusN L n) w \<Longrightarrow> (\<exists>r. q
   apply simp
   apply simp
   sorry
- 
 
-lemma accepts_plusN: "accepts (plusN A n) w = (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w = [])"
+
+fun f :: "'a list set  \<Rightarrow> 'a list set \<Rightarrow> nat \<Rightarrow>  'a list set" where
+"f xs t n = (if n > 0 then f xs ({x@y|x y. x\<in> xs \<and> y \<in> t}) (n-1) else t)"
+
+
+
+lemma accepts_plusN: "accepts (plusN A n) w = (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w \<in> f (set us) (set us) (n-1))"
   sorry
 
 
@@ -681,7 +686,7 @@ lemma accepts_rexp2na:
   defer 1
   apply (simp add:accepts_inter)
   apply simp                
-  apply (simp add:accepts_plusN) sledgehammer
+  apply (simp add:accepts_plusN) 
   
   done
 end
