@@ -50,14 +50,6 @@ definition
     \<lambda>s. case s of [] \<Rightarrow> False | 
                   left#s \<Rightarrow> left = 2 \<and> fl s \<and> fr qr | left = 3 \<and> fr s))"
 
-definition
-range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
-  "range = (\<lambda>(q,vl, d,f) m n.
-   (n#q,vl,
-    \<lambda>a s.  case s of 
-             [] \<Rightarrow> {} 
-           | left # s \<Rightarrow> if left = 0 then {} else (if f s then (left - 1) ## d a q else left ## d a s),
-    \<lambda>s. ((hd s) \<le> (n - m + 1) \<and> f (tl s)) \<or> m = 0))"
 
 
 definition
@@ -85,9 +77,17 @@ plusN :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
    (n#q,vl,
     \<lambda>a s.  case s of 
              [] \<Rightarrow> {} 
-           | left # s \<Rightarrow> (if f s then (left - 1) ## d a q else left ## d a s),
+           | left # s \<Rightarrow> if left \<noteq> 0 then (if s = [] then (left - 1) ## d a s else left ## d a s) \<union> (if f s then (left - 1) ## d a q else {}) else {},
     \<lambda>s. ((hd s) = 1 \<and> f (tl s))\<or> n = 0) )"
 
+definition
+range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
+  "range = (\<lambda>(q, vl, d, f) m n.
+   (n#q, vl,
+    \<lambda>a s.  case s of 
+             [] \<Rightarrow> {} 
+           | left # s \<Rightarrow> (if left \<noteq> 0 then (left ## d a s) \<union> (if f s then (left - 1) ## d a q else {}) else {}),
+    \<lambda>s. (0 < (hd s) \<and> hd s \<le> (n - m + 1) \<and> f (tl s)) \<or> m = 0))"
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -104,12 +104,31 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (PlusN r n) vs = plusN (rexp2na r vs) n"
  
 declare split_paired_all[simp]
-value "accepts (rexp2na (PlusN   (Atom 1) 0) {1::nat}) []"
-value "start (rexp2na (PlusN   (Atom 1) 4) {1::nat}) "
+value "accepts (rexp2na (PlusN   (Alter (Atom 1) (Atom 2)) 3) {1::nat}) [1,2,1]"
+value "start (rexp2na (PlusN   (Times (Atom 1) (Atom 2)) 2) {1::nat})"
+value "next (rexp2na (PlusN   (Times (Atom 1) (Atom 2)) 2) {1::nat}) 1 [2,2,2]"
+value "next (rexp2na (PlusN   (Times (Atom 1) (Atom 2)) 2) {1::nat}) 2 [2,2,3]"
+value "next (rexp2na (PlusN   (Times (Atom 1) (Atom 2)) 2) {1::nat}) 1 [2,3,3]"
+value "next (rexp2na (PlusN   (Times (Atom 1) (Atom 2)) 2) {1::nat}) 2 [1,2,3]"
 
-value "accepts (rexp2na (Range (Alter (Atom 1) (Atom 2)) 1 4) {1::nat}) [1]"
+value "fin (rexp2na (PlusN   (Times (Atom 1) (Atom 2)) 2) {1::nat}) [1,3,3]"
+
+value "start (rexp2na ((Alter (Atom 1) (Atom 2))) {1::nat})"
+value "next (rexp2na ((Alter (Atom 1) (Atom 2))) {1::nat}) 1 []"
+
+
+value "accepts (rexp2na (Range (Times (Atom 1) (Atom 2)) 2 4) {1::nat}) [1,2,1,2,1,2,1,2]"
 value "start (rexp2na (Range (Alter (Atom 1) (Atom 2)) 2 4) {1::nat})"
-value "next (rexp2na (Range (Times (Atom 1) (Atom 2)) 1 2) {1::nat}) 1 [4,2,2]"
+value "next (rexp2na (Range (Alter (Atom 1) (Atom 2)) 2 4) {1::nat}) 1 [4]"
+value "next (rexp2na (Range (Alter (Atom 1) (Atom 2)) 2 4) {1::nat}) 1 [3,2,3]"
+value "next (rexp2na (Range (Alter (Atom 1) (Atom 2)) 2 4) {1::nat}) 1 [3,2,3]"
+value "next (rexp2na (Range (Alter (Atom 1) (Atom 2)) 2 4) {1::nat}) 1 [2,3,3]"
+value "next (rexp2na (Range (Alter (Atom 1) (Atom 2)) 2 4) {1::nat}) 1 [1,2,3]"
+value "next (rexp2na (Range (Alter (Atom 1) (Atom 2)) 2 4) {1::nat}) 1 [0,3,3]"
+value "fin (rexp2na (Range (Alter (Atom 1) (Atom 2)) 2 4) {1::nat}) [3,2,3]"
+
+
+
 
 
 (******************************************************)
@@ -389,7 +408,14 @@ lemma step_start_plusN[iff]:
 "\<And>L p. (start (plusN L n) ,q) : step (plusN L n) a = (if fin L (tl (start (plusN L n))) then (\<exists>r. q = ((hd (start (plusN L n))) - 1)# r \<and> (start L, r) : step L a) else (\<exists>r. (q = hd (start (plusN L n)) # r) \<and> (tl (start (plusN L n)), r) \<in> step L a))"
   apply (simp add:plusN_def step_def)  
   by blast  
+
+lemma "\<And>L p. (p, q) \<in> steps L w \<Longrightarrow> (1#p, 1#q) \<in> steps (plusN L 1) w"
+  apply(induct "w")
+  apply simp 
+  apply simp
+  apply force
   
+
 lemma "\<And>L p. (n#p,q) : steps (plusN L n) w \<Longrightarrow> (n#p,n#q) : steps (plusN L n) w"
   apply(simp add:plusN_def) 
   apply(induction w) 
