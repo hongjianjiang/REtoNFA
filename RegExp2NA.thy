@@ -16,6 +16,10 @@ type_synonym 'a bitsNA = "('a, nat list)na"
 fun mapLR ::"nat list set \<Rightarrow> nat list set \<Rightarrow> nat list set" where 
 "mapLR A B = {[length a] @ a @ b|a b. a \<in> A \<and> b \<in> B}"
 
+fun appSet :: "nat list \<Rightarrow> nat list set \<Rightarrow> nat list set" where
+"appSet A B = {A@x|x. x\<in> B}"
+
+
 definition
 "atom"  :: "'a \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
 "atom a vs = ([2],vs,
@@ -72,23 +76,18 @@ definition
     \<lambda>a s. mapLR (dl a (take (hd s) (tl s))) (dr a (drop (hd s) (tl s))),
     \<lambda>s. case s of [] \<Rightarrow> False | left # s \<Rightarrow> fl (take left s) \<and> fr (drop  left  s)))"
 
-definition
-plusN :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
-  "plusN = (\<lambda>(q,vl, d,f) n.
-   (n#q,vl,
-    \<lambda>a s.  case s of 
-             [] \<Rightarrow> {} 
-           | left # s \<Rightarrow> if left \<noteq> 0 then (left ## d a s) \<union> (if f s then (left - 1) ## d a q else {}) else {},
-    \<lambda>s. ((hd s) = 1 \<and> f (tl s))\<or> n = 0) )"
+fun judge :: "nat list \<Rightarrow> bool" where
+  "judge [a,b,c] = (a \<le> b \<and> b \<le> c)"|
+  "judge _ = False"
 
+fun plus_one :: "nat list \<Rightarrow> nat list" where 
+"plus_one A = take 2 A @ [last A+1]"
 definition
 range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
   "range = (\<lambda>(q, vl, d, f) m n.
-   (n#q, vl,
-    \<lambda>a s.  case s of 
-             [] \<Rightarrow> {} 
-           | left # s \<Rightarrow> (if left \<noteq> 0 then (left ## d a s) \<union> (if f s then (left - 1) ## d a q else {}) else {}),
-    \<lambda>s. (0 < (hd s) \<and> hd s \<le> (n - m + 1) \<and> f (tl s)) \<or> m = 0))"
+   ([m,n,0] @ q, vl,
+    \<lambda>a s. appSet (take 3 s) (d a (drop 3 s)) \<union> (if f (drop 3 s) then appSet (plus_one (take 3 s)) (d a q) else {}),
+    \<lambda>s. (judge (take 3 s) \<and> f (drop 3 s))))"
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -101,10 +100,15 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Ques r) vs = or (rexp2na r vs) (epsilon vs)"|
   "rexp2na (Plus r) vs = or (rexp2na r vs) (star vs (rexp2na r vs))"|
   "rexp2na (Inter r s) vs = inter (rexp2na r vs) (rexp2na s vs)"|
-  "rexp2na (Range r m n) vs = range (rexp2na r vs) m n"|
-  "rexp2na (PlusN r n) vs = plusN (rexp2na r vs) n"
+  "rexp2na (Range r m n) vs = range (rexp2na r vs) m n" 
  
 declare split_paired_all[simp]
+
+value "accepts (rexp2na (Range (Atom (1::nat)) 2 3) {1}) [1,1,1,1,1]"
+value "start (rexp2na (Range (Atom (1::nat)) 2 3) {1})"
+value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [2, 3, 0, 2]"
+value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [2, 3, 1, 3]"
+value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [2, 3, 2, 3]"
 
 (******************************************************)
 (*                       atom                         *)
@@ -358,51 +362,6 @@ sorry
 
 lemma accepts_range:
 "accepts (range A n m) w = (n \<le> m \<and> (\<exists>x . (x = m \<or> n \<le> x \<and> x < m) \<and> w : lang r v ^^ x))"
-  sorry
-
-(******************************************************)
-(*                     plusN                          *)
-(******************************************************)
-
-lemma start_plusN[iff]: "\<And>L. start(plusN L n) = (n # (start L))"
-  apply(simp add:plusN_def)
-  done
-
-lemma fin_plusN[iff]:
- "\<And>L n q. fin (plusN L n) q = ((hd q) = 1 \<and> fin L (tl q)) \<or> n = 0  "
-  apply(simp add:plusN_def)  
-  apply auto
-done
-
-lemma step_plusN_Suc_m[iff]:
-"\<And>L p. (Suc m#p,q) : step (plusN L n) a = (\<exists>r. q = Suc m # r \<and> (p, r) : step L a) \<or> (fin L p \<and> (\<exists>r. q = (m)#r \<and> (start L, r) \<in> step L a))"
-  apply (simp add:plusN_def step_def) 
-  by blast
-
-lemma non_zero_in_plusN:"\<And>L p. (0#p,q) \<notin> step (plusN L n) a  "
-  apply(simp add:plusN_def step_def) 
-  done
-
-lemma step_start_plusN[iff]:
-"\<And>L p n. (n#(start L) ,q) : step (plusN L n) a= 
-                      (if n = 0 then False else \<exists>r. q = n# r \<and> (start L, r) \<in> step L a) \<or> (fin L (start L) \<and> (\<exists>r. q = (n-1)#r \<and> (start L, r) \<in> step L a))"
-  apply (simp add:plusN_def step_def) 
-  by blast
-
-lemma "\<And>L p. (n#p,q) : steps (plusN L n) w \<Longrightarrow> (\<exists>r. q = n # r \<and> (p,r) : steps L w)"
-  apply(simp add: plusN_def) 
-  apply(induction w) 
-  apply simp
-  apply simp
-  sorry
-
-
-fun f :: "'a list set  \<Rightarrow> 'a list set \<Rightarrow> nat \<Rightarrow>  'a list set" where
-"f xs t n = (if n > 0 then f xs ({x@y|x y. x\<in> xs \<and> y \<in> t}) (n-1) else t)"
-
-
-
-lemma accepts_plusN: "accepts (plusN A n) w = (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w \<in> f (set us) (set us) (n-1))"
   sorry
 
 
@@ -685,8 +644,6 @@ lemma accepts_rexp2na:
   by auto 
   defer 1
   apply (simp add:accepts_inter)
-  apply simp                
-  apply (simp add:accepts_plusN) 
-  
+  apply simp                  
   done
 end
