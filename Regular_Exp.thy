@@ -36,9 +36,8 @@ primrec lang :: "'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a lang" where
 "lang (Range r m n) vset = (\<Union>x\<in>(set [m..<n+1]). (lang r vset) ^^ x)" 
 
 
-value "lang (Range ((Atom (1::nat))) 1 3) {1::nat} "
-value "lang (PlusN (Alter (Atom (1::nat)) (Atom 3)) 2) {1}"
-
+value "lang (Range ((Atom (1::nat))) 0 3) {1::nat} "
+ 
 abbreviation (input) regular_lang where "regular_lang A \<equiv> (\<exists>r vset. lang r vset = A)"
 (*
 primrec nullable :: "'a rexp \<Rightarrow> bool" where

@@ -77,17 +77,18 @@ definition
     \<lambda>s. case s of [] \<Rightarrow> False | left # s \<Rightarrow> fl (take left s) \<and> fr (drop  left  s)))"
 
 fun judge :: "nat list \<Rightarrow> bool" where
-  "judge [a,b,c] = (a \<le> b \<and> b \<le> c)"|
+  "judge [a,b,c] = (a \<le> (c+1) \<and> (c+1) \<le> b)"|
   "judge _ = False"
 
 fun plus_one :: "nat list \<Rightarrow> nat list" where 
 "plus_one A = take 2 A @ [last A+1]"
+
 definition
 range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
   "range = (\<lambda>(q, vl, d, f) m n.
    ([m,n,0] @ q, vl,
     \<lambda>a s. appSet (take 3 s) (d a (drop 3 s)) \<union> (if f (drop 3 s) then appSet (plus_one (take 3 s)) (d a q) else {}),
-    \<lambda>s. (judge (take 3 s) \<and> f (drop 3 s))))"
+    \<lambda>s. (judge (take 3 s) \<and> (f (drop 3 s)) \<or> (s = [0,n,0] @ q))))"
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -104,11 +105,13 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
  
 declare split_paired_all[simp]
 
-value "accepts (rexp2na (Range (Atom (1::nat)) 2 3) {1}) [1,1,1,1,1]"
+value "accepts (rexp2na (Range (Alter (Atom (1::nat)) (Atom 2)) 0 2) {1}) [1,1]"
 value "start (rexp2na (Range (Atom (1::nat)) 2 3) {1})"
 value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [2, 3, 0, 2]"
+value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [2, 3, 0, 3]"
 value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [2, 3, 1, 3]"
 value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [2, 3, 2, 3]"
+value "fin (rexp2na (Range (Atom (1::nat)) 2 3) {1})   [2, 3, 2, 3]"
 
 (******************************************************)
 (*                       atom                         *)
