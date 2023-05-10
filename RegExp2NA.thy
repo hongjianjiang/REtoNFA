@@ -340,41 +340,31 @@ by (metis (no_types, opaque_lifting) append_eq_conv_conj inter_steps_from_left_r
 (******************************************************)
   
 lemma fin_range[iff]:
- "\<And>L m n q. fin (range L m n) q = (judge (take 3 q) \<and> (fin L (drop 3 q)) \<or> q = [0,n,0]@ start L)"
+ "\<And>L m n q. fin (range L m n) q = (if n > 0 then (hd q) \<ge> 1 \<and> (hd q) \<le> (n - m + 1) \<and> (fin L (tl q)| m = 0) else True)"
   apply(simp add:range_def)   
   done
  
  
 lemma start_range[iff]:
-  "\<And>L. start(range L m n) = ([m,n,0] @ (start L))"
+  "\<And>L. start(range L m n) = (n#(start L))"
  by (simp add:range_def)
  
-lemma step_range_conv[iff]:"\<And>L. (p, q) \<in> step (range L m n) a = 
-((\<exists>r. q = (take 3 p) @ r \<and> (drop 3 p, r) \<in> step L a) \<or> (fin L (drop 3 p) \<and> (\<exists>r. q = (plus_one (take 3 p)) @ r \<and> (start L, r) \<in> step L a)))"
+lemma step_range_conv[iff]:"\<And>L p. (n#p, q) \<in> step (range L m n) a = (if n > 0 then ((\<exists>r. q = n # r \<and> (p, r) \<in> step L a) \<or> 
+  (\<exists>r. fin L p \<and> q = (n - 1) # r \<and> (start L, r) \<in> step L a)) else False)"
   apply(simp add:range_def step_def)
+  apply auto
   done
 
-lemma step_rangeI:"\<And>L. (p, q) \<in> step L a \<Longrightarrow> ([m,n,i]@p, [m,n,i]@q) \<in> step (range L m n) a"
-  apply (simp add:range_def step_def)
-  done
-
-lemma steps_rangeI:"\<And>L p. (p,q) \<in> steps L w \<Longrightarrow> ([m,n,i]@p, [m,n,i]@q) \<in> steps (range L m n) w"
-  apply(induct w)
-  apply simp
-  apply simp 
-  apply force
-  done
-
-lemma fin_steps_rangeI:"\<lbrakk>(start A,q) \<in> steps A u; u \<noteq> []; fin A p\<rbrakk> \<Longrightarrow> ([m,n,i]@p, [m,n,i]@q) \<in> steps (range A m n) u"
+lemma "\<lbrakk>(start A, q) \<in> steps A u; u \<noteq> []; fin A p \<rbrakk> \<Longrightarrow> (i#p, i#q) \<in> steps (range A m n) u"
   apply (case_tac u)
-  apply simp
   apply simp 
-  sledgehammer  
-
-
+  apply simp
+  sorry
+ 
 lemma accepts_range:
 "accepts (range A n m) w = (n \<le> m \<and> (\<exists>x. (x = m \<or> n \<le> x \<and> x < m) \<and> w \<in> lang r v ^^ x))"
-  apply (simp add: accepts_conv_steps)
+  apply (simp add: accepts_conv_steps) 
+  apply(case_tac w)
   sorry
  
 (******************************************************)
