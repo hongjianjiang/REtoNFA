@@ -86,9 +86,9 @@ fun plus_one :: "nat list \<Rightarrow> nat list" where
 definition
 range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
   "range = (\<lambda>(q, vl, d, f) m n.
-   ([m,n,0] @ q, vl,
-    \<lambda>a s. appSet (take 3 s) (d a (drop 3 s)) \<union> (if f (drop 3 s) then appSet (plus_one (take 3 s)) (d a q) else {}),
-    \<lambda>s. (judge (take 3 s) \<and> (f (drop 3 s)) \<or> (s = [0,n,0] @ q))))"
+   (n#q, vl,
+    \<lambda>a s. if hd s > 0 then ((hd s) ## (d a (tl s))) \<union> (if (f (tl s)) then ((hd s) - 1) ## d a q else {}) else {},
+    \<lambda>s. if n > 0 then hd s \<ge> 1 \<and> (hd s) \<le> (n - m + 1) \<and> (f (tl s) \<or> m = 0) else True))"
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -103,15 +103,18 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Inter r s) vs = inter (rexp2na r vs) (rexp2na s vs)"|
   "rexp2na (Range r m n) vs = range (rexp2na r vs) m n" 
  
-declare split_paired_all[simp]
+declare split_paired_all[simp] 
 
-value "accepts (rexp2na (Range (Alter (Atom (1::nat)) (Atom 2)) 0 2) {1}) [1,1]"
-value "start (rexp2na (Range (Atom (1::nat)) 2 3) {1})"
-value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [2, 3, 0, 2]"
-value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [2, 3, 0, 3]"
-value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [2, 3, 1, 3]"
-value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [2, 3, 2, 3]"
-value "fin (rexp2na (Range (Atom (1::nat)) 2 3) {1})   [2, 3, 2, 3]"
+value "start (rexp2na (Range (Atom (1::nat)) 0 0) {1})"
+value "accepts (rexp2na (Range (Alter (Atom (1::nat)) (Atom (2::nat))) 0 0) {1}) [1]"
+
+value "next (rexp2na (Range (Atom (1::nat)) 0 0) {1}) 1 [0,2]"
+value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [3,3]"
+value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [2,3]"
+value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [1,3]"
+value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [0,3]"
+
+value "fin (rexp2na (Range (Atom (1::nat)) 0 0) {1}) [0, 2]"
 
 (******************************************************)
 (*                       atom                         *)
@@ -337,37 +340,43 @@ by (metis (no_types, opaque_lifting) append_eq_conv_conj inter_steps_from_left_r
 (******************************************************)
   
 lemma fin_range[iff]:
- "\<And>L m n q. fin (range L m n) q = (0 < hd q \<and> (hd q) \<le> n - m + 1 \<and> fin L (tl q)) \<or> m = 0"
+ "\<And>L m n q. fin (range L m n) q = (judge (take 3 q) \<and> (fin L (drop 3 q)) \<or> q = [0,n,0]@ start L)"
   apply(simp add:range_def)   
-  apply auto 
-done
+  done
+ 
  
 lemma start_range[iff]:
-  "\<And>L. start(range L m n) = (n # (start L))"
+  "\<And>L. start(range L m n) = ([m,n,0] @ (start L))"
  by (simp add:range_def)
-
-lemma non_zero_step_range:"\<And>L p. (n#p, q) \<in> step (range L m n) a \<Longrightarrow> ((\<exists>r. q = n#r \<and> (p,r) \<in> step L a) \<or> (\<exists>r. fin L p \<and> q = (n-1) # r \<and> (start L, r) \<in> step L a))"
+ 
+lemma step_range_conv[iff]:"\<And>L. (p, q) \<in> step (range L m n) a = 
+((\<exists>r. q = (take 3 p) @ r \<and> (drop 3 p, r) \<in> step L a) \<or> (fin L (drop 3 p) \<and> (\<exists>r. q = (plus_one (take 3 p)) @ r \<and> (start L, r) \<in> step L a)))"
   apply(simp add:range_def step_def)
-  by (smt (verit, ccfv_threshold) One_nat_def UnE empty_iff image_iff)
-
-lemma start_range_eq:"\<And>L. (start (range L m n), q) \<in> step (range L m n) a = ((n # start L, q) \<in> step (range L m n) a)" 
-  apply (simp add:range_def)
   done
 
-lemma step_from_start:"\<And>L. (start (range L m n), q) \<in> step (range L m n) a \<Longrightarrow> (\<exists>r. q = n # r \<and> (start L, r) \<in> step L a) \<or> (\<exists>r. fin L (start L) \<and> q = (n - 1) # r \<and> (start L, r) \<in> step L a)"
-  by (meson non_zero_step_range start_range_eq)
- 
-lemma "\<And>L p. (p, q) \<in> steps (range L m n) w \<Longrightarrow> (\<exists>r. (tl p, tl q) \<in> steps L r \<and> r = (rev (take (length r) (rev w))))"
+lemma step_rangeI:"\<And>L. (p, q) \<in> step L a \<Longrightarrow> ([m,n,i]@p, [m,n,i]@q) \<in> step (range L m n) a"
+  apply (simp add:range_def step_def)
+  done
+
+lemma steps_rangeI:"\<And>L p. (p,q) \<in> steps L w \<Longrightarrow> ([m,n,i]@p, [m,n,i]@q) \<in> steps (range L m n) w"
   apply(induct w)
-  subgoal for L p apply simp done 
+  apply simp
   apply simp 
-sorry
+  apply force
+  done
+
+lemma fin_steps_rangeI:"\<lbrakk>(start A,q) \<in> steps A u; u \<noteq> []; fin A p\<rbrakk> \<Longrightarrow> ([m,n,i]@p, [m,n,i]@q) \<in> steps (range A m n) u"
+  apply (case_tac u)
+  apply simp
+  apply simp 
+  sledgehammer  
+
 
 lemma accepts_range:
-"accepts (range A n m) w = (n \<le> m \<and> (\<exists>x . (x = m \<or> n \<le> x \<and> x < m) \<and> w : lang r v ^^ x))"
+"accepts (range A n m) w = (n \<le> m \<and> (\<exists>x. (x = m \<or> n \<le> x \<and> x < m) \<and> w \<in> lang r v ^^ x))"
+  apply (simp add: accepts_conv_steps)
   sorry
-
-
+ 
 (******************************************************)
 (*                      conc                          *)
 (******************************************************)
@@ -625,7 +634,7 @@ lemma accepts_star:
   apply simp
   apply blast
   apply force
-done
+  done
 
 
 (***** Correctness of r *****)
@@ -645,8 +654,8 @@ lemma accepts_rexp2na:
   subgoal for r w  
     apply (simp add: accepts_star in_star_iff_concat subset_iff Ball_def)
   by auto 
-  defer 1
+  defer 1                                                                         
   apply (simp add:accepts_inter)
-  apply simp                  
+  apply (simp add:accepts_range)
   done
 end
