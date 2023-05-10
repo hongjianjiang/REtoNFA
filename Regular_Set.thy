@@ -213,6 +213,20 @@ next
   by (auto simp: concat_in_star)
 qed
 
+
+fun list_of_length_n :: "'a list set => nat => 'a list set"
+where 
+"list_of_length_n _ 0 = {[]}" |
+"list_of_length_n S (Suc n) = 
+{xs@x |xs x. x \<in> S \<and> xs \<in> list_of_length_n S n }"
+
+lemma plux_x_time:"A ^^ x = (list_of_length_n A x)"
+  apply(induct x) 
+   apply simp
+  apply simp 
+  by (smt (verit, best) Collect_cong conc_def conc_pow_comm)
+
+
 lemma star_conv_concat: "star A = {concat ws|ws. set ws \<subseteq> A}"
 by (fastforce simp: in_star_iff_concat)
 

@@ -38,6 +38,16 @@ primrec lang :: "'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a lang" where
 "lang (Multi r m) vset = (lang r vset) ^^ m" 
 
 
+
+fun list_of_length_n :: "'a list set => nat => 'a list set"
+where 
+"list_of_length_n _ 0 = {[]}" |
+"list_of_length_n S (Suc n) = 
+{xs@x |xs x. x \<in> S \<and> xs \<in> list_of_length_n S n }"
+
+
+value "list_of_length_n {[1],[2],[3::nat]} 3"
+
 value "(lang Zero {1::nat}) ^^ (1::nat)"
 value "lang (Range ((Zero)) 0 0) {1::nat} "
  

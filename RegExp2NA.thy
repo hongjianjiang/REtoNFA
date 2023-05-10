@@ -638,7 +638,7 @@ lemma accepts_star:
 (*                       multi                         *)
 (******************************************************)
 lemma accepts_multi:
- "accepts (multi A n) w = (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w \<in> (set us) ^^ n)"
+ "accepts (multi (rexp2na r vs) n) w = (w \<in> lang r v ^^ x2)"
   sorry
 (***** Correctness of r *****)
 lemma accepts_rexp2na:
@@ -659,6 +659,7 @@ lemma accepts_rexp2na:
   by auto 
   defer 1                                                                         
   apply (simp add:accepts_inter)
-  apply (simp add:accepts_multi)
+  apply
+  apply (simp add:accepts_multi) 
    done
 end
