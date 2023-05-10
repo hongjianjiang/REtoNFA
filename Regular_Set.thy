@@ -32,15 +32,10 @@ lemma [code]:
   "lang_pow 0 A = {[]}"
   by (simp_all add: lang_pow_code_def)
 
- 
-
-value "lang_pow 3 {[1::nat],[2]}"
-value "{[1::nat],[2]} ^^ 3"
 
 definition star :: "'a lang \<Rightarrow> 'a lang" where
 "star A = (\<Union>n. A ^^ n)"
 
-value "\<Union>i\<in>{{1::nat},{2}}.  {3} \<union> i"
 (*hide_const (open) lang_pow*)
 
 subsection\<open>@{term "(@@)"}\<close>

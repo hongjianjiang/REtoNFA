@@ -659,6 +659,6 @@ lemma accepts_rexp2na:
   by auto 
   defer 1                                                                         
   apply (simp add:accepts_inter)
-  apply (simp add:accepts_multi)
+  apply (simp add:accepts_multi) 
    done
 end

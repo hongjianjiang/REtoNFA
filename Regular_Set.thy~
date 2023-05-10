@@ -34,7 +34,7 @@ lemma [code]:
 
  
 
-value "lang_pow 3 {[1::nat]}"
+value "lang_pow 3 {[1::nat],[2]}"
 value "{[1::nat],[2]} ^^ 3"
 
 definition star :: "'a lang \<Rightarrow> 'a lang" where
@@ -69,6 +69,7 @@ lemma conc_Un_distrib:
 shows "A @@ (B \<union> C) = A @@ B \<union> A @@ C"
 and   "(A \<union> B) @@ C = A @@ C \<union> B @@ C"
 by auto
+
 
 lemma conc_UNION_distrib:
 shows "A @@ \<Union>(M ` I) = \<Union>((%i. A @@ M i) ` I)"
@@ -190,14 +191,13 @@ by (auto elim: star_induct)
 lemma star_idemp[simp]: "star (star A) = star A"
 by (auto elim: star_induct)
 
-lemma star_unfold_left: "star A = A @@ star A \<union> {[]}" (is "?L = ?R")
+lemma star_unfold_left: "star A = A @@ star A \<union> {[]}" (is "?L = ?R") 
 proof
   show "?L \<subseteq> ?R" by (rule, erule star_induct) auto
 qed auto
 
 lemma concat_in_star: "set ws \<subseteq> A \<Longrightarrow> concat ws : star A"
 by (induct ws) simp_all
-
 
 lemma in_star_iff_concat:
   "w \<in> star A = (\<exists>ws. set ws \<subseteq> A \<and> w = concat ws)"
@@ -241,6 +241,7 @@ proof -
   have "[] \<notin> (A - {[]}) @@ star A" by simp
   thus ?thesis using star_unfold_left_Nil by blast
 qed
+
 
 lemma star_decom: 
   assumes a: "x \<in> star A" "x \<noteq> []"
