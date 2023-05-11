@@ -623,6 +623,14 @@ lemma accepts_star:
 (*                       multi                         *)
 (******************************************************)
 
+lemma zero_multi:"accepts (rexp2na (Multi r 0) v) w = (w = [])"
+  apply auto
+  done
+
+lemma one_multi:"accepts (rexp2na (Multi r 1) v) w = (\<exists>u. accepts (rexp2na r v) u \<and> w = u)"
+  apply auto
+  done
+
 
 (***** Correctness of r *****)
 lemma accepts_rexp2na:
@@ -642,5 +650,6 @@ lemma accepts_rexp2na:
     apply (simp add: accepts_star in_star_iff_concat subset_iff Ball_def)
   by auto 
   apply (simp add:accepts_inter)
+  apply simp
  done
 end
