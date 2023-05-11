@@ -213,7 +213,7 @@ next
   by (auto simp: concat_in_star)
 qed
 
-
+ 
 
 fun list_of_length_n :: "'a list set => nat => 'a list set"
 where 

@@ -35,7 +35,7 @@ primrec lang :: "'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a lang" where
 "lang (Plus r) vset = star(lang r vset) \<union> (lang r vset)"|
 "lang (Inter r s) vset = (lang r vset) \<inter> (lang s vset)"|
 "lang (Range r m n) vset = (\<Union>x\<in>(set [m..<n+1]). (lang r vset) ^^ x)" |
-"lang (Multi r m) vset = (lang r vset) ^^ m" 
+"lang (Multi r m) vset = (if m > 0 then (lang r vset) ^^ m else {})" 
 
 
 
@@ -49,7 +49,7 @@ where
 value "list_of_length_n {[1],[2],[3::nat]} 3"
 
 value "(lang Zero {1::nat}) ^^ (1::nat)"
-value "lang (Range ((Zero)) 0 0) {1::nat} "
+value "lang (Multi ((Atom 1)) 7) {1::nat}"
  
 abbreviation (input) regular_lang where "regular_lang A \<equiv> (\<exists>r vset. lang r vset = A)"
 (*

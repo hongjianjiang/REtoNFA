@@ -95,7 +95,7 @@ multi :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
   "multi = (\<lambda>(q, vl, d, f) m.
    (0#q, vl,
     \<lambda>a s. case s of [] \<Rightarrow> {} | left#p \<Rightarrow> (left ## (d a p)) \<union> (if f p then (left + 1) ## d a q else {}),
-    \<lambda>s. (hd s = m - 1) \<and> f (tl s)))"
+    \<lambda>s. if m = 0 then False else (hd s = m - 1) \<and> f (tl s)))"
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -121,6 +121,8 @@ value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [3,3]"
 value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [2,3]"
 value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [1,3]"
 value "next (rexp2na (Range (Atom (1::nat)) 2 3) {1}) 1 [0,3]"
+
+
 
 value "fin (rexp2na (Range (Atom (1::nat)) 0 0) {1}) [0, 2]"
 
@@ -362,6 +364,7 @@ lemma step_range_conv[iff]:"\<And>L p. (n#p, q) \<in> step (range L m n) a = (if
   apply(simp add:range_def step_def)
   apply auto
   done
+
 
 lemma "\<lbrakk>(start A, q) \<in> steps A u; u \<noteq> []; fin A p \<rbrakk> \<Longrightarrow> (i#p, i#q) \<in> steps (range A m n) u"
   apply (case_tac u)
@@ -638,7 +641,9 @@ lemma accepts_star:
 (*                       multi                         *)
 (******************************************************)
 lemma accepts_multi:
- "accepts (multi (rexp2na r vs) n) w = (w \<in> lang r v ^^ x2)"
+ "\<not> accepts (multi (rexp2na r vs) 0) w"
+  apply (simp add: accepts_conv_steps)
+
   sorry
 (***** Correctness of r *****)
 lemma accepts_rexp2na:
@@ -659,7 +664,7 @@ lemma accepts_rexp2na:
   by auto 
   defer 1                                                                         
   apply (simp add:accepts_inter)
-  apply
-  apply (simp add:accepts_multi) 
+  apply simp
+   apply (simp add:accepts_multi) 
    done
 end
