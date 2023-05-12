@@ -356,7 +356,36 @@ lemma accepts_range:
   apply (simp add: accepts_conv_steps) 
   apply(case_tac w)
   sorry
- 
+
+(******************************************************)
+(*                       multi                         *)
+(******************************************************)
+lemma start_multi[iff]:"\<And>A. start (multi A n) = n#start A "
+  by(simp add:multi_def)
+
+lemma fin_multi:"\<And>A. fin (multi A n) q = (if n = 0 then q = 0 # start A else (q = n # start A \<and> fin A (start A)) \<or> (hd q = 1 \<and> fin A (tl q)))"
+  apply(simp add:multi_def)
+  done
+
+lemma step_n_multi[iff]:"\<And>A p. (Suc n#p, q)\<in> step (multi A n) a = ((\<exists>r. q = Suc n # r \<and> (p, r) \<in> step A a)|
+                    (fin A (p) \<and> (\<exists>r. q = n # r \<and> (start A, r) \<in> step A a)))"
+  apply(simp add:multi_def step_def) 
+  apply auto 
+  done
+
+lemma step_zero_multi[iff]:"\<And>A p. (0#p, q)\<in> step (multi A n) a = False"
+  apply(simp add:multi_def step_def) 
+  done
+
+
+lemma step_multi[iff]:"\<And>A p. (n#p, q)\<in> step (multi A n) a = (if n > 0 then (\<exists>r. q = n # r \<and> (p, r) \<in> step A a)|
+                    (fin A (p) \<and> (\<exists>r. q = (n - 1) # r \<and> (start A, r) \<in> step A a)) else False)"
+  apply(simp add:multi_def step_def) 
+  apply auto
+  done
+
+
+
 (******************************************************)
 (*                      conc                          *)
 (******************************************************)
@@ -370,7 +399,6 @@ by(simp add:conc_def)
 lemma fin_conc_False[iff]:
  "\<And>L R. fin (conc L R) (3#p) = fin R p"
 by(simp add:conc_def)
-
 
 (** True/False in step **)
 
@@ -616,11 +644,7 @@ lemma accepts_star:
   apply force
   done
 
-(******************************************************)
-(*                       multi                         *)
-(******************************************************)
 
-   
 
 (***** Correctness of r *****)
 lemma accepts_rexp2na:
