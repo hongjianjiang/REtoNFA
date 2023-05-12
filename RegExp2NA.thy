@@ -16,6 +16,7 @@ type_synonym 'a bitsNA = "('a, nat list)na"
 fun mapLR ::"nat list set \<Rightarrow> nat list set \<Rightarrow> nat list set" where 
 "mapLR A B = {[length a] @ a @ b|a b. a \<in> A \<and> b \<in> B}"
 
+
 definition
 "atom"  :: "'a \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
 "atom a vs = ([2],vs,
@@ -38,18 +39,6 @@ definition
                               else 3 ## dr a s,
     \<lambda>s. case s of [] \<Rightarrow> (fl ql \<or> fr qr)             
                 | left#s \<Rightarrow> if left = 2 then fl s else fr s))"
-
-definition
- conc :: "'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
-"conc = (\<lambda>(ql,vl1, dl,fl)(qr,vl2, dr,fr).
-   (2#ql,vl1 \<union> vl2,
-    \<lambda>a s. case s of
-            [] \<Rightarrow> {}
-          | left#s \<Rightarrow> if left =2  then (2 ## dl a s) \<union>
-                                   (if fl s then 3 ## dr a qr else {})
-                              else 3 ## dr a s,
-    \<lambda>s. case s of [] \<Rightarrow> False | 
-                  left#s \<Rightarrow> left = 2 \<and> fl s \<and> fr qr | left = 3 \<and> fr s))"
 
 definition
  epsilon :: "'a set \<Rightarrow> 'a bitsNA" where
@@ -78,15 +67,25 @@ range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA"
     \<lambda>s. if n > 0 then hd s \<ge> 1 \<and> (hd s) \<le> (n - m + 1) \<and> (f (tl s) \<or> m = 0) else True))"
 
 definition
-multi1 :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
-  "multi1 = (\<lambda>(q, vl, d, f) m.
-   (0#q, vl,
-    \<lambda>a s. case s of [] \<Rightarrow> {} | left#p \<Rightarrow> (left ## (d a p)) \<union> (if f p then (left + 1) ## d a q else {}),
-    \<lambda>s. if m = 0 then False else (hd s = m - 1) \<and> f (tl s)))"
+ conc :: "'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
+"conc = (\<lambda>(ql,vl1, dl,fl)(qr,vl2, dr,fr).
+   (2#ql,vl1 \<union> vl2,
+    \<lambda>a s. case s of
+            [] \<Rightarrow> {}
+          | left#s \<Rightarrow> if left =2  then (2 ## dl a s) \<union>
+                                   (if fl s then 3 ## dr a qr else {})
+                              else 3 ## dr a s,
+    \<lambda>s. case s of [] \<Rightarrow> False | 
+                  left#s \<Rightarrow> left = 2 \<and> fl s \<and> fr qr | left = 3 \<and> fr s))"
 
-fun multi :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where 
-"multi A n vs = (if n = 0 then epsilon vs else if n = 1 then A else conc A (multi A (n-1) vs))"
 
+definition
+multi :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
+  "multi = (\<lambda>(q, vl, d, f) m.
+   (m#q, vl,
+    \<lambda>a s. case s of [] \<Rightarrow> {} | 
+          left#p \<Rightarrow> if left = 0 then {} else (left ## (d a p)) \<union> (if f p then ((left - 1) ## d a q) else {}),
+    \<lambda>s. if m = 0 then s = 0 # q else (s = m # q \<and> f q | (hd s = 1) \<and> f (tl s))))"
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -94,20 +93,18 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Atom a)  vs  = atom a vs" |
   "rexp2na (Alter r s)  vs= or (rexp2na r vs) (rexp2na s vs)" |
   "rexp2na (Times r s) vs= conc (rexp2na r vs) (rexp2na s vs)" |
-  "rexp2na (Star r)   vs = star vs (rexp2na r vs)" |
+  "rexp2na (Star r)   vs = star vs (rexp2na r vs)" |  
   "rexp2na Dot vs= dot vs" | 
   "rexp2na (Ques r) vs = or (rexp2na r vs) (epsilon vs)" |
   "rexp2na (Plus r) vs = or (rexp2na r vs) (star vs (rexp2na r vs))" |
   "rexp2na (Inter r s) vs = inter (rexp2na r vs) (rexp2na s vs)" |
   (*"rexp2na (Range r m n) vs = range (rexp2na r vs) m n" |*)
-  "rexp2na (Multi r m) vs = multi (rexp2na r vs) m vs"
+  "rexp2na (Multi r m) vs = multi (rexp2na r vs) m"
  
 declare split_paired_all[simp] 
 
-value "start (rexp2na (Multi (Atom (1::nat)) 0) {1})"
-value "accepts (rexp2na (Times (One) (One)) {1::nat}) []"
-value "accepts (rexp2na (Multi (Atom 5) 1) {1::nat}) [5]"
-
+value "accepts (rexp2na (Multi (Dot) 0) {1::nat}) []"
+                                                                                     
 (******************************************************)
 (*                       atom                         *)
 (******************************************************)
@@ -623,14 +620,7 @@ lemma accepts_star:
 (*                       multi                         *)
 (******************************************************)
 
-lemma zero_multi:"accepts (rexp2na (Multi r 0) v) w = (w = [])"
-  apply auto
-  done
-
-lemma one_multi:"accepts (rexp2na (Multi r 1) v) w = (\<exists>u. accepts (rexp2na r v) u \<and> w = u)"
-  apply auto
-  done
-
+   
 
 (***** Correctness of r *****)
 lemma accepts_rexp2na:
@@ -650,6 +640,5 @@ lemma accepts_rexp2na:
     apply (simp add: accepts_star in_star_iff_concat subset_iff Ball_def)
   by auto 
   apply (simp add:accepts_inter)
-  apply simp
- done
+  oops
 end
