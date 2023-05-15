@@ -353,12 +353,28 @@ lemma inter_eps_left:"\<And>L R p. (p, q) \<in> eps (inter L R) \<Longrightarrow
 
 lemma inter_eps_right:"\<And>L R p. (p, q) \<in> eps (inter L R) \<Longrightarrow> ((drop (hd p) (tl p), drop (hd q) (tl q))\<in> eps R)"
   by fastforce
- 
+
+
+thm rtrancl_induct
+
+lemma eps_L_inter:"(n#p, q) \<in> (eps (inter L R))\<^sup>* \<Longrightarrow> ((take n p, take (hd q) (tl q)) \<in> (eps L)\<^sup>*)"
+apply(induct rule:rtrancl_induct)
+apply simp
+apply simp
+  by fastforce
+
+lemma eps_R_inter:"(n#p, q) \<in> (eps (inter L R))\<^sup>* \<Longrightarrow> ((drop n p, drop (hd q) (tl q)) \<in> (eps R)\<^sup>*)"
+apply(induct rule:rtrancl_induct)
+apply simp
+apply simp
+by fastforce
+
 lemma inter_steps_left:"\<And>L R p. (p, q) \<in> steps (inter L R) w \<Longrightarrow> ((take (hd p) (tl p), take (hd q) (tl q))\<in> steps L w)"
   apply (case_tac "w")
   apply simp
+  apply (smt (verit, ccfv_SIG) eps_L_inter in_unfold_rtrancl2 list.sel(1) list.sel(3) step_inter)
   apply simp
-  apply force
+  nitpick
 done
 
 lemma inter_steps_right:"\<And>L R p. (p, q) \<in> steps (inter L R) w \<Longrightarrow> ((drop (hd p) (tl p), drop (hd q) (tl q))\<in> steps R w)"
