@@ -18,7 +18,7 @@ fun mapLR ::"nat list set \<Rightarrow> nat list set \<Rightarrow> nat list set"
 
 
 definition
-"atom"  :: "'a \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
+  "atom"  :: "'a \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
 "atom a vs = ([2],vs,
             \<lambda>b s. if s=[2] \<and> b=a then {[3]} else {},
             \<lambda>s. s=[3])"
@@ -26,11 +26,11 @@ definition
 definition 
   dot ::  "'a set \<Rightarrow> 'a bitsNA" where
 "dot vs=([2], vs,
-            \<lambda>b s. if s=[2] \<and> b \<in> vs then {[3]} else {},
+            \<lambda>b s. if s=[2] \<and> b \<in> vs  then {[3]} else {},
             \<lambda>s. s=[3])"
 
 definition
- or :: " 'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
+  or :: " 'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
 "or= (\<lambda>(ql,vl1,dl,fl)(qr,vl2,dr,fr).
    ([],vl1\<union>vl2,
     \<lambda>a s. case s of
@@ -41,11 +41,11 @@ definition
                 | left#s \<Rightarrow> if left = 2 then fl s else fr s))"
 
 definition
- epsilon :: "'a set \<Rightarrow> 'a bitsNA" where
- "epsilon vs= ([],vs,\<lambda>a s. {}, \<lambda>s. s=[])"
+  epsilon :: "'a set \<Rightarrow> 'a bitsNA" where
+"epsilon vs= ([],vs,\<lambda>a s. {}, \<lambda>s. s=[])"
 
 definition
- inter :: " 'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
+  inter :: " 'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
 "inter= (\<lambda>(ql,vl1,dl,fl)(qr,vl2,dr,fr).
    ([length ql] @ ql @ qr,vl1 \<inter> vl2,
     \<lambda>a s. mapLR (dl a (take (hd s) (tl s))) (dr a (drop (hd s) (tl s))),
@@ -54,12 +54,12 @@ definition
 definition
 range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
   "range = (\<lambda>(q, vl, d, f) m n.
-   (n#q, vl,
+    (n#q, vl,
     \<lambda>a s. if hd s > 0 then ((hd s) ## (d a (tl s))) \<union> (if (f (tl s)) then ((hd s) - 1) ## d a q else {}) else {},
     \<lambda>s. if n > 0 then hd s \<ge> 1 \<and> (hd s) \<le> (n - m + 1) \<and> (f (tl s) \<or> m = 0) else True))"
 
 definition
- conc :: "'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
+  conc :: "'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
 "conc = (\<lambda>(ql,vl1, dl,fl)(qr,vl2, dr,fr).
    (2#ql,vl1 \<union> vl2,
     \<lambda>a s. case s of
@@ -71,8 +71,8 @@ definition
                   left#s \<Rightarrow> left = 2 \<and> fl s \<and> fr qr | left = 3 \<and> fr s))"
  
 definition
-multi :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
-  "multi = (\<lambda>(q, vl, d, f) m.
+  multi :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
+"multi = (\<lambda>(q, vl, d, f) m.
    (m#q, vl,
     \<lambda>a s. case s of [] \<Rightarrow> {} | 
           left#p \<Rightarrow> if left = 0 then {} else (left ## (d a p)) \<union> (if f p then ((left - 1) ## d a q) else {}),
@@ -80,19 +80,16 @@ multi :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
 
 definition
 plus :: "'a bitsNA \<Rightarrow> 'a bitsNA" where
- "plus = (\<lambda>(q,vs,d,f). (q, vs, \<lambda>a s. d a s \<union> (if f s then d a q else {}), f))"
-
+  "plus = (\<lambda>(q,vs,d,f). (q, vs, \<lambda>a s. d a s \<union> (if f s then d a q else {}), f))"
 
 definition
 timesN :: "'a bitsNA \<Rightarrow> nat\<Rightarrow>'a bitsNA" where
- "timesN = (\<lambda>(q,vs,d,f) n. (0#q, vs, \<lambda>a s. ((hd s) ## d a (tl s)) \<union> (if f (tl s) then (hd s + 1) ## d a q else {}), 
-  \<lambda>s. (hd s) = (n-1) \<and> f (tl s)))"
-
+  "timesN = (\<lambda>(q,vs,d,f) n. (1#q, vs, \<lambda>a s. ((hd s) ## d a (tl s)) \<union> (if f (tl s) then (hd s + 1) ## d a q else {}), 
+  \<lambda>s. (hd s) = n \<and> f (tl s)))"
 
 definition
 star :: "'a set \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
  "star vs A = or (epsilon vs) (plus A)"
-
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -106,18 +103,21 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Plus r) vs = conc (rexp2na r vs) (star vs (rexp2na r vs))" |
   "rexp2na (Inter r s) vs = inter (rexp2na r vs) (rexp2na s vs)" |
   (*"rexp2na (Range r m n) vs = range (rexp2na r vs) m n" |*)
-  "rexp2na (Multi r m) vs = timesN (rexp2na r vs) m"
+  "rexp2na (Multi r m) vs = (if m = 0 then epsilon vs else timesN (rexp2na r vs) m)"
  
 declare split_paired_all[simp] 
 
-value "start (rexp2na (Multi (Dot) 0) {1::nat})"
-value "fin (rexp2na (Multi (Dot) 0) {1::nat}) [0,3]"
+value "accepts (rexp2na (One) {1::nat}) []"
+
+value "start (rexp2na (Multi (One) 0) {1::nat})"
+
+value "accepts (rexp2na (Multi (One) 2) {1::nat}) []"
+
 value "fin (rexp2na ((Dot)) {1::nat}) [3]"
                                                       
 (******************************************************)
 (*                       atom                         *)
 (******************************************************)
-
 lemma fin_atom: "(fin (atom a vs) q) = (q = [3])"
   by(simp add:atom_def)
 
@@ -663,8 +663,6 @@ lemma accepts_star:
   apply force
   done
 
-
-
 (***** Correctness of r *****)
 lemma accepts_rexp2na:
  "\<And>w. accepts (rexp2na r v) w = (w : lang r v)"
@@ -673,19 +671,11 @@ lemma accepts_rexp2na:
   apply simp   
   apply (simp add: accepts_atom)
   apply (simp)
-        apply (simp add: accepts_conc Regular_Set.conc_def) 
-       apply (simp add: accepts_star)
-  thm in_star_iff_concat
-  thm subset_iff
-  thm Ball_def
-  apply(simp add:in_star_iff_concat)
-  apply(simp add:subset_iff)
-  apply(simp add:Ball_def)
+  apply (simp add: accepts_conc Regular_Set.conc_def) 
+  apply (simp add: accepts_star in_star_iff_concat subset_iff Ball_def) 
   apply (simp add: accepts_dot)             
-  subgoal for r w 
-    apply auto   
-  done
+  subgoal for r w by auto   
   apply (simp add: accepts_conc Regular_Set.conc_def accepts_star in_star_iff_concat subset_iff Ball_def) 
   apply (simp add:accepts_inter)
-  
+  apply simp 
 end
