@@ -45,14 +45,6 @@ definition
  "epsilon vs= ([],vs,\<lambda>a s. {}, \<lambda>s. s=[])"
 
 definition
-plus :: "'a bitsNA \<Rightarrow> 'a bitsNA" where
- "plus = (\<lambda>(q,vs,d,f). (q, vs, \<lambda>a s. d a s \<union> (if f s then d a q else {}), f))"
-
-definition
-star :: "'a set \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
- "star vs A = or (epsilon vs) (plus A)"
-
-definition
  inter :: " 'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
 "inter= (\<lambda>(ql,vl1,dl,fl)(qr,vl2,dr,fr).
    ([length ql] @ ql @ qr,vl1 \<inter> vl2,
@@ -77,8 +69,7 @@ definition
                               else 3 ## dr a s,
     \<lambda>s. case s of [] \<Rightarrow> False | 
                   left#s \<Rightarrow> left = 2 \<and> fl s \<and> fr qr | left = 3 \<and> fr s))"
-
-
+ 
 definition
 multi :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
   "multi = (\<lambda>(q, vl, d, f) m.
@@ -86,6 +77,22 @@ multi :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
     \<lambda>a s. case s of [] \<Rightarrow> {} | 
           left#p \<Rightarrow> if left = 0 then {} else (left ## (d a p)) \<union> (if f p then ((left - 1) ## d a q) else {}),
     \<lambda>s. if m = 0 then s = 0 # q else (s = m # q \<and> f q | (hd s = 1) \<and> f (tl s))))"
+
+definition
+plus :: "'a bitsNA \<Rightarrow> 'a bitsNA" where
+ "plus = (\<lambda>(q,vs,d,f). (q, vs, \<lambda>a s. d a s \<union> (if f s then d a q else {}), f))"
+
+
+definition
+timesN :: "'a bitsNA \<Rightarrow> nat\<Rightarrow>'a bitsNA" where
+ "timesN = (\<lambda>(q,vs,d,f) n. (0#q, vs, \<lambda>a s. ((hd s) ## d a (tl s)) \<union> (if f (tl s) then (hd s + 1) ## d a q else {}), 
+  \<lambda>s. (hd s) = (n-1) \<and> f (tl s)))"
+
+
+definition
+star :: "'a set \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
+ "star vs A = or (epsilon vs) (plus A)"
+
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -96,15 +103,17 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Star r)   vs = star vs (rexp2na r vs)" |  
   "rexp2na Dot vs= dot vs" | 
   "rexp2na (Ques r) vs = or (rexp2na r vs) (epsilon vs)" |
-  "rexp2na (Plus r) vs = or (rexp2na r vs) (star vs (rexp2na r vs))" |
+  "rexp2na (Plus r) vs = conc (rexp2na r vs) (star vs (rexp2na r vs))" |
   "rexp2na (Inter r s) vs = inter (rexp2na r vs) (rexp2na s vs)" |
   (*"rexp2na (Range r m n) vs = range (rexp2na r vs) m n" |*)
-  "rexp2na (Multi r m) vs = multi (rexp2na r vs) m"
+  "rexp2na (Multi r m) vs = timesN (rexp2na r vs) m"
  
 declare split_paired_all[simp] 
 
-value "accepts (rexp2na (Multi (Dot) 0) {1::nat}) []"
-                                                                                     
+value "start (rexp2na (Multi (Dot) 0) {1::nat})"
+value "fin (rexp2na (Multi (Dot) 0) {1::nat}) [0,3]"
+value "fin (rexp2na ((Dot)) {1::nat}) [3]"
+                                                      
 (******************************************************)
 (*                       atom                         *)
 (******************************************************)
@@ -396,17 +405,6 @@ lemma "\<And>A p. (p, q) \<in> steps A w \<Longrightarrow> ((Suc n)#p, (Suc n)#q
   apply force
   done
 
-lemma "\<And>A p. (Suc n#p, Suc n#q) \<in> steps (multi A (Suc n)) w \<Longrightarrow> (\<exists>u v r. (start A, q) \<in> steps A u \<and> (n#p, 0#r) \<in> steps (multi A (Suc n)) v \<and> fin A r \<and> w = u @ v)"
-  apply(induct w)
-  apply simp 
-  nitpick
-
-
-lemma "\<And>A p. (Suc n#p, q) \<in> steps (multi A (Suc n)) w = ((\<exists>r. q = Suc n # r \<and> (p, q) \<in> steps A w) | 
-                                        (fin A p \<and> (\<exists>u a v. w = u @ v \<and> (\<exists>r. (p, r) \<in> steps A u \<and> fin A r \<and> (\<exists>s. (start A, s) \<in> steps A v \<and> q = n # s)))))"
-  apply(induct w)
-   apply simp
-  subgoal for a b p nitpick
 (******************************************************)
 (*                      conc                          *)
 (******************************************************)
@@ -675,15 +673,19 @@ lemma accepts_rexp2na:
   apply simp   
   apply (simp add: accepts_atom)
   apply (simp)
-  apply (simp add: accepts_conc Regular_Set.conc_def) 
-  apply (simp add: accepts_star in_star_iff_concat subset_iff Ball_def)
-  apply (simp add: accepts_dot)
+        apply (simp add: accepts_conc Regular_Set.conc_def) 
+       apply (simp add: accepts_star)
+  thm in_star_iff_concat
+  thm subset_iff
+  thm Ball_def
+  apply(simp add:in_star_iff_concat)
+  apply(simp add:subset_iff)
+  apply(simp add:Ball_def)
+  apply (simp add: accepts_dot)             
   subgoal for r w 
     apply auto   
   done
-  subgoal for r w  
-    apply (simp add: accepts_star in_star_iff_concat subset_iff Ball_def)
-  by auto 
+  apply (simp add: accepts_conc Regular_Set.conc_def accepts_star in_star_iff_concat subset_iff Ball_def) 
   apply (simp add:accepts_inter)
-  oops
+  
 end
