@@ -384,8 +384,29 @@ lemma step_multi[iff]:"\<And>A p. (n#p, q)\<in> step (multi A n) a = (if n > 0 t
   apply auto
   done
 
+lemma "\<And>A p. (0#p, q) \<in> steps (multi A 0) w = (w = [] & q = 0 # p)"
+  apply(induct w)
+  apply auto 
+  done
+
+lemma "\<And>A p. (p, q) \<in> steps A w \<Longrightarrow> ((Suc n)#p, (Suc n)#q) \<in> steps (multi A (Suc n)) w"
+  apply(induct w)
+  apply simp
+  apply simp
+  apply force
+  done
+
+lemma "\<And>A p. (Suc n#p, Suc n#q) \<in> steps (multi A (Suc n)) w \<Longrightarrow> (\<exists>u v r. (start A, q) \<in> steps A u \<and> (n#p, 0#r) \<in> steps (multi A (Suc n)) v \<and> fin A r \<and> w = u @ v)"
+  apply(induct w)
+  apply simp 
+  nitpick
 
 
+lemma "\<And>A p. (Suc n#p, q) \<in> steps (multi A (Suc n)) w = ((\<exists>r. q = Suc n # r \<and> (p, q) \<in> steps A w) | 
+                                        (fin A p \<and> (\<exists>u a v. w = u @ v \<and> (\<exists>r. (p, r) \<in> steps A u \<and> fin A r \<and> (\<exists>s. (start A, s) \<in> steps A v \<and> q = n # s)))))"
+  apply(induct w)
+   apply simp
+  subgoal for a b p nitpick
 (******************************************************)
 (*                      conc                          *)
 (******************************************************)
