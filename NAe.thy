@@ -11,7 +11,7 @@ begin
 type_synonym ('a,'s)nae = "('a option,'s)na"
 
 abbreviation
-  eps :: "('a,'s)nae \<Rightarrow> ('s * 's)set" where
+eps :: "('a,'s)nae \<Rightarrow> ('s * 's)set" where
   "eps A \<equiv> step A None"
 
 primrec steps :: "('a,'s)nae \<Rightarrow> 'a list \<Rightarrow>   ('s * 's)set" where

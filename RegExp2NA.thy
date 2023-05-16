@@ -281,6 +281,18 @@ lemma step_inter[iff]:
   apply (simp add:inter_def step_def) 
 done
 
+lemma step_L_None: "\<And>L R. (p, q) : step (inter L R) None \<Longrightarrow> (take (hd p) (tl p), take (hd q) (tl q)) \<in> step L None"
+  apply (simp add:inter_def step_def)
+  by force
+
+lemma step_R_None: "\<And>L R. (p, q) : step (inter L R) None \<Longrightarrow> (drop (hd p) (tl p), drop (hd q) (tl q)) \<in> step R None"
+  apply (simp add:inter_def step_def)
+  by force
+
+lemma step_L_R_None: "\<And>L R. (p, q) : step (inter L R) None \<Longrightarrow> (take (hd p) (tl p), take (hd q) (tl q)) \<in> step L None &  (drop (hd p) (tl p), drop (hd q) (tl q)) \<in> step R None"
+  by (simp add: step_L_None step_R_None)
+
+
 lemma inter_steps_left:"\<And>L R p. (p, q) \<in> steps (inter L R) w \<Longrightarrow> ((take (hd p) (tl p), take (hd q) (tl q))\<in> steps L w)"
   apply (induct w)
   apply simp 

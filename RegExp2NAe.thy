@@ -218,7 +218,7 @@ done
 
 lemma lemma1a:
  "(tp,tq) : (eps(or L R))\<^sup>* \<Longrightarrow> 
- (\<And>p. tp = 2#p \<Longrightarrow> \<exists>q. (p,q) : (eps L)\<^sup>* \<and> tq = 2#q)"
+ (\<And>p. tp = 2#p \<Longrightarrow>  \<exists>q. (p,q) : (eps L)\<^sup>* \<and> tq = 2#q)"
 apply (induct rule:rtrancl_induct)
 apply (blast)
 apply (clarify)
@@ -227,8 +227,8 @@ apply (blast intro: rtrancl_into_rtrancl)
 done
 
 lemma lemma1b:
- "(tp,tq) : (eps(or L R))\<^sup>* \<Longrightarrow> 
- (\<And>p. tp = 3#p \<Longrightarrow> \<exists>q. (p,q) : (eps R)\<^sup>* \<and> tq = 3#q)"
+ "(tp,tq) : (eps(or L R))\<^sup>* \<Longrightarrow>  
+ (\<And>p. tp = 3#p \<Longrightarrow>  \<exists>q. (p,q) : (eps R)\<^sup>* \<and> tq = 3#q)"
 apply (induct rule:rtrancl_induct)
 apply (blast)
 apply (clarify)
@@ -237,14 +237,14 @@ apply (blast intro: rtrancl_into_rtrancl)
 done
 
 lemma lemma2a:
- "(p,q) : (eps L)\<^sup>*  \<Longrightarrow> (2#p, 2#q) : (eps(or L R))\<^sup>*"
+ "(p,q) : (eps L)\<^sup>*  \<Longrightarrow>  (2#p, 2#q) : (eps(or L R))\<^sup>*"
 apply (induct rule: rtrancl_induct)
 apply (blast)
 apply (blast intro: rtrancl_into_rtrancl)
 done
 
 lemma lemma2b:
- "(p,q) : (eps R)\<^sup>*  \<Longrightarrow> (3#p, 3#q) : (eps(or L R))\<^sup>*"
+ "(p,q) : (eps R)\<^sup>*  \<Longrightarrow>  (3#p, 3#q) : (eps(or L R))\<^sup>*"
 apply (induct rule: rtrancl_induct)
 apply (blast)
 apply (blast intro: rtrancl_into_rtrancl)
@@ -348,50 +348,62 @@ lemma step_inter[iff]:
   apply (simp add:inter_def step_def) 
   done
 
-lemma inter_eps_left:"\<And>L R p. (p, q) \<in> eps (inter L R) \<Longrightarrow> ((take (hd p) (tl p), take (hd q) (tl q))\<in> eps L)"
+lemma inter_eps_left[simp]:"\<And>L R p. (p, q) \<in> eps (inter L R) \<Longrightarrow> ((take (hd p) (tl p), take (hd q) (tl q)) \<in> eps L)"
+   by fastforce
+
+lemma inter_eps_right[simp]:"\<And>L R p. (p, q) \<in> eps (inter L R) \<Longrightarrow> ((drop (hd p) (tl p), drop (hd q) (tl q)) \<in> eps R)"
   by fastforce
 
-lemma inter_eps_right:"\<And>L R p. (p, q) \<in> eps (inter L R) \<Longrightarrow> ((drop (hd p) (tl p), drop (hd q) (tl q))\<in> eps R)"
-  by fastforce
+lemma eps_L_inter:"(n#p, q) \<in> (eps (inter L R))\<^sup>* \<Longrightarrow>  (take n p, take (hd q) (tl q))\<in> (eps L)\<^sup>*"
+  apply(induct rule:rtrancl_induct)
+  apply simp
+  apply (simp)
+  apply fastforce
+  done
 
+lemma eps_L_inter1[simp]:"(p, q) \<in> (eps (inter L R))\<^sup>* \<Longrightarrow>  (take (hd p) (tl p), take (hd q) (tl q))\<in> (eps L)\<^sup>*"
+  apply(induct rule:rtrancl_induct)
+  apply simp
+  apply (simp)
+  apply fastforce
+  done
 
-thm rtrancl_induct
+lemma eps_R_inter1[simp]:"(p, q) \<in> (eps (inter L R))\<^sup>* \<Longrightarrow>  (drop (hd p) (tl p), drop (hd q) (tl q))\<in> (eps R)\<^sup>*"
+  apply(induct rule:rtrancl_induct)
+   apply simp
+  apply (simp)
+  apply fastforce
+  done
 
-lemma eps_L_inter:"(n#p, q) \<in> (eps (inter L R))\<^sup>* \<Longrightarrow> ((take n p, take (hd q) (tl q)) \<in> (eps L)\<^sup>*)"
-apply(induct rule:rtrancl_induct)
-apply simp
-apply simp
-  by fastforce
-
-lemma eps_R_inter:"(n#p, q) \<in> (eps (inter L R))\<^sup>* \<Longrightarrow> ((drop n p, drop (hd q) (tl q)) \<in> (eps R)\<^sup>*)"
-apply(induct rule:rtrancl_induct)
-apply simp
-apply simp
-by fastforce
-
-lemma inter_steps_left:"\<And>L R p. (p, q) \<in> steps (inter L R) w \<Longrightarrow> ((take (hd p) (tl p), take (hd q) (tl q))\<in> steps L w)"
+lemma eps_R_inter:"(n#p, q) \<in> (eps (inter L R))\<^sup>* \<Longrightarrow>  ((drop n p, drop (hd q) (tl q)) \<in> (eps R)\<^sup>*)"
+  apply(induct rule:rtrancl_induct)
+   apply simp
+  apply (simp)
+  apply fastforce
+  done
+  
+lemma inter_steps_left:"\<And>L R p. (p, q) \<in> steps (inter L R) w  \<Longrightarrow>  ((take (hd p) (tl p), take (hd q) (tl q))\<in> steps L w)"
   apply (case_tac "w")
+   apply simp 
   apply simp
-  apply (smt (verit, ccfv_SIG) eps_L_inter in_unfold_rtrancl2 list.sel(1) list.sel(3) step_inter)
-  apply simp
-  nitpick
-done
+  apply fastforce
+   done
 
-lemma inter_steps_right:"\<And>L R p. (p, q) \<in> steps (inter L R) w \<Longrightarrow> ((drop (hd p) (tl p), drop (hd q) (tl q))\<in> steps R w)"
+lemma inter_steps_right:"\<And>L R p. (n#p, q) \<in> steps (inter L R) w \<Longrightarrow>  ((drop n p, drop (hd q) (tl q))\<in> steps R w)"
   apply (induct w)
   apply simp  
-  apply simp 
+  apply (simp add:step_def)
   apply force
 done
 
-lemma inter_steps_from_left_right :"\<And>L R p p1. (p, q) \<in> steps L w \<and> (p1, q1) \<in> steps R w \<Longrightarrow> ((length p # p @ p1, length q # q @ q1) \<in> steps (inter L R) w)"
+lemma inter_steps_from_left_right :"\<And>L R p p1. (p, q) \<in> steps L w \<and> (p1, q1) \<in> steps R w \<Longrightarrow>  ((length p # p @ p1, length q # q @ q1) \<in> steps (inter L R) w)"
   apply(induction w)
   apply simp 
   apply simp 
   apply force 
 done
 
-lemma inter_steps_to_left_right:"\<And>L R p. (p, q) \<in> steps (inter L R) w \<Longrightarrow> ((take (hd p) (tl p), take (hd q) (tl q))\<in> steps L w \<and> (drop (hd p) (tl p), drop (hd q) (tl q))\<in> steps R w)"
+lemma inter_steps_to_left_right:"\<And>L R p. (p, q) \<in> steps (inter L R) w \<Longrightarrow>  ((take (hd p) (tl p), take (hd q) (tl q))\<in> steps L w \<and> (drop (hd p) (tl p), drop (hd q) (tl q))\<in> steps R w)"
   apply (induct w) 
   apply simp 
   apply simp 
@@ -405,7 +417,7 @@ lemma start_step_inter[iff]:
  apply (simp add:inter_def step_def)  
 done
 
-lemma steps_inter:"\<And>L R. (start (inter L R) ,q) \<in> steps (inter L R) w  \<Longrightarrow> 
+lemma steps_inter:"\<And>L R. (start (inter L R) ,q) \<in> steps (inter L R) w  \<Longrightarrow>  
     ((start L,take (hd q) (tl q)) \<in> steps L w \<and> (start R, (drop (hd q) (tl q))) \<in> steps R w)"
   apply(induct w) 
   apply simp  
@@ -452,15 +464,15 @@ by (simp add:conc_def step_def) (blast)
 (** False in epsclosure **)
 
 lemma lemma1b':
- "(tp,tq) : (eps(conc L R))\<^sup>* \<Longrightarrow> 
-  (\<And>p. tp = 3#p \<Longrightarrow> \<exists>q. (p,q) : (eps R)\<^sup>* \<and> tq = 3#q)"
+ "(tp,tq) : (eps(conc L R))\<^sup>* \<Longrightarrow>  
+  (\<And>p. tp = 3#p \<Longrightarrow>  \<exists>q. (p,q) : (eps R)\<^sup>* \<and> tq = 3#q)"
 apply (induct rule: rtrancl_induct)
 apply (blast)
 apply (blast intro: rtrancl_into_rtrancl)
 done
 
 lemma lemma2b':
- "(p,q) : (eps R)\<^sup>* \<Longrightarrow> (3#p, 3#q) : (eps(conc L R))\<^sup>*"
+ "(p,q) : (eps R)\<^sup>* \<Longrightarrow>  (3#p, 3#q) : (eps(conc L R))\<^sup>*"
 apply (induct rule: rtrancl_induct)
 apply (blast)
 apply (blast intro: rtrancl_into_rtrancl)
@@ -487,14 +499,14 @@ done
 (** True in epsclosure **)
 
 lemma True_True_eps_concI:
- "(p,q): (eps L)\<^sup>* \<Longrightarrow> (2#p,2#q) : (eps(conc L R))\<^sup>*"
+ "(p,q): (eps L)\<^sup>* \<Longrightarrow>  (2#p,2#q) : (eps(conc L R))\<^sup>*"
 apply (induct rule: rtrancl_induct)
 apply (blast)
 apply (blast intro: rtrancl_into_rtrancl)
 done
 
 lemma True_True_steps_concI:
- "\<And>p. (p,q) : steps L w \<Longrightarrow> (2#p,2#q) : steps (conc L R) w"
+ "\<And>p. (p,q) : steps L w \<Longrightarrow>  (2#p,2#q) : steps (conc L R) w"
 apply (induct "w")
 apply (simp add: True_True_eps_concI)
 apply (simp)
@@ -502,8 +514,8 @@ apply (blast intro: True_True_eps_concI)
 done
 
 lemma lemma1a':
- "(tp,tq) : (eps(conc L R))\<^sup>* \<Longrightarrow> 
- (\<And>p. tp = 2#p \<Longrightarrow> 
+ "(tp,tq) : (eps(conc L R))\<^sup>* \<Longrightarrow>  
+ (\<And>p. tp = 2#p \<Longrightarrow>  
   (\<exists>q. tq = 2#q \<and> (p,q) : (eps L)\<^sup>*) | 
   (\<exists>q r. tq = 3#q \<and> (p,r):(eps L)\<^sup>* \<and> fin L r \<and> (start R,q) : (eps R)\<^sup>*))"
 apply (induct rule: rtrancl_induct)
@@ -512,18 +524,18 @@ apply (blast intro: rtrancl_into_rtrancl)
 done
 
 lemma lemma2a':
- "(p, q) : (eps L)\<^sup>* \<Longrightarrow> (2#p, 2#q) : (eps(conc L R))\<^sup>*"
+ "(p, q) : (eps L)\<^sup>* \<Longrightarrow>  (2#p, 2#q) : (eps(conc L R))\<^sup>*"
 apply (induct rule: rtrancl_induct)
 apply (blast)
 apply (blast intro: rtrancl_into_rtrancl)
 done
 
 lemma lem:
- "\<And>L R. (p,q) : step R None \<Longrightarrow> (3#p, 3#q) : step (conc L R) None"
+ "\<And>L R. (p,q) : step R None \<Longrightarrow>  (3#p, 3#q) : step (conc L R) None"
 by(simp add: conc_def step_def)
 
 lemma lemma2b'':
- "(p,q) : (eps R)\<^sup>* \<Longrightarrow> (3#p, 3#q) : (eps(conc L R))\<^sup>*"
+ "(p,q) : (eps R)\<^sup>* \<Longrightarrow>  (3#p, 3#q) : (eps(conc L R))\<^sup>*"
 apply (induct rule: rtrancl_induct)
 apply (blast)
 apply (drule lem)
@@ -531,7 +543,7 @@ apply (blast intro: rtrancl_into_rtrancl)
 done
 
 lemma True_False_eps_concI:
- "\<And>L R. fin L p \<Longrightarrow> (2#p, 3#start R) : eps(conc L R)"
+ "\<And>L R. fin L p \<Longrightarrow>  (2#p, 3#start R) : eps(conc L R)"
 by(simp add: conc_def step_def)
 
 lemma True_epsclosure_conc[iff]:
@@ -617,22 +629,22 @@ lemma True_in_eps_star[iff]:
 by (simp add:star_def step_def) (blast)
 
 lemma True_True_step_starI:
-  "\<And>A. (p,q) : step A a \<Longrightarrow> (2#p, 2#q) : step (star A) a"
+  "\<And>A. (p,q) : step A a \<Longrightarrow>  (2#p, 2#q) : step (star A) a"
 by (simp add:star_def step_def)
 
 lemma True_True_eps_starI:
-  "(p,r) : (eps A)\<^sup>* \<Longrightarrow> (2#p, 2#r) : (eps(star A))\<^sup>*"
+  "(p,r) : (eps A)\<^sup>* \<Longrightarrow>  (2#p, 2#r) : (eps(star A))\<^sup>*"
 apply (induct rule: rtrancl_induct)
 apply (blast)
 apply (blast intro: True_True_step_starI rtrancl_into_rtrancl)
 done
 
 lemma True_start_eps_starI:
- "\<And>A. fin A p \<Longrightarrow> (2#p,2#start A) : eps(star A)"
+ "\<And>A. fin A p \<Longrightarrow>  (2#p,2#start A) : eps(star A)"
 by (simp add:star_def step_def)
 
 lemma lem':
- "(tp,s) : (eps(star A))\<^sup>* \<Longrightarrow> (\<forall>p. tp = 2#p \<longrightarrow>
+ "(tp,s) : (eps(star A))\<^sup>* \<Longrightarrow>  (\<forall>p. tp = 2#p \<longrightarrow>
  (\<exists>r. ((p,r) \<in> (eps A)\<^sup>* \<or>
         (\<exists>q. (p,q) \<in> (eps A)\<^sup>* \<and> fin A q \<and> (start A,r) : (eps A)\<^sup>*)) \<and> 
        s = 2#r))"
@@ -705,7 +717,7 @@ apply (blast)
 done
 
 lemma True_True_steps_starI:
-  "\<And>p. (p,q) : steps A w \<Longrightarrow> (2#p,2#q) : steps (star A) w"
+  "\<And>p. (p,q) : steps A w \<Longrightarrow>  (2#p,2#q) : steps (star A) w"
 apply (induct "w")
 apply (simp)
 apply (simp)
@@ -713,7 +725,7 @@ apply (blast intro: True_True_eps_starI True_True_step_starI)
 done
 
 lemma steps_star_cycle:
- "(\<forall>u \<in> set us. accepts A u) \<Longrightarrow>
+ "(\<forall>u \<in> set us. accepts A u) \<Longrightarrow> 
  (2#start A,2#start A) \<in> steps (star A) (concat us)"
 apply (induct "us")
 apply (simp add:accepts_def)
