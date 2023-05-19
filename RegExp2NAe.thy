@@ -380,36 +380,7 @@ lemma eps_R_inter:"(n#p, q) \<in> (eps (inter L R))\<^sup>* \<Longrightarrow>  (
    apply simp
   apply (simp)
   apply fastforce
-  done
-  
-lemma inter_steps_left:"\<And>L R p. (p, q) \<in> steps (inter L R) w  \<Longrightarrow>  ((take (hd p) (tl p), take (hd q) (tl q))\<in> steps L w)"
-  apply (case_tac "w")
-   apply simp 
-  apply simp
-  apply fastforce
-   done
-
-lemma inter_steps_right:"\<And>L R p. (n#p, q) \<in> steps (inter L R) w \<Longrightarrow>  ((drop n p, drop (hd q) (tl q))\<in> steps R w)"
-  apply (induct w)
-  apply simp  
-  apply (simp add:step_def)
-  apply force
-done
-
-lemma inter_steps_from_left_right :"\<And>L R p p1. (p, q) \<in> steps L w \<and> (p1, q1) \<in> steps R w \<Longrightarrow>  ((length p # p @ p1, length q # q @ q1) \<in> steps (inter L R) w)"
-  apply(induction w)
-  apply simp 
-  apply simp 
-  apply force 
-done
-
-lemma inter_steps_to_left_right:"\<And>L R p. (p, q) \<in> steps (inter L R) w \<Longrightarrow>  ((take (hd p) (tl p), take (hd q) (tl q))\<in> steps L w \<and> (drop (hd p) (tl p), drop (hd q) (tl q))\<in> steps R w)"
-  apply (induct w) 
-  apply simp 
-  apply simp 
-  apply force
-done
-
+  done 
 (** From the start  **)
 lemma start_step_inter[iff]:
  "\<And>L R r1 r2. (start(inter L R),q) : step(inter L R) a = 
@@ -417,22 +388,11 @@ lemma start_step_inter[iff]:
  apply (simp add:inter_def step_def)  
 done
 
-lemma steps_inter:"\<And>L R. (start (inter L R) ,q) \<in> steps (inter L R) w  \<Longrightarrow>  
-    ((start L,take (hd q) (tl q)) \<in> steps L w \<and> (start R, (drop (hd q) (tl q))) \<in> steps R w)"
-  apply(induct w) 
-  apply simp  
-  apply force 
-  apply simp  
-by (metis append_eq_conv_conj inter_steps_left inter_steps_right list.sel(1) list.sel(3) steps.simps(2))
-
+ 
 lemma accepts_inter:
  "accepts (inter L R) w = (accepts L w \<and> accepts R w)"
-  apply (simp add: accepts_conv_steps)  
-  apply (case_tac w)
-  apply simp  
-  apply simp  
-by (metis (no_types, opaque_lifting) append_eq_conv_conj inter_steps_from_left_right inter_steps_left inter_steps_right list.sel(1) list.sel(3) steps.simps(2))
-
+  apply(simp add:accepts_def)
+  sorry
 
 (******************************************************)
 (*                      conc                          *)
@@ -815,7 +775,8 @@ apply(simp add:accepts_dot)
 apply blast
 apply (metis Un_iff accepts_epsilon accepts_or lang.simps(8) rexp2nae.simps(8) singleton_iff)
 apply (simp add: accepts_conc Regular_Set.conc_def accepts_star in_star_iff_concat subset_iff Ball_def)
-
+   apply(simp add:accepts_inter)
+  sorry
  done
 
 end
