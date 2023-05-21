@@ -348,6 +348,8 @@ lemma step_inter[iff]:
   apply (simp add:inter_def step_def) 
   done
 
+
+
 lemma inter_eps_left[simp]:"\<And>L R p. (p, q) \<in> eps (inter L R) \<Longrightarrow> ((take (hd p) (tl p), take (hd q) (tl q)) \<in> eps L)"
    by fastforce
 
@@ -361,26 +363,86 @@ lemma eps_L_inter:"(n#p, q) \<in> (eps (inter L R))\<^sup>* \<Longrightarrow>  (
   apply fastforce
   done
 
-lemma eps_L_inter1[simp]:"(p, q) \<in> (eps (inter L R))\<^sup>* \<Longrightarrow>  (take (hd p) (tl p), take (hd q) (tl q))\<in> (eps L)\<^sup>*"
+lemma eps_L_inter1:"(p, q) \<in> (eps (inter L R))\<^sup>* \<Longrightarrow>  (take (hd p) (tl p), take (hd q) (tl q))\<in> (eps L)\<^sup>*"
   apply(induct rule:rtrancl_induct)
   apply simp
   apply (simp)
   apply fastforce
   done
 
-lemma eps_R_inter1[simp]:"(p, q) \<in> (eps (inter L R))\<^sup>* \<Longrightarrow>  (drop (hd p) (tl p), drop (hd q) (tl q))\<in> (eps R)\<^sup>*"
+lemma eps_R_inter1:"(p, q) \<in> (eps (inter L R))\<^sup>* \<Longrightarrow> (drop (hd p) (tl p), drop (hd q) (tl q)) \<in> (eps R)\<^sup>*"
   apply(induct rule:rtrancl_induct)
-   apply simp
+  apply simp
   apply (simp)
   apply fastforce
   done
 
 lemma eps_R_inter:"(n#p, q) \<in> (eps (inter L R))\<^sup>* \<Longrightarrow>  ((drop n p, drop (hd q) (tl q)) \<in> (eps R)\<^sup>*)"
   apply(induct rule:rtrancl_induct)
-   apply simp
+  apply simp
   apply (simp)
   apply fastforce
   done 
+
+
+   
+lemma step_from_left: "\<And>p. (n#p, q) \<in> steps (inter L R) w \<Longrightarrow> ((take n p, take (hd q) (tl q)) \<in> steps L w)"
+  apply(induction w)
+  apply simp
+  apply (simp add: eps_L_inter eps_R_inter)
+  apply simp
+  apply clarify
+proof -
+  fix a w p x y z xa ya za r1 r2
+  assume a1:"(\<And>p. (n # p, q) \<in> NAe.steps (RegExp2NAe.inter L R) w \<Longrightarrow>
+             (take n p, take (hd q) (tl q)) \<in> NAe.steps L w)"
+  assume a2:"(n # p, xa) \<in> (eps (RegExp2NAe.inter L R))\<^sup>*"
+  assume a3:"([length r1] @ r1 @ r2, q) \<in> NAe.steps (RegExp2NAe.inter L R) w"
+  assume a4:"(take (hd xa) (tl xa), r1) \<in> step L (Some a)"
+  assume a5:"(drop (hd xa) (tl xa), r2) \<in> step R (Some a)"
+  show "(take n p, take (hd q) (tl q))
+       \<in> (eps L)\<^sup>* O step L (Some a) O NAe.steps L w "
+  proof -
+    from a2 have c1:"(take n p, take (hd xa) (tl xa)) \<in> (eps L)\<^sup>*" 
+      by (simp add: eps_L_inter)
+    from c1 a4 have c2:"(take n p, r1) \<in> (eps L)\<^sup>* O step L (Some a) "  
+      by blast
+    from a1 a3 have c3:"(r1, take (hd q) (tl q)) \<in> NAe.steps L w"  sorry
+    from c2 c3 show ?thesis apply auto done
+  qed
+qed
+
+
+lemma step_from_right: "\<And>p. (n#p, q) \<in> steps (inter L R) w \<Longrightarrow> ((drop n p, drop (hd q) (tl q)) \<in> steps R w)"
+  apply(induct w)
+  apply simp
+  using eps_R_inter apply blast
+  apply simp 
+  apply clarify
+proof -
+  fix a w p x y z xa ya za r1 r2
+  assume a1:"(\<And>p. (n # p, q) \<in> NAe.steps (RegExp2NAe.inter L R) w \<Longrightarrow>
+             (drop n p, drop (hd q) (tl q)) \<in> NAe.steps R w)"
+  assume a2:"(n # p, xa) \<in> (eps (RegExp2NAe.inter L R))\<^sup>*"
+  assume a3:"([length r1] @ r1 @ r2, q) \<in> NAe.steps (RegExp2NAe.inter L R) w"
+  assume a4:"(take (hd xa) (tl xa), r1) \<in> step L (Some a)"
+  assume a5:"(drop (hd xa) (tl xa), r2) \<in> step R (Some a)"
+  show "(drop n p, drop (hd q) (tl q))
+       \<in> (eps R)\<^sup>* O step R (Some a) O NAe.steps R w"
+  proof -
+    from a2 have c1:"(drop n p, drop (hd xa) (tl xa)) \<in> (eps R)\<^sup>*"  
+      using eps_R_inter by blast
+    from c1 a5 have c2:"(drop n p, r2) \<in> (eps R)\<^sup>* O step R (Some a)"  
+      by blast
+    from a1 a3 have c3:"(r2, drop (hd q) (tl q)) \<in> NAe.steps R w"
+      sorry
+    from c2 c3 show ?thesis by auto
+  qed
+qed
+
+lemma step_from_left_right: "\<And>p. (n#p, q) \<in> steps (inter L R) w \<Longrightarrow> ((take n p, take (hd q) (tl q)) \<in> steps L w \<and> (drop n p, drop (hd q) (tl q)) \<in> steps R w)"
+  by (simp add: step_from_left step_from_right)
+
 (** From the start  **)
 lemma start_step_inter[iff]:
  "\<And>L R r1 r2. (start(inter L R),q) : step(inter L R) a = 
@@ -388,10 +450,19 @@ lemma start_step_inter[iff]:
  apply (simp add:inter_def step_def)  
 done
 
- 
+lemma steps_inter:"\<And>L R. (start (inter L R) ,q) \<in> steps (inter L R) w  \<Longrightarrow> 
+    ((start L,take (hd q) (tl q)) \<in> steps L w \<and> (start R, (drop (hd q) (tl q))) \<in> steps R w)"
+  apply(induct w)
+  apply simp 
+  apply (metis append_eq_conv_conj eps_L_inter1 eps_R_inter list.sel(1) list.sel(3))
+  apply simp 
+  by (metis NAe.steps.simps(2) append_eq_conv_conj step_from_left_right)
+
 lemma accepts_inter:
  "accepts (inter L R) w = (accepts L w \<and> accepts R w)"
-  apply(simp add:accepts_def)
+  apply(simp add:accepts_def steps_inter)
+  apply(case_tac w)
+  apply simp 
   sorry
 
 (******************************************************)

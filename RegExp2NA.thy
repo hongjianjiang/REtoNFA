@@ -69,7 +69,7 @@ definition
                               else 3 ## dr a s,
     \<lambda>s. case s of [] \<Rightarrow> False | 
                   left#s \<Rightarrow> left = 2 \<and> fl s \<and> fr qr | left = 3 \<and> fr s))"
- 
+
 definition
   multi :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
 "multi = (\<lambda>(q, vl, d, f) m.
@@ -103,7 +103,7 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Plus r) vs = conc (rexp2na r vs) (star vs (rexp2na r vs))" |
   "rexp2na (Inter r s) vs = inter (rexp2na r vs) (rexp2na s vs)" |
   (*"rexp2na (Range r m n) vs = range (rexp2na r vs) m n" |*)
-  "rexp2na (Multi r m) vs = (if m = 0 then epsilon vs else timesN (rexp2na r vs) m)"
+  "rexp2na (Multi r m) vs = multi (rexp2na r vs) m"
  
 declare split_paired_all[simp] 
 
@@ -346,76 +346,11 @@ by (metis (no_types, opaque_lifting) append_eq_conv_conj inter_steps_from_left_r
 
 
 (******************************************************)
-(*                       range                        *)
+(*                       multi                        *)
 (******************************************************)
   
-lemma fin_range[iff]:
- "\<And>L m n q. fin (range L m n) q = (if n > 0 then (hd q) \<ge> 1 \<and> (hd q) \<le> (n - m + 1) \<and> (fin L (tl q)| m = 0) else True)"
-  apply(simp add:range_def)   
-  done
- 
- 
-lemma start_range[iff]:
-  "\<And>L. start(range L m n) = (n#(start L))"
- by (simp add:range_def)
- 
-lemma step_range_conv[iff]:"\<And>L p. (n#p, q) \<in> step (range L m n) a = (if n > 0 then ((\<exists>r. q = n # r \<and> (p, r) \<in> step L a) \<or> 
-  (\<exists>r. fin L p \<and> q = (n - 1) # r \<and> (start L, r) \<in> step L a)) else False)"
-  apply(simp add:range_def step_def)
-  apply auto
-  done
-
-
-lemma "\<lbrakk>(start A, q) \<in> steps A u; u \<noteq> []; fin A p \<rbrakk> \<Longrightarrow> (i#p, i#q) \<in> steps (range A m n) u"
-  apply (case_tac u)
-  apply simp 
-  apply simp
+lemma accepts_multi:"accepts (multi A m) w = (\<exists>us. (\<exists>u\<in>us. accepts A u) \<and> w \<in> us ^^ m)"
   sorry
- 
-lemma accepts_range:
-"accepts (range A n m) w = (n \<le> m \<and> (\<exists>x. (x = m \<or> n \<le> x \<and> x < m) \<and> w \<in> lang r v ^^ x))"
-  apply (simp add: accepts_conv_steps) 
-  apply(case_tac w)
-  sorry
-
-(******************************************************)
-(*                       multi                         *)
-(******************************************************)
-lemma start_multi[iff]:"\<And>A. start (multi A n) = n#start A "
-  by(simp add:multi_def)
-
-lemma fin_multi:"\<And>A. fin (multi A n) q = (if n = 0 then q = 0 # start A else (q = n # start A \<and> fin A (start A)) \<or> (hd q = 1 \<and> fin A (tl q)))"
-  apply(simp add:multi_def)
-  done
-
-lemma step_n_multi[iff]:"\<And>A p. (Suc n#p, q)\<in> step (multi A n) a = ((\<exists>r. q = Suc n # r \<and> (p, r) \<in> step A a)|
-                    (fin A (p) \<and> (\<exists>r. q = n # r \<and> (start A, r) \<in> step A a)))"
-  apply(simp add:multi_def step_def) 
-  apply auto 
-  done
-
-lemma step_zero_multi[iff]:"\<And>A p. (0#p, q)\<in> step (multi A n) a = False"
-  apply(simp add:multi_def step_def) 
-  done
-
-
-lemma step_multi[iff]:"\<And>A p. (n#p, q)\<in> step (multi A n) a = (if n > 0 then (\<exists>r. q = n # r \<and> (p, r) \<in> step A a)|
-                    (fin A (p) \<and> (\<exists>r. q = (n - 1) # r \<and> (start A, r) \<in> step A a)) else False)"
-  apply(simp add:multi_def step_def) 
-  apply auto
-  done
-
-lemma "\<And>A p. (0#p, q) \<in> steps (multi A 0) w = (w = [] & q = 0 # p)"
-  apply(induct w)
-  apply auto 
-  done
-
-lemma "\<And>A p. (p, q) \<in> steps A w \<Longrightarrow> ((Suc n)#p, (Suc n)#q) \<in> steps (multi A (Suc n)) w"
-  apply(induct w)
-  apply simp
-  apply simp
-  apply force
-  done
 
 (******************************************************)
 (*                      conc                          *)
@@ -675,6 +610,17 @@ lemma accepts_star:
   apply force
   done
 
+value "lang Dot {a} ^^ 0"
+lemma "(w \<in> lang r v ^^ x) \<longrightarrow> (\<exists>us. (\<exists>u\<in>us. u \<in> lang r v) \<and> w \<in> us ^^ x)"
+proof(induct x)
+  case 0
+  then show ?case apply simp apply auto
+next
+  case (Suc x)
+  then show ?case sorry
+qed
+
+
 (***** Correctness of r *****)
 lemma accepts_rexp2na:
  "\<And>w. accepts (rexp2na r v) w = (w : lang r v)"
@@ -689,5 +635,8 @@ lemma accepts_rexp2na:
   subgoal for r w by auto   
   apply (simp add: accepts_conc Regular_Set.conc_def accepts_star in_star_iff_concat subset_iff Ball_def) 
   apply (simp add:accepts_inter)
-  apply simp 
-end
+  apply (simp add:accepts_multi)
+  subgoal for r x w 
+    
+
+   end
