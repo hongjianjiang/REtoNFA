@@ -36,8 +36,13 @@ lemma [code]:
 definition star :: "'a lang \<Rightarrow> 'a lang" where
 "star A = (\<Union>n. A ^^ n)"
 
+
+definition range1 :: "'a lang \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a lang " where
+"range1 A m n= (if m \<le> n then (\<Union>i\<in>{m..n}. A ^^ i) else {})"
 (*hide_const (open) lang_pow*)
 
+
+  
 subsection\<open>@{term "(@@)"}\<close>
 
 lemma concI[simp,intro]: "u : A \<Longrightarrow> v : B \<Longrightarrow> u@v : A @@ B"
@@ -148,6 +153,8 @@ proof (rule star_if_lang_pow)
   show "w : A ^^ 1" using \<open>w : A\<close> by simp
 qed
 
+
+
 lemma append_in_starI[simp]:
 assumes "u : star A" and "v : star A" shows "u@v : star A"
 proof -
@@ -194,6 +201,89 @@ qed auto
 lemma concat_in_star: "set ws \<subseteq> A \<Longrightarrow> concat ws : star A"
 by (induct ws) simp_all
 
+lemma zero_range1_empty:"[] \<in> range1 A 0 n"
+  apply(simp add:range1_def)
+  apply(induct n)
+   apply simp
+  apply auto
+  done
+
+lemma element_range1:"b :range1 A m n = (\<exists>i. i \<ge> m \<and> i \<le> n \<and> b : A ^^ i)"
+  apply(simp add:range1_def)
+  using atLeastAtMost_iff by blast
+
+lemma simp_t1:"concat ws \<in> A ^^ i \<Longrightarrow> a : A \<Longrightarrow> a @ concat ws \<in> A ^^ (i + 1)"
+  by simp
+
+lemma t2:"concat ws \<in> range1 A m n \<Longrightarrow> concat ws \<in> range1 A m (Suc n)"
+  apply(induct ws)
+  apply simp 
+   apply (meson element_range1 le_Suc_eq)
+  apply simp
+  by (meson element_range1 le_Suc_eq)
+
+lemma t3:"set ws \<subseteq> A \<Longrightarrow> concat ws \<in> A ^^ length ws"
+  apply(induct ws)
+   apply simp
+  apply simp
+  done
+
+lemma concat_in_range1: "set ws \<subseteq> A \<and> length ws \<ge> m \<and> length ws \<le> n \<Longrightarrow> concat ws : range1 A m n"
+  apply(induct n)
+  subgoal 
+   apply simp
+    using zero_range1_empty apply fastforce
+    done
+  apply(case_tac "length ws \<le> n")
+  subgoal for n apply simp
+    apply(simp add:t2)
+    done
+  subgoal for n apply simp apply(case_tac "length ws = (Suc n)")
+     prefer 2
+    subgoal
+      apply simp
+      done
+    subgoal apply simp 
+      by (metis dual_order.refl element_range1 t3)
+  done
+  done
+
+lemma non_range1[simp]:"range1 A 0 0 = {[]}" 
+  apply(simp add:range1_def)
+  done
+
+lemma conc_range1[simp]:"range1 A 0 (Suc n) =  (range1 A 0 n) \<union> A ^^ (Suc n)"
+  apply (simp add:range1_def)
+  by (simp add: atLeast0_atMost_Suc inf_sup_aci(5))
+
+lemma c1:"w \<in> A ^^ (Suc x) \<Longrightarrow>  (\<exists>w1 w2. w1 \<in> A \<and> w2 \<in> A^^x \<and> w = w1 @ w2)"
+  apply(simp add:conc_def)
+  apply auto
+  done
+
+lemma c2:"n > 0 \<and> m > 0 \<and> m \<le>n \<and> w \<in> range1 A m n \<Longrightarrow>  (\<exists>w1 w2. w1 \<in> A \<and> w2 \<in> range1 A (m-1) (n-1) \<and> w = w1 @ w2)"
+   apply auto 
+  by (smt (z3) Suc_pred conc_def element_range1 lang_pow.simps(2) mem_Collect_eq not_less_eq_eq order_less_le_trans)
+
+lemma "w : range1 A m n = (\<exists>ws. set ws \<subseteq> A \<and> w = concat ws \<and> length ws \<le> n \<and> length ws \<ge> m)"
+  (is "_ = (\<exists>ws. ?R w ws)")
+proof
+  assume "w : range1 A m n" thus "\<exists>ws. ?R w ws" 
+    apply(case_tac "n > 0 \<and> m > 0 \<and> m \<le>n")
+     prefer 2 subgoal apply (simp) apply(erule disjE)
+       prefer 2
+       apply(erule disjE) 
+        prefer 2 apply(simp add:range1_def)
+      apply simp subgoal apply(induct n) subgoal apply simp done subgoal for n 
+     sorry
+next 
+  assume "\<exists>us. ?R w us" thus "w : range1 A m n" apply auto
+    apply(simp add:concat_in_range1)
+    done
+
+    
+ 
+
 lemma in_star_iff_concat:
   "w \<in> star A = (\<exists>ws. set ws \<subseteq> A \<and> w = concat ws)"
   (is "_ = (\<exists>ws. ?R w ws)")
@@ -215,17 +305,7 @@ qed
 
  
 
-fun list_of_length_n :: "'a list set => nat => 'a list set"
-where 
-"list_of_length_n _ 0 = {[]}" |
-"list_of_length_n S (Suc n) = 
-{xs@x |xs x. x \<in> S \<and> xs \<in> list_of_length_n S n }"
 
-lemma plux_x_time:"A ^^ x = (list_of_length_n A x)"
-  apply(induct x) 
-   apply simp
-  apply simp 
-  by (smt (verit, best) Collect_cong conc_def conc_pow_comm)
 
 
 lemma star_conv_concat: "star A = {concat ws|ws. set ws \<subseteq> A}"
