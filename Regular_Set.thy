@@ -283,6 +283,20 @@ next
 
     
  
+value "{[1::nat],[2,1]} ^^ 3"
+
+value "[[1::nat],[2,1]]"
+
+
+fun multi_ntimes :: "'a list list \<Rightarrow> nat \<Rightarrow> 'a list set" where
+"multi_ntimes as n = (if n > 0 then set as @@ (multi_ntimes as (n-1)) else {[]})"
+
+
+value "multi_ntimes [[a]] 1"
+
+lemma "w \<in> A ^^ n = (\<exists>ws. set ws \<subseteq> A \<and> w \<in> multi_ntimes ws n)"
+  nitpick
+  sorry
 
 lemma in_star_iff_concat:
   "w \<in> star A = (\<exists>ws. set ws \<subseteq> A \<and> w = concat ws)"
