@@ -39,6 +39,7 @@ definition star :: "'a lang \<Rightarrow> 'a lang" where
 
 definition range1 :: "'a lang \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a lang " where
 "range1 A m n= (if m \<le> n then (\<Union>i\<in>{m..n}. A ^^ i) else {})"
+
 (*hide_const (open) lang_pow*)
 
 
@@ -215,14 +216,14 @@ lemma element_range1:"b :range1 A m n = (\<exists>i. i \<ge> m \<and> i \<le> n 
 lemma simp_t1:"concat ws \<in> A ^^ i \<Longrightarrow> a : A \<Longrightarrow> a @ concat ws \<in> A ^^ (i + 1)"
   by simp
 
-lemma t2:"concat ws \<in> range1 A m n \<Longrightarrow> concat ws \<in> range1 A m (Suc n)"
+lemma concat_Suc_contains:"concat ws \<in> range1 A m n \<Longrightarrow> concat ws \<in> range1 A m (Suc n)"
   apply(induct ws)
   apply simp 
    apply (meson element_range1 le_Suc_eq)
   apply simp
   by (meson element_range1 le_Suc_eq)
 
-lemma t3:"set ws \<subseteq> A \<Longrightarrow> concat ws \<in> A ^^ length ws"
+lemma concat_n_times:"set ws \<subseteq> A \<Longrightarrow> concat ws \<in> A ^^ length ws"
   apply(induct ws)
    apply simp
   apply simp
@@ -236,15 +237,14 @@ lemma concat_in_range1: "set ws \<subseteq> A \<and> length ws \<ge> m \<and> le
     done
   apply(case_tac "length ws \<le> n")
   subgoal for n apply simp
-    apply(simp add:t2)
-    done
+    by(simp add:concat_Suc_contains)
   subgoal for n apply simp apply(case_tac "length ws = (Suc n)")
      prefer 2
     subgoal
       apply simp
       done
     subgoal apply simp 
-      by (metis dual_order.refl element_range1 t3)
+      by (metis dual_order.refl element_range1 concat_n_times)
   done
   done
 
@@ -265,20 +265,18 @@ lemma c2:"n > 0 \<and> m > 0 \<and> m \<le>n \<and> w \<in> range1 A m n \<Longr
    apply auto 
   by (smt (z3) Suc_pred conc_def element_range1 lang_pow.simps(2) mem_Collect_eq not_less_eq_eq order_less_le_trans)
 
-lemma "w : range1 A m n = (\<exists>ws. set ws \<subseteq> A \<and> w = concat ws \<and> length ws \<le> n \<and> length ws \<ge> m)"
+lemma in_range_iff_concat:"w : range1 A m n = (\<exists>ws. set ws \<subseteq> A \<and> w = concat ws \<and> length ws \<le> n \<and> length ws \<ge> m)"
   (is "_ = (\<exists>ws. ?R w ws)")
 proof
   assume "w : range1 A m n" thus "\<exists>ws. ?R w ws" 
-    apply(case_tac "n > 0 \<and> m > 0 \<and> m \<le>n")
-     prefer 2 subgoal apply (simp) apply(erule disjE)
-       prefer 2
-       apply(erule disjE) 
-        prefer 2 apply(simp add:range1_def)
-      apply simp subgoal apply(induct n) subgoal apply simp done subgoal for n 
-          sorry
-        done
-      sorry
-    sorry
+  proof(induct n)
+    case 0
+    then show ?case apply simp apply(induct m) apply simp apply simp apply(simp add:range1_def) done
+  next
+    case (Suc n)
+    then show ?case   sorry
+
+    qed
 next 
   assume "\<exists>us. ?R w us" thus "w : range1 A m n" apply auto
     apply(simp add:concat_in_range1)
@@ -350,227 +348,5 @@ apply(rule_tac x="0" in exI)
 apply(auto)
 apply(rule_tac x="Suc n" in exI)
 apply(auto)
-done
-
-
-subsection \<open>Left-Quotients of languages\<close>
-
-definition Deriv :: "'a \<Rightarrow> 'a lang \<Rightarrow> 'a lang"
-  where "Deriv x A = { xs. x#xs \<in> A }"
-    
-definition Derivs :: "'a list \<Rightarrow> 'a lang \<Rightarrow> 'a lang"
-where "Derivs xs A = { ys. xs @ ys \<in> A }"
-
-abbreviation 
-  Derivss :: "'a list \<Rightarrow> 'a lang set \<Rightarrow> 'a lang"
-where
-  "Derivss s As \<equiv> \<Union> (Derivs s ` As)"
-
-
-lemma Deriv_empty[simp]:   "Deriv a {} = {}"
-  and Deriv_epsilon[simp]: "Deriv a {[]} = {}"
-  and Deriv_char[simp]:    "Deriv a {[b]} = (if a = b then {[]} else {})"
-  and Deriv_union[simp]:   "Deriv a (A \<union> B) = Deriv a A \<union> Deriv a B"
-  and Deriv_inter[simp]:   "Deriv a (A \<inter> B) = Deriv a A \<inter> Deriv a B"
-  and Deriv_compl[simp]:   "Deriv a (-A) = - Deriv a A"
-  and Deriv_Union[simp]:   "Deriv a (Union M) = Union(Deriv a ` M)"
-  and Deriv_UN[simp]:      "Deriv a (UN x:I. S x) = (UN x:I. Deriv a (S x))"
-by (auto simp: Deriv_def)
-
-lemma Der_conc [simp]: 
-  shows "Deriv c (A @@ B) = (Deriv c A) @@ B \<union> (if [] \<in> A then Deriv c B else {})"
-unfolding Deriv_def conc_def
-by (auto simp add: Cons_eq_append_conv)
-
-lemma Deriv_star [simp]: 
-  shows "Deriv c (star A) = (Deriv c A) @@ star A"
-proof -
-  have "Deriv c (star A) = Deriv c ({[]} \<union> A @@ star A)"
-    by (metis star_unfold_left sup.commute)
-  also have "... = Deriv c (A @@ star A)"
-    unfolding Deriv_union by (simp)
-  also have "... = (Deriv c A) @@ (star A) \<union> (if [] \<in> A then Deriv c (star A) else {})"
-    by simp
-  also have "... =  (Deriv c A) @@ star A"
-    unfolding conc_def Deriv_def
-    using star_decom by (force simp add: Cons_eq_append_conv)
-  finally show "Deriv c (star A) = (Deriv c A) @@ star A" .
-qed
-
-lemma Deriv_diff[simp]:   
-  shows "Deriv c (A - B) = Deriv c A - Deriv c B"
-by(auto simp add: Deriv_def)
-
-lemma Deriv_lists[simp]: "c : S \<Longrightarrow> Deriv c (lists S) = lists S"
-by(auto simp add: Deriv_def)
-
-lemma Derivs_simps [simp]:
-  shows "Derivs [] A = A"
-  and   "Derivs (c # s) A = Derivs s (Deriv c A)"
-  and   "Derivs (s1 @ s2) A = Derivs s2 (Derivs s1 A)"
-unfolding Derivs_def Deriv_def by auto
-
-lemma in_fold_Deriv: "v \<in> fold Deriv w L \<longleftrightarrow> w @ v \<in> L"
-  by (induct w arbitrary: L) (simp_all add: Deriv_def)
-
-lemma Derivs_alt_def [code]: "Derivs w L = fold Deriv w L"
-  by (induct w arbitrary: L) simp_all
-
-lemma Deriv_code [code]: 
-  "Deriv x A = tl ` Set.filter (\<lambda>xs. case xs of x' # _ \<Rightarrow> x = x' | _ \<Rightarrow> False) A"
-  by (auto simp: Deriv_def Set.filter_def image_iff tl_def split: list.splits)
-
-subsection \<open>Shuffle product\<close>
-
-definition Shuffle (infixr "\<parallel>" 80) where
-  "Shuffle A B = \<Union>{shuffles xs ys | xs ys. xs \<in> A \<and> ys \<in> B}"
-
-lemma Deriv_Shuffle[simp]:
-  "Deriv a (A \<parallel> B) = Deriv a A \<parallel> B \<union> A \<parallel> Deriv a B"
-  unfolding Shuffle_def Deriv_def by (fastforce simp: Cons_in_shuffles_iff neq_Nil_conv)
-
-lemma shuffle_subset_lists:
-  assumes "A \<subseteq> lists S" "B \<subseteq> lists S"
-  shows "A \<parallel> B \<subseteq> lists S"
-unfolding Shuffle_def proof safe
-  fix x and zs xs ys :: "'a list"
-  assume zs: "zs \<in> shuffles xs ys" "x \<in> set zs" and "xs \<in> A" "ys \<in> B"
-  with assms have "xs \<in> lists S" "ys \<in> lists S" by auto
-  with zs show "x \<in> S" by (induct xs ys arbitrary: zs rule: shuffles.induct) auto
-qed
-
-lemma Nil_in_Shuffle[simp]: "[] \<in> A \<parallel> B \<longleftrightarrow> [] \<in> A \<and> [] \<in> B"
-  unfolding Shuffle_def by force
-
-lemma shuffle_Un_distrib:
-shows "A \<parallel> (B \<union> C) = A \<parallel> B \<union> A \<parallel> C"
-and   "A \<parallel> (B \<union> C) = A \<parallel> B \<union> A \<parallel> C"
-unfolding Shuffle_def by fast+
-
-lemma shuffle_UNION_distrib:
-shows "A \<parallel> \<Union>(M ` I) = \<Union>((%i. A \<parallel> M i) ` I)"
-and   "\<Union>(M ` I) \<parallel> A = \<Union>((%i. M i \<parallel> A) ` I)"
-unfolding Shuffle_def by fast+
-
-lemma Shuffle_empty[simp]:
-  "A \<parallel> {} = {}"
-  "{} \<parallel> B = {}"
-  unfolding Shuffle_def by auto
-
-lemma Shuffle_eps[simp]:
-  "A \<parallel> {[]} = A"
-  "{[]} \<parallel> B = B"
-  unfolding Shuffle_def by auto
-
-
-subsection \<open>Arden's Lemma\<close>
-
-lemma arden_helper:
-  assumes eq: "X = A @@ X \<union> B"
-  shows "X = (A ^^ Suc n) @@ X \<union> (\<Union>m\<le>n. (A ^^ m) @@ B)"
-proof (induct n)
-  case 0 
-  show "X = (A ^^ Suc 0) @@ X \<union> (\<Union>m\<le>0. (A ^^ m) @@ B)"
-    using eq by simp
-next
-  case (Suc n)
-  have ih: "X = (A ^^ Suc n) @@ X \<union> (\<Union>m\<le>n. (A ^^ m) @@ B)" by fact
-  also have "\<dots> = (A ^^ Suc n) @@ (A @@ X \<union> B) \<union> (\<Union>m\<le>n. (A ^^ m) @@ B)" using eq by simp
-  also have "\<dots> = (A ^^ Suc (Suc n)) @@ X \<union> ((A ^^ Suc n) @@ B) \<union> (\<Union>m\<le>n. (A ^^ m) @@ B)"
-    by (simp add: conc_Un_distrib conc_assoc[symmetric] conc_pow_comm)
-  also have "\<dots> = (A ^^ Suc (Suc n)) @@ X \<union> (\<Union>m\<le>Suc n. (A ^^ m) @@ B)"
-    by (auto simp add: atMost_Suc)
-  finally show "X = (A ^^ Suc (Suc n)) @@ X \<union> (\<Union>m\<le>Suc n. (A ^^ m) @@ B)" .
-qed
-
-lemma Arden:
-  assumes "[] \<notin> A" 
-  shows "X = A @@ X \<union> B \<longleftrightarrow> X = star A @@ B"
-proof
-  assume eq: "X = A @@ X \<union> B"
-  { fix w assume "w : X"
-    let ?n = "size w"
-    from \<open>[] \<notin> A\<close> have "\<forall>u \<in> A. length u \<ge> 1"
-      by (metis Suc_eq_plus1 add_leD2 le_0_eq length_0_conv not_less_eq_eq)
-    hence "\<forall>u \<in> A^^(?n+1). length u \<ge> ?n+1"
-      by (metis length_lang_pow_lb nat_mult_1)
-    hence "\<forall>u \<in> A^^(?n+1)@@X. length u \<ge> ?n+1"
-      by(auto simp only: conc_def length_append)
-    hence "w \<notin> A^^(?n+1)@@X" by auto
-    hence "w : star A @@ B" using \<open>w : X\<close> using arden_helper[OF eq, where n="?n"]
-      by (auto simp add: star_def conc_UNION_distrib)
-  } moreover
-  { fix w assume "w : star A @@ B"
-    hence "\<exists>n. w \<in> A^^n @@ B" by(auto simp: conc_def star_def)
-    hence "w : X" using arden_helper[OF eq] by blast
-  } ultimately show "X = star A @@ B" by blast 
-next
-  assume eq: "X = star A @@ B"
-  have "star A = A @@ star A \<union> {[]}"
-    by (rule star_unfold_left)
-  then have "star A @@ B = (A @@ star A \<union> {[]}) @@ B"
-    by metis
-  also have "\<dots> = (A @@ star A) @@ B \<union> B"
-    unfolding conc_Un_distrib by simp
-  also have "\<dots> = A @@ (star A @@ B) \<union> B" 
-    by (simp only: conc_assoc)
-  finally show "X = A @@ X \<union> B" 
-    using eq by blast 
-qed
-
-
-lemma reversed_arden_helper:
-  assumes eq: "X = X @@ A \<union> B"
-  shows "X = X @@ (A ^^ Suc n) \<union> (\<Union>m\<le>n. B @@ (A ^^ m))"
-proof (induct n)
-  case 0 
-  show "X = X @@ (A ^^ Suc 0) \<union> (\<Union>m\<le>0. B @@ (A ^^ m))"
-    using eq by simp
-next
-  case (Suc n)
-  have ih: "X = X @@ (A ^^ Suc n) \<union> (\<Union>m\<le>n. B @@ (A ^^ m))" by fact
-  also have "\<dots> = (X @@ A \<union> B) @@ (A ^^ Suc n) \<union> (\<Union>m\<le>n. B @@ (A ^^ m))" using eq by simp
-  also have "\<dots> = X @@ (A ^^ Suc (Suc n)) \<union> (B @@ (A ^^ Suc n)) \<union> (\<Union>m\<le>n. B @@ (A ^^ m))"
-    by (simp add: conc_Un_distrib conc_assoc)
-  also have "\<dots> = X @@ (A ^^ Suc (Suc n)) \<union> (\<Union>m\<le>Suc n. B @@ (A ^^ m))"
-    by (auto simp add: atMost_Suc)
-  finally show "X = X @@ (A ^^ Suc (Suc n)) \<union> (\<Union>m\<le>Suc n. B @@ (A ^^ m))" .
-qed
-
-theorem reversed_Arden:
-  assumes nemp: "[] \<notin> A"
-  shows "X = X @@ A \<union> B \<longleftrightarrow> X = B @@ star A"
-proof
- assume eq: "X = X @@ A \<union> B"
-  { fix w assume "w : X"
-    let ?n = "size w"
-    from \<open>[] \<notin> A\<close> have "\<forall>u \<in> A. length u \<ge> 1"
-      by (metis Suc_eq_plus1 add_leD2 le_0_eq length_0_conv not_less_eq_eq)
-    hence "\<forall>u \<in> A^^(?n+1). length u \<ge> ?n+1"
-      by (metis length_lang_pow_lb nat_mult_1)
-    hence "\<forall>u \<in> X @@ A^^(?n+1). length u \<ge> ?n+1"
-      by(auto simp only: conc_def length_append)
-    hence "w \<notin> X @@ A^^(?n+1)" by auto
-    hence "w : B @@ star A" using \<open>w : X\<close> using reversed_arden_helper[OF eq, where n="?n"]
-      by (auto simp add: star_def conc_UNION_distrib)
-  } moreover
-  { fix w assume "w : B @@ star A"
-    hence "\<exists>n. w \<in> B @@ A^^n" by (auto simp: conc_def star_def)
-    hence "w : X" using reversed_arden_helper[OF eq] by blast
-  } ultimately show "X = B @@ star A" by blast 
-next 
-  assume eq: "X = B @@ star A"
-  have "star A = {[]} \<union> star A @@ A" 
-    unfolding conc_star_comm[symmetric]
-    by(metis Un_commute star_unfold_left)
-  then have "B @@ star A = B @@ ({[]} \<union> star A @@ A)"
-    by metis
-  also have "\<dots> = B \<union> B @@ (star A @@ A)"
-    unfolding conc_Un_distrib by simp
-  also have "\<dots> = B \<union> (B @@ star A) @@ A" 
-    by (simp only: conc_assoc)
-  finally show "X = X @@ A \<union> B" 
-    using eq by blast 
-qed
-
+  done
 end

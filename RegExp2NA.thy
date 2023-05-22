@@ -102,9 +102,9 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Ques r) vs = or (rexp2na r vs) (epsilon vs)" |
   "rexp2na (Plus r) vs = conc (rexp2na r vs) (star vs (rexp2na r vs))" |
   "rexp2na (Inter r s) vs = inter (rexp2na r vs) (rexp2na s vs)" |
-  (*"rexp2na (Range r m n) vs = range (rexp2na r vs) m n" |*)
-  "rexp2na (Multi r m) vs = multi (rexp2na r vs) m"
- 
+  "rexp2na (Range r m n) vs = range (rexp2na r vs) m n" |
+  "rexp2na (Neg r) vs = dot vs"
+  
 declare split_paired_all[simp] 
 
 value "accepts (rexp2na (One) {1::nat}) []"
@@ -346,10 +346,10 @@ by (metis (no_types, opaque_lifting) append_eq_conv_conj inter_steps_from_left_r
 
 
 (******************************************************)
-(*                       multi                        *)
+(*                       range                        *)
 (******************************************************)
   
-lemma accepts_multi:"accepts (multi A m) w = (\<exists>us. (\<exists>u\<in>us. accepts A u) \<and> w \<in> us ^^ m)"
+lemma accepts_range:"accepts (range A m n) w = (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w = concat us \<and> m \<le>length us & length us \<le> n)"
   sorry
 
 (******************************************************)
@@ -610,16 +610,6 @@ lemma accepts_star:
   apply force
   done
 
-value "lang Dot {a} ^^ 0"
-lemma "(w \<in> lang r v ^^ x) \<longrightarrow> (\<exists>us. (\<exists>u\<in>us. u \<in> lang r v) \<and> w \<in> us ^^ x)"
-proof(induct x)
-  case 0
-  then show ?case apply simp apply auto
-next
-  case (Suc x)
-  then show ?case sorry
-qed
-
 
 (***** Correctness of r *****)
 lemma accepts_rexp2na:
@@ -633,10 +623,12 @@ lemma accepts_rexp2na:
   apply (simp add: accepts_star in_star_iff_concat subset_iff Ball_def) 
   apply (simp add: accepts_dot)             
   subgoal for r w by auto   
-  apply (simp add: accepts_conc Regular_Set.conc_def accepts_star in_star_iff_concat subset_iff Ball_def) 
+     apply (simp add: accepts_conc Regular_Set.conc_def accepts_star in_star_iff_concat subset_iff Ball_def) 
+  prefer 2
   apply (simp add:accepts_inter)
-  apply (simp add:accepts_multi)
-  subgoal for r x w 
-    
+  apply (simp add:accepts_range in_range_iff_concat  subset_iff Ball_def) 
+   apply blast
+  sorry
+     
 
    end
