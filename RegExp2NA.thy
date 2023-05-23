@@ -16,7 +16,6 @@ type_synonym 'a bitsNA = "('a, nat list)na"
 fun mapLR ::"nat list set \<Rightarrow> nat list set \<Rightarrow> nat list set" where 
 "mapLR A B = {[length a] @ a @ b|a b. a \<in> A \<and> b \<in> B}"
 
-
 definition
   "atom"  :: "'a \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
 "atom a vs = ([2],vs,
@@ -106,14 +105,6 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Neg r) vs = dot vs"
   
 declare split_paired_all[simp] 
-
-value "accepts (rexp2na (One) {1::nat}) []"
-
-value "start (rexp2na (Multi (One) 0) {1::nat})"
-
-value "accepts (rexp2na (Multi (One) 2) {1::nat}) []"
-
-value "fin (rexp2na ((Dot)) {1::nat}) [3]"
                                                       
 (******************************************************)
 (*                       atom                         *)
@@ -608,6 +599,13 @@ lemma accepts_star:
   apply force
   done
 
+(******************************************************)
+(*                       neg                          *)
+(******************************************************)
+lemma accepts_neg:
+ "accepts (neg A) w = (\<exists>us. (\<forall>u \<in> set us. accepts (dot v) u) \<and> w = concat us \<and> \<not> accepts A w)  "
+  sorry
+
 (***** Correctness of r *****)
 lemma accepts_rexp2na:
  "\<And>w. accepts (rexp2na r v) w = (w : lang r v)"
@@ -625,5 +623,6 @@ lemma accepts_rexp2na:
   apply (simp add:accepts_inter)
   apply (simp add:accepts_range in_range_iff_concat  subset_iff Ball_def) 
    apply blast
-  sorry
+  apply(simp add:accepts_neg) 
+  by (metis accepts_dot accepts_neg accepts_or in_star_iff_concat subset_code(1))
 end

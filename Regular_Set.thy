@@ -12,6 +12,7 @@ definition conc :: "'a lang \<Rightarrow> 'a lang \<Rightarrow> 'a lang" (infixr
 "A @@ B = {xs@ys | xs ys. xs:A & ys:B}"
 
 text \<open>checks the code preprocessor for set comprehensions\<close>
+
 export_code conc checking SML
 
 overloading lang_pow == "compow :: nat \<Rightarrow> 'a lang \<Rightarrow> 'a lang"
@@ -159,24 +160,25 @@ lemma concat_Suc_contains:"concat ws \<in> range A m n \<Longrightarrow> concat 
 
 lemma concat_n_times:"set ws \<subseteq> A \<Longrightarrow> concat ws \<in> A ^^ length ws"
   apply(induct ws)
-   apply simp
+  apply simp
   by simp
 
 lemma concat_in_range: "set ws \<subseteq> A \<and> length ws \<ge> m \<and> length ws \<le> n \<Longrightarrow> concat ws : range A m n"
   apply(induct n)
   subgoal 
-   apply simp
-    using zero_range_empty by fastforce
+  apply simp
+    using zero_range_empty 
+  by fastforce
   apply(case_tac "length ws \<le> n")
   subgoal for n apply simp
     by(simp add:concat_Suc_contains)
   subgoal for n 
-    apply simp apply(case_tac "length ws = (Suc n)")
-     prefer 2
-    subgoal
-      by simp
-    subgoal apply simp 
-      by (metis dual_order.refl element_range concat_n_times)
+  apply simp apply(case_tac "length ws = (Suc n)")
+  prefer 2
+  subgoal by simp
+  subgoal 
+    apply simp 
+  by (metis dual_order.refl element_range concat_n_times)
   done
   done
 
@@ -187,29 +189,23 @@ lemma non_range[simp]:"range A 0 0 = {[]}"
 lemma conc_range[simp]:"range A 0 (Suc n) =  (range A 0 n) \<union> A ^^ (Suc n)"
   apply (simp add:range_def)
   by (simp add: atLeast0_atMost_Suc inf_sup_aci(5))
-
-lemma range_in_concat:"w \<in> range A m n \<Longrightarrow> \<exists>ws. set ws \<subseteq> A \<and> w = concat ws \<and> length ws \<le> n \<and> m \<le> length ws "
-  apply(simp add:range_def) 
-  apply(case_tac "m\<le>n")
-   apply simp 
-   prefer 2 
-   apply auto
-  subgoal for x  
-    using multi_x_times by blast
-  done
-    
   
 lemma in_range_iff_concat:"w : range A m n = (\<exists>ws. set ws \<subseteq> A \<and> w = concat ws \<and> length ws \<le> n \<and> length ws \<ge> m)"
   (is "_ = (\<exists>ws. ?R w ws)")
 proof
   assume "w : range A m n" thus "\<exists>ws. ?R w ws"
-    by(simp add:range_in_concat)
-next 
+    apply(simp add:range_def) 
+    apply(case_tac "m\<le>n")
+    apply simp 
+    prefer 2 
+    apply auto
+    using multi_x_times 
+    by blast
+  next 
   assume "\<exists>us. ?R w us" thus "w : range A m n"
     apply auto
     by(simp add:concat_in_range)
 qed
-
 
 subsection\<open>@{const star}\<close>
 
