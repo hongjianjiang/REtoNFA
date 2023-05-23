@@ -37,17 +37,10 @@ definition star :: "'a lang \<Rightarrow> 'a lang" where
 "star A = (\<Union>n. A ^^ n)"
 
 
-definition range1 :: "'a lang \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a lang " where
-"range1 A m n= (if m \<le> n then (\<Union>i\<in>{m..n}. A ^^ i) else {})"
+definition range :: "'a lang \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a lang " where
+"range A m n= (if m \<le> n then (\<Union>i\<in>{m..n}. A ^^ i) else {})"
 
 (*hide_const (open) lang_pow*)
-
-
-lemma " [] \<in> range1 {[]} 1 1"
-  apply (simp add:range1_def)
-  apply(simp add:conc_def)
-  done
-
 
 subsection\<open>@{term "(@@)"}\<close>
 
@@ -140,16 +133,85 @@ lemma empty_pow_add:
   apply(auto simp add: concI_if_Nil1)
   done
 
-lemma "[] \<in> {}"
-  apply auto
-  sorry
+subsection\<open>@{const range}\<close>
 
-lemma t1:"(\<forall>xs\<in>A. xs = []) \<Longrightarrow> (A = {[]} \<or> A = {})"
-  apply auto 
-  done 
- 
-lemma " w \<in> A ^^ x \<Longrightarrow> m \<le> x \<Longrightarrow> x \<le> n \<Longrightarrow> \<exists>ws. set ws \<subseteq> A \<and> w = concat ws \<and> length ws \<le> n \<and> m \<le> length ws"
-  apply(induct ) 
+
+lemma multi_x_times:"w \<in> A ^^ x  \<Longrightarrow> \<exists>ws. set ws \<subseteq> A \<and> w = concat ws \<and> length ws = x"
+  apply(induct x arbitrary:w)
+  apply simp apply (auto simp add:conc_def) 
+  by (metis concat.simps(2) insert_subset length_Cons list.simps(15))
+
+lemma zero_range_empty:"[] \<in> range A 0 n"
+  apply(simp add:range_def)
+  apply(induct n)
+   apply simp
+  apply auto
+  done
+
+lemma element_range:"b :range A m n = (\<exists>i. i \<ge> m \<and> i \<le> n \<and> b : A ^^ i)"
+  apply(simp add:range_def)
+  using atLeastAtMost_iff by blast
+
+lemma concat_Suc_contains:"concat ws \<in> range A m n \<Longrightarrow> concat ws \<in> range A m (Suc n)"
+  apply(induct ws)
+  apply simp 
+   apply (meson element_range le_Suc_eq)
+  apply simp
+  by (meson element_range le_Suc_eq)
+
+lemma concat_n_times:"set ws \<subseteq> A \<Longrightarrow> concat ws \<in> A ^^ length ws"
+  apply(induct ws)
+   apply simp
+  by simp
+
+lemma concat_in_range: "set ws \<subseteq> A \<and> length ws \<ge> m \<and> length ws \<le> n \<Longrightarrow> concat ws : range A m n"
+  apply(induct n)
+  subgoal 
+   apply simp
+    using zero_range_empty by fastforce
+  apply(case_tac "length ws \<le> n")
+  subgoal for n apply simp
+    by(simp add:concat_Suc_contains)
+  subgoal for n 
+    apply simp apply(case_tac "length ws = (Suc n)")
+     prefer 2
+    subgoal
+      by simp
+    subgoal apply simp 
+      by (metis dual_order.refl element_range concat_n_times)
+  done
+  done
+
+lemma non_range[simp]:"range A 0 0 = {[]}" 
+  apply(simp add:range_def)
+  done
+
+lemma conc_range[simp]:"range A 0 (Suc n) =  (range A 0 n) \<union> A ^^ (Suc n)"
+  apply (simp add:range_def)
+  by (simp add: atLeast0_atMost_Suc inf_sup_aci(5))
+
+lemma range_in_concat:"w \<in> range A m n \<Longrightarrow> \<exists>ws. set ws \<subseteq> A \<and> w = concat ws \<and> length ws \<le> n \<and> m \<le> length ws "
+  apply(simp add:range_def) 
+  apply(case_tac "m\<le>n")
+   apply simp 
+   prefer 2 
+   apply auto
+  subgoal for x  
+    using multi_x_times by blast
+  done
+    
+  
+lemma in_range_iff_concat:"w : range A m n = (\<exists>ws. set ws \<subseteq> A \<and> w = concat ws \<and> length ws \<le> n \<and> length ws \<ge> m)"
+  (is "_ = (\<exists>ws. ?R w ws)")
+proof
+  assume "w : range A m n" thus "\<exists>ws. ?R w ws"
+    by(simp add:range_in_concat)
+next 
+  assume "\<exists>us. ?R w us" thus "w : range A m n"
+    apply auto
+    by(simp add:concat_in_range)
+qed
+
 
 subsection\<open>@{const star}\<close>
 
@@ -216,84 +278,6 @@ qed auto
 
 lemma concat_in_star: "set ws \<subseteq> A \<Longrightarrow> concat ws : star A"
 by (induct ws) simp_all
-
-lemma zero_range1_empty:"[] \<in> range1 A 0 n"
-  apply(simp add:range1_def)
-  apply(induct n)
-   apply simp
-  apply auto
-  done
-
-lemma element_range1:"b :range1 A m n = (\<exists>i. i \<ge> m \<and> i \<le> n \<and> b : A ^^ i)"
-  apply(simp add:range1_def)
-  using atLeastAtMost_iff by blast
-
-lemma concat_Suc_contains:"concat ws \<in> range1 A m n \<Longrightarrow> concat ws \<in> range1 A m (Suc n)"
-  apply(induct ws)
-  apply simp 
-   apply (meson element_range1 le_Suc_eq)
-  apply simp
-  by (meson element_range1 le_Suc_eq)
-
-lemma concat_n_times:"set ws \<subseteq> A \<Longrightarrow> concat ws \<in> A ^^ length ws"
-  apply(induct ws)
-   apply simp
-  by simp
-
-lemma concat_in_range1: "set ws \<subseteq> A \<and> length ws \<ge> m \<and> length ws \<le> n \<Longrightarrow> concat ws : range1 A m n"
-  apply(induct n)
-  subgoal 
-   apply simp
-    using zero_range1_empty by fastforce
-  apply(case_tac "length ws \<le> n")
-  subgoal for n apply simp
-    by(simp add:concat_Suc_contains)
-  subgoal for n 
-    apply simp apply(case_tac "length ws = (Suc n)")
-     prefer 2
-    subgoal
-      by simp
-    subgoal apply simp 
-      by (metis dual_order.refl element_range1 concat_n_times)
-  done
-  done
-
-lemma non_range1[simp]:"range1 A 0 0 = {[]}" 
-  apply(simp add:range1_def)
-  done
-
-lemma conc_range1[simp]:"range1 A 0 (Suc n) =  (range1 A 0 n) \<union> A ^^ (Suc n)"
-  apply (simp add:range1_def)
-  by (simp add: atLeast0_atMost_Suc inf_sup_aci(5))
-
-
- 
-
-lemma "w \<in> range1 A m n \<Longrightarrow> \<exists>ws. set ws \<subseteq> A \<and> w = concat ws \<and> length ws \<le> n \<and> m \<le> length ws "
-  apply(simp add:range1_def) apply(case_tac "m\<le>n")apply simp prefer 2 apply auto subgoal for x apply (induct n) apply simp 
-    apply auto  
-  
-lemma in_range_iff_concat:"w : range1 A m n = (\<exists>ws. set ws \<subseteq> A \<and> w = concat ws \<and> length ws \<le> n \<and> length ws \<ge> m)"
-  (is "_ = (\<exists>ws. ?R w ws)")
-proof
-  assume "w : range1 A m n" thus "\<exists>ws. ?R w ws"
-nitpick
-  proof (induct n arbitrary:m)
-    case 0
-    then show ?case apply simp  
-      by (simp add: element_range1)
-  next
-    case (Suc n)
-    then show ?case  
-      sorry
-  qed
-next 
-  assume "\<exists>us. ?R w us" thus "w : range1 A m n"
-    apply auto
-    by(simp add:concat_in_range1)
-qed
-
- 
 
 lemma in_star_iff_concat:
   "w \<in> star A = (\<exists>ws. set ws \<subseteq> A \<and> w = concat ws)"
