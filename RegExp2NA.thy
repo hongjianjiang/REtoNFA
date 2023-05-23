@@ -507,7 +507,6 @@ done
 (******************************************************)
 (*                       plus                         *)
 (******************************************************)
-
 lemma start_plus[simp]: "\<And>A. start (plus A) = start A"
 by(simp add:plus_def)
 
@@ -592,8 +591,7 @@ lemma accepts_plus[iff]:
   apply (simp add: accepts_conv_steps)
   apply blast
   apply (blast intro: steps_star_cycle)
-done
-
+  done
 
 (******************************************************)
 (*                       star                         *)
@@ -609,7 +607,6 @@ lemma accepts_star:
   apply blast
   apply force
   done
-
 
 (***** Correctness of r *****)
 lemma accepts_rexp2na:
@@ -629,6 +626,4 @@ lemma accepts_rexp2na:
   apply (simp add:accepts_range in_range_iff_concat  subset_iff Ball_def) 
    apply blast
   sorry
-     
-
-   end
+end

@@ -21,7 +21,6 @@ begin
   "lang_pow (Suc n) A = A @@ (lang_pow n A)"
 end
 
-
 text \<open>for code generation\<close>
 
 definition lang_pow :: "nat \<Rightarrow> 'a lang \<Rightarrow> 'a lang" where
@@ -134,7 +133,6 @@ lemma empty_pow_add:
   done
 
 subsection\<open>@{const range}\<close>
-
 
 lemma multi_x_times:"w \<in> A ^^ x  \<Longrightarrow> \<exists>ws. set ws \<subseteq> A \<and> w = concat ws \<and> length ws = x"
   apply(induct x arbitrary:w)

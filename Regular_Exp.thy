@@ -34,7 +34,7 @@ primrec lang :: "'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a lang" where
 "lang (Ques r) vset = (lang r vset) \<union> {[]}"|
 "lang (Plus r) vset = (conc (lang r vset) (star(lang r vset)))"|
 "lang (Inter r s) vset = (lang r vset) \<inter> (lang s vset)"|
-"lang (Range r m n) vset = (range1 (lang r vset) m n)"|
+"lang (Range r m n) vset = (range (lang r vset) m n)"|
 "lang (Neg r) vset = star((\<lambda>x. [x]) ` vset) - (lang r vset)"
 
   
