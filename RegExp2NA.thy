@@ -54,8 +54,12 @@ definition
 range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
   "range = (\<lambda>(q, vl, d, f) m n.
     (n#q, vl,
-    \<lambda>a s. if hd s > 0 then ((hd s) ## (d a (tl s))) \<union> (if (f (tl s)) then ((hd s) - 1) ## d a q else {}) else {},
-    \<lambda>s. if n > 0 then hd s \<ge> 1 \<and> (hd s) \<le> (n - m + 1) \<and> (f (tl s) \<or> m = 0) else True))"
+    \<lambda>a s. case s of [] \<Rightarrow> {} | 
+                    left # s \<Rightarrow> if left > 0 then ((left) ## (d a s)) \<union> (if (f s) then (left - 1) ## d a q else {}) else {},
+     \<lambda>s. case s of [] \<Rightarrow> False |
+        left # s \<Rightarrow> if m > n then False 
+        else if n > 0 then 1 \<le> left \<and>   (left \<le> (n - m + 1) \<or> n = m) \<and> (f s) 
+        else True))"
 
 definition
   conc :: "'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
@@ -70,25 +74,17 @@ definition
                   left#s \<Rightarrow> left = 2 \<and> fl s \<and> fr qr | left = 3 \<and> fr s))"
 
 definition
-  multi :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
-"multi = (\<lambda>(q, vl, d, f) m.
-   (m#q, vl,
-    \<lambda>a s. case s of [] \<Rightarrow> {} | 
-          left#p \<Rightarrow> if left = 0 then {} else (left ## (d a p)) \<union> (if f p then ((left - 1) ## d a q) else {}),
-    \<lambda>s. if m = 0 then s = 0 # q else (s = m # q \<and> f q | (hd s = 1) \<and> f (tl s))))"
-
-definition
 plus :: "'a bitsNA \<Rightarrow> 'a bitsNA" where
   "plus = (\<lambda>(q,vs,d,f). (q, vs, \<lambda>a s. d a s \<union> (if f s then d a q else {}), f))"
 
-definition
-timesN :: "'a bitsNA \<Rightarrow> nat\<Rightarrow>'a bitsNA" where
-  "timesN = (\<lambda>(q,vs,d,f) n. (1#q, vs, \<lambda>a s. ((hd s) ## d a (tl s)) \<union> (if f (tl s) then (hd s + 1) ## d a q else {}), 
-  \<lambda>s. (hd s) = n \<and> f (tl s)))"
 
 definition
 star :: "'a set \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
  "star vs A = or (epsilon vs) (plus A)"
+
+definition 
+neg :: "'a set \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
+"neg vs A= (let \<Sigma> = star vs (dot vs) in (start \<Sigma>, alp \<Sigma>, next \<Sigma>, \<lambda>s. fin \<Sigma> s \<and> \<not> fin A s))"
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -102,7 +98,7 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Plus r) vs = conc (rexp2na r vs) (star vs (rexp2na r vs))" |
   "rexp2na (Inter r s) vs = inter (rexp2na r vs) (rexp2na s vs)" |
   "rexp2na (Range r m n) vs = range (rexp2na r vs) m n" |
-  "rexp2na (Neg r) vs = dot vs"
+  "rexp2na (Neg r) vs = neg vs (rexp2na r vs)"
   
 declare split_paired_all[simp] 
                                                       
@@ -335,6 +331,43 @@ lemma accepts_inter:
   apply simp  
 by (metis (no_types, opaque_lifting) append_eq_conv_conj inter_steps_from_left_right inter_steps_left inter_steps_right list.sel(1) list.sel(3) steps.simps(2))
 
+(******************************************************)
+(*                       neg                          *)
+(******************************************************)
+lemma fin_neg[iff]: 
+ "\<And>A q. fin (neg vs A) q = (fin (star vs (dot vs)) q \<and> \<not> fin A q)"
+  apply(simp add:neg_def fin_def) 
+  by (metis (no_types, lifting) snd_conv)
+
+lemma start_neg[iff]:
+  "\<And>A. start (neg vs A) = start (star vs (dot vs))"
+  apply(simp add:neg_def) 
+  by (metis fst_conv start_def)
+
+lemma neg_step[iff]:
+"\<And>A q. (p,q) : step (neg vs A) a = ((p,q) \<in> step (star vs (dot vs)) a)"
+  apply(simp add:step_def)
+  by (metis (no_types, lifting) AutoProj.next_def fst_conv neg_def snd_conv)
+
+lemma neg_steps[iff]:
+"\<And>A p. (p,q) : steps (neg vs A) w = ((p,q) \<in> steps (star vs (dot vs)) w)"
+  apply(induct w)
+  apply simp 
+  apply simp
+  apply force
+  done
+
+lemma neg_steps_start[iff]:
+"\<And>A. (start (neg vs A),q) : steps (neg vs A) w = ((start (neg vs A),q) \<in> steps (star vs (dot vs)) w)"
+  apply(induct w)
+  apply simp 
+  apply simp
+  apply force
+  done
+
+
+  
+
 
 (******************************************************)
 (*                       range                        *)
@@ -478,8 +511,6 @@ lemma accepts_conc:
   apply blast
   done  
 
-
-
 (******************************************************)
 (*                     epsilon                        *)
 (******************************************************)
@@ -584,6 +615,15 @@ lemma accepts_plus[iff]:
   apply (blast intro: steps_star_cycle)
   done
 
+lemma accepts_Sigma:
+  "accepts (star vs (dot vs)) w =  (\<exists>us. (\<forall>u \<in> set us. accepts (dot vs) u) \<and> w = concat us)"
+  by (metis RegExp2NA.star_def accepts_epsilon accepts_or accepts_plus concat.simps(1) empty_iff list.set(1))
+
+lemma accepts_neg:
+ "accepts (neg vs A) w = (\<exists>us. (\<forall>u \<in> set us. accepts (dot vs) u) \<and> w = concat us \<and> \<not> accepts A w)"
+ apply (simp add: accepts_conv_steps)
+
+
 (******************************************************)
 (*                       star                         *)
 (******************************************************)
@@ -599,12 +639,6 @@ lemma accepts_star:
   apply force
   done
 
-(******************************************************)
-(*                       neg                          *)
-(******************************************************)
-lemma accepts_neg:
- "accepts (neg A) w = (\<exists>us. (\<forall>u \<in> set us. accepts (dot v) u) \<and> w = concat us \<and> \<not> accepts A w)  "
-  sorry
 
 (***** Correctness of r *****)
 lemma accepts_rexp2na:
@@ -624,5 +658,5 @@ lemma accepts_rexp2na:
   apply (simp add:accepts_range in_range_iff_concat  subset_iff Ball_def) 
    apply blast
   apply(simp add:accepts_neg) 
-  by (metis accepts_dot accepts_neg accepts_or in_star_iff_concat subset_code(1))
-end
+  by (smt (verit) accepts_dot in_star_iff_concat subset_iff)
+ end

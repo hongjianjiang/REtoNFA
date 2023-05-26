@@ -14,8 +14,8 @@ imports Main
 begin
 
 definition start :: "'a * 'b * 'c * 'd \<Rightarrow> 'a" where "start A = fst A"
-definition "next" :: "'a * 'b * 'c * 'd \<Rightarrow> 'c" where "next A = fst(snd(snd(A)))"
 definition alp :: "'a * 'b * 'c * 'd \<Rightarrow> 'b" where "alp A = fst(snd(A))"
+definition "next" :: "'a * 'b * 'c * 'd \<Rightarrow> 'c" where "next A = fst(snd(snd(A)))"
 definition fin :: "'a * 'b * 'c * 'd \<Rightarrow> 'd" where "fin A = snd(snd(snd(A)))"
 
 
