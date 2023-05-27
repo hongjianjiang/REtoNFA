@@ -26,7 +26,7 @@ datatype (atoms: 'a) rexp =
 primrec lang :: "'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a lang" where
 "lang (Zero) vset= {}" |
 "lang (One) vset= {[]}" |
-"lang (Atom a) vset= {[a]}" |
+"lang (Atom a) vset= (if a : vset then {[a]} else {})" |
 "lang (Alter r s) vset= (lang r vset) Un (lang s vset)" |
 "lang (Times r s) vset= conc (lang r vset) (lang s vset)" |
 "lang (Star r) vset= star(lang r vset)"|
