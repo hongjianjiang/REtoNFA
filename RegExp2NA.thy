@@ -14,7 +14,11 @@ type_synonym 'a bitsNA = "('a, nat list)na"
 
 
 fun mapLR ::"nat list set \<Rightarrow> nat list set \<Rightarrow> nat list set" where 
-"mapLR A B = {[length a] @ a @ b|a b. a \<in> A \<and> b \<in> B}"
+"mapLR A B = {[length a] @ a @ b|a b. a \<in> A \<and> b \<in> B}" 
+
+fun mapLR1 ::"nat list set \<Rightarrow> nat list set \<Rightarrow> nat list set" where 
+"mapLR1 A B = (if B = {} then {[length a] @ a|a. a \<in> A} else {[length a] @ a @ b|a b. a \<in> A \<and> b \<in> B})" 
+
 
 definition
   "atom"  :: "'a \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
@@ -84,9 +88,15 @@ star :: "'a set \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
 
 definition 
 neg :: "'a set \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
-"neg vs= (\<lambda>(ql,vl1, dl,fl). (let \<Sigma> = star vs (dot vs) in (length ql # ql @ start \<Sigma>, alp \<Sigma>, \<lambda>a s. mapLR (dl a (take (hd s) (tl s))) (next \<Sigma> a (drop (hd s) (tl s))), 
-\<lambda>s. case s of [] \<Rightarrow> False | left # s \<Rightarrow> \<not> fl (take left s) \<and> fin \<Sigma> (drop  left  s))))"
+"neg vs= (\<lambda>(ql,vl1, dl,fl). (let \<Sigma> = star vs (dot vs) in 
+   (length (start \<Sigma>) # start \<Sigma> @ ql ,alp \<Sigma>,
+    \<lambda>a s. mapLR1 (next \<Sigma> a (take (hd s) (tl s))) (dl a (drop (hd s) (tl s))),
+      \<lambda>s. case s of [] \<Rightarrow> False | left # s \<Rightarrow> \<not> fl (drop left s) \<and> fin (\<Sigma>) (take  left  s))))"
 
+definition 
+neg1 :: "'a set \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
+"neg1 vs = (\<lambda>(q,vs,d,f). (q, vs, \<lambda>a s. (if d a s = {} then {[]} else d a s), %s. ~ f s))"
+ 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
   "rexp2na One   vs     = epsilon vs" |
@@ -99,13 +109,17 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Plus r) vs = conc (rexp2na r vs) (star vs (rexp2na r vs))" |
   "rexp2na (Inter r s) vs = inter (rexp2na r vs) (rexp2na s vs)" |
   "rexp2na (Range r m n) vs = range (rexp2na r vs) m n" |
-  "rexp2na (Neg r) vs = neg vs (rexp2na r vs)"
+  "rexp2na (Neg r) vs = neg1 vs (rexp2na r vs)"
   
 declare split_paired_all[simp] 
-value "accepts (rexp2na (Neg (Atom 1)) {1,2,3::nat}) [2,2,2,2,2,2,2,2,2,3,3,3,3,4]"
+
+value "start (rexp2na (Neg (Atom 1)) {1,2,3::nat})"
+value "delta (rexp2na (Neg (Atom 1)) {1,2,3::nat}) [3] [0,2]"
+value "start (rexp2na (Neg (Atom 1)) {1,2,3::nat})"
+value "fin (rexp2na (Neg (Atom 1)) {1,2,3::nat}) [3,3,3]"
 value "fin (rexp2na (Neg (Atom 1)) {1,2,3::nat}) [3,3]"
 value "fin (rexp2na (Atom 1) {1,2,3::nat}) [3]"
-value "accepts (rexp2na (Neg (Atom 1)) {1,2,3::nat}) [1]"
+value "accepts (rexp2na (Neg (Atom 1)) {1,2,3::nat}) [1,1]"
 (******************************************************)
 (*                       atom                         *)
 (******************************************************)
@@ -580,24 +594,46 @@ lemma accepts_plus[iff]:
 (*                       neg                          *)
 (******************************************************)
 lemma fin_neg[iff]: 
- "\<And>A q. fin (neg vs A) q = (\<exists>m n. q = m # n \<and> \<not> fin A (take m n) \<and> fin (star vs (dot vs)) (drop m n))"
+ "\<And>A q. fin (neg vs A) q = (\<exists>m n. q = m # n \<and> \<not> fin A (drop m n) \<and> fin (star vs (dot vs)) (take m n))"
   apply(simp add:neg_def fin_def) 
   by (smt (z3) list.case_eq_if list.collapse list.simps(5) snd_conv)
 
 
 lemma start_neg[iff]:
-  "\<And>A. start (neg vs A) = length (start A) # start A @ start (star vs (dot vs))"
+  "\<And>A. start (neg vs A) = length (start (star vs (dot vs))) # start (star vs (dot vs))@ start A"
   apply(simp add:neg_def) 
   by (metis fst_conv start_def)
 
 
-lemma neg_step[iff]:
-"\<And>A q. (p,q) : step (neg vs A) a =  (\<exists>r1 r2. q = [length r1] @ r1 @ r2 
-                                      \<and> (take (hd p) (tl p), r1) \<in> step A a 
-                                      \<and> (drop (hd p) (tl p),r2) \<in> step (star vs (dot vs)) a)"
-  apply(simp add:step_def neg_def)  
-  by (smt (z3) AutoProj.next_def fst_conv mem_Collect_eq snd_conv)
- 
+lemma neg_step:
+"\<And>A q. (p,q) : step A a \<Longrightarrow> (p, q) : step (neg1 vs A) a"
+  apply(simp add:step_def neg1_def)
+  by blast
+
+lemma t1:"\<And>A q. (next A) a p = {} \<Longrightarrow> (p, []) \<in> step (neg1 vs A) a"
+  apply(simp add:step_def neg1_def)
+done  
+
+lemma t2:"\<And>A q. (p, q) : step (neg1 vs A) a \<Longrightarrow> (if (next A) a p = {} then q = [] else (p,q) : step A a)"
+  apply(split if_split)
+  apply(rule conjI)
+   apply(rule impI)
+  subgoal for A q 
+    apply (simp add:step_def neg1_def)  
+    by (smt (z3) AutoProj.next_def case_prod_conv fst_conv prod_cases4 singletonD snd_conv)
+  subgoal for A q
+    apply(rule impI) 
+    apply (simp add:step_def neg1_def)  
+    by (smt (z3) AutoProj.next_def case_prod_conv fst_conv old.prod.exhaust snd_conv)
+  done
+
+lemma t3:"\<And>A q. (p, q) : step (neg1 vs A) a = (if (next A) a p = {} then q = [] else (p,q) : step A a)"
+  by (metis neg_step t1 t2)
+
+lemma "\<And>A q. next A a p = {} \<Longrightarrow> (\<exists>m n. (m, n) \<in> step (star vs (dot vs)) a \<and> (length m # m, length n # n) \<in> step (neg vs A) a)"
+  apply(simp add:step_def neg_def)
+  
+
 lemma neg_steps_hd:
 "\<And>A p. (p,q) : steps (neg vs A) w \<Longrightarrow>  ((take (hd p) (tl p), take (hd q) (tl q))\<in> steps A w)"
   apply(induct w)
