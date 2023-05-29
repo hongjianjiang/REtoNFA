@@ -630,8 +630,9 @@ lemma t2:"\<And>A q. (p, q) : step (neg1 vs A) a \<Longrightarrow> (if (next A) 
 lemma t3:"\<And>A q. (p, q) : step (neg1 vs A) a = (if (next A) a p = {} then q = [] else (p,q) : step A a)"
   by (metis neg_step t1 t2)
 
-lemma "\<And>A q. next A a p = {} \<Longrightarrow> (\<exists>m n. (m, n) \<in> step (star vs (dot vs)) a \<and> (length m # m, length n # n) \<in> step (neg vs A) a)"
-  apply(simp add:step_def neg_def)
+lemma "\<And>A q. next A a p = {} \<and> (m, n) \<in> step (star vs (dot vs)) a \<Longrightarrow>  (length m # m, length n # n) \<in> step (neg vs A) a"
+  apply(simp add:step_def neg_def) apply(erule conjE)
+  
   
 
 lemma neg_steps_hd:
