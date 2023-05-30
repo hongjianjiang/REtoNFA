@@ -91,19 +91,24 @@ definition
     \<lambda>a s. if dl a (take (hd s) (tl s)) = {} then 0 ## (dr a (drop (hd s) (tl s))) else mapLR (dl a (take (hd s) (tl s))) (dr a (drop (hd s) (tl s))),
     \<lambda>s. case s of [] \<Rightarrow> False | left # s \<Rightarrow> \<not> fl (take left s) \<and> fr (drop left s)))"
 
+primrec multi ::"'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where 
+  "multi r 0 vs = epsilon vs"|
+  "multi r (Suc n) vs = conc r (multi r n vs)"
+
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
-  "rexp2na Zero  vs     = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
-  "rexp2na One   vs     = epsilon vs" |
-  "rexp2na (Atom a)  vs  = atom a vs" |
-  "rexp2na (Alter r s)  vs= or (rexp2na r vs) (rexp2na s vs)" |
-  "rexp2na (Times r s) vs= conc (rexp2na r vs) (rexp2na s vs)" |
-  "rexp2na (Star r)   vs = star vs (rexp2na r vs)" |  
-  "rexp2na Dot vs= dot vs" | 
-  "rexp2na (Ques r) vs = or (rexp2na r vs) (epsilon vs)" |
-  "rexp2na (Plus r) vs = conc (rexp2na r vs) (star vs (rexp2na r vs))" |
-  "rexp2na (Inter r s) vs = inter (rexp2na r vs) (rexp2na s vs)" |
+  "rexp2na Zero          vs = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
+  "rexp2na One           vs = epsilon vs" |
+  "rexp2na (Atom a)      vs = atom a vs" |
+  "rexp2na (Alter r s)   vs = or (rexp2na r vs) (rexp2na s vs)" |
+  "rexp2na (Times r s)   vs = conc (rexp2na r vs) (rexp2na s vs)" |
+  "rexp2na (Star r)      vs = star vs (rexp2na r vs)" |  
+  "rexp2na Dot           vs = dot vs" | 
+  "rexp2na (Ques r)      vs = or (rexp2na r vs) (epsilon vs)" |
+  "rexp2na (Plus r)      vs = conc (rexp2na r vs) (star vs (rexp2na r vs))" |
+  "rexp2na (Inter r s)   vs = inter (rexp2na r vs) (rexp2na s vs)" |
   "rexp2na (Range r m n) vs = range (rexp2na r vs) m n" |
-  "rexp2na (Neg r) vs = neg (rexp2na r vs) (star vs (dot vs))"
+  "rexp2na (Neg r)       vs = neg (rexp2na r vs) (star vs (dot vs))"|
+  "rexp2na (Multi r m)   vs = multi (rexp2na r vs) m vs"
   
 declare split_paired_all[simp] 
 
@@ -635,6 +640,23 @@ lemma accepts_neg:
     sorry
   done
 
+lemma accptes_multi_Zero:
+"accepts (multi r 0 vs) w =  (w = [])"
+  by simp
+
+lemma accptes_multi_SucN:
+"accepts (multi r (Suc n) vs) w = (\<exists>w1 w2. accepts r w1 \<and> accepts ((multi r n) vs) w2 \<and> w = w1 @ w2)"
+  apply(induct n)
+  apply simp 
+  apply (simp add: accepts_conc)
+  by (metis accepts_conc multi.simps(2))
+
+
+lemma accepts_multi:
+"accepts (rexp2na (Multi r m) vs) w =  (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w = concat us \<and> length ws = m)"
+  sorry
+
+
 (******************************************************)
 (*                       star                         *)
 (******************************************************)
@@ -669,5 +691,6 @@ lemma accepts_rexp2na:
   apply (simp add:accepts_range in_range_iff_concat  subset_iff Ball_def) 
    apply blast
   apply(simp add:accepts_neg) 
-  by (smt (verit, ccfv_SIG) accepts_dot accepts_neg in_star_iff_concat rexp2na.simps(12) subset_code(1))
-end
+   apply (smt (verit, ccfv_SIG) accepts_dot accepts_neg in_star_iff_concat rexp2na.simps(12) subset_code(1))
+   by (metis Ex_list_of_length accepts_epsilon accepts_multi multi.simps(1) nat.distinct(1) rexp2na.simps(13)) 
+ end
