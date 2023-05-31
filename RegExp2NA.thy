@@ -94,16 +94,10 @@ primrec multi ::"'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a set \<Rightarrow> 
   "multi r 0 vs = epsilon vs"|
   "multi r (Suc n) vs = conc r (multi r n vs)"
 
-primrec alter_list ::"'a bitsNA list \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
-"alter_list [] vs = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)"|
-"alter_list (x#xs) vs = or x (alter_list xs vs)"
 
-primrec get_list :: "'a bitsNA \<Rightarrow> nat list \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA list" where 
-"get_list A [] vs = []"|
-"get_list A (x#xs) vs = multi A x vs # (get_list A xs vs)"
 
 definition range1 :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
-"range1 A n m vs =  alter_list (get_list A [n..<m+1] vs) vs"
+"range1 A n m vs = fold (or) (map (\<lambda>a. multi A a vs) [n+1..<m+1]) (multi A n vs)"
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero          vs = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -122,8 +116,7 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   
 declare split_paired_all[simp] 
 
-value "accepts (alter_list [atom 1 {1::nat}, atom 2 {2}, atom 3 {3}] {1,2,3::nat})  []"
-value "accepts (rexp2na (Range Zero 1 1) {1,2,3::nat}) []"
+value "accepts (rexp2na (Range (Atom 1) 2 4) {1,2,3::nat}) [1,1,1,1]"
 value "accepts (rexp2na (Plus One) {1,2,3::nat}) []"
 value "start (rexp2na (Multi (Atom 1) 1) {1,2,3::nat})"
 value "next (rexp2na (Multi (Atom 1) 1) {1,2,3::nat}) 1 [1,3]"
@@ -666,12 +659,20 @@ lemma accepts_multi:
 lemma accepts_range:"
 accepts (range1 A m n vs) w = (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w = concat us \<and> m \<le> length us & length us \<le> n)"
   apply(rule iffI)
-  apply(induct n)
-  subgoal apply (simp add:range1_def) apply auto apply(induct m) apply simp subgoal apply(rule disjE) apply auto by (simp add: accepts_conv_steps)
+  apply(induct n arbitrary: w)
+  subgoal apply (simp add:range1_def)
+    apply auto 
+     apply(induct m) 
+      apply simp subgoal 
+      apply(rule disjE) 
+        apply auto 
+      by (simp add: accepts_conv_steps)
   subgoal for m apply auto done
   apply(induct m) apply simp apply auto 
   by (simp add: accepts_conv_steps)
-subgoal for n apply (simp add:range1_def) apply(induct m) apply  (simp add: accepts_conv_steps) sledgehammer
+  subgoal for n w
+    apply(induct m)
+    subgoal apply (simp add:range1_def)
 
 
 
