@@ -79,8 +79,6 @@ definition
 plus :: "'a bitsNA \<Rightarrow> 'a bitsNA" where
   "plus = (\<lambda>(q,vs,d,f). (q, vs, \<lambda>a s. d a s \<union> (if f s then d a q else {}), %s. f s))"
 
-
-
 definition
 star :: "'a set \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
  "star vs A = or (epsilon vs) (plus A)"
@@ -96,11 +94,16 @@ primrec multi ::"'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a set \<Rightarrow> 
   "multi r 0 vs = epsilon vs"|
   "multi r (Suc n) vs = conc r (multi r n vs)"
 
-definition 
-multi1 ::"'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
-  "multi1 = (\<lambda>(q,vs,d,f) n. (1#q, vs, \<lambda>a s. ((hd s)## (d a (tl s))) \<union> (if f (tl s) then if d a q = {} then {[hd s + 1 ]} else 
-      (hd s +1) ## d a q else {}), \<lambda>s. hd s = n \<and> f (tl s)))"
+primrec alter_list ::"'a bitsNA list \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
+"alter_list [] vs = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)"|
+"alter_list (x#xs) vs = or x (alter_list xs vs)"
 
+primrec get_list :: "'a bitsNA \<Rightarrow> nat list \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA list" where 
+"get_list A [] vs = []"|
+"get_list A (x#xs) vs = multi A x vs # (get_list A xs vs)"
+
+definition range1 :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
+"range1 A n m vs =  alter_list (get_list A [n..<m+1] vs) vs"
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero          vs = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -113,20 +116,17 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Ques r)      vs = or (rexp2na r vs) (epsilon vs)" |
   "rexp2na (Plus r)      vs = conc (rexp2na r vs) (star vs (rexp2na r vs))" |
   "rexp2na (Inter r s)   vs = inter (rexp2na r vs) (rexp2na s vs)" |
-  (*"rexp2na (Range r m n) vs = range (rexp2na r vs) m n" |
-  "rexp2na (Neg r)       vs = neg (rexp2na r vs) (star vs (dot vs))"|*)
-  "rexp2na (Multi r m)   vs = (if m = 0 \<or> r = One then epsilon vs else multi1 (rexp2na r vs) m)"
+  "rexp2na (Range r n m) vs = range1 (rexp2na r vs) n m vs" |
+  "rexp2na (Neg r)       vs = neg (rexp2na r vs) (star vs (dot vs))"|
+  "rexp2na (Multi r n)   vs = multi (rexp2na r vs) n vs"
   
 declare split_paired_all[simp] 
 
-value "accepts (rexp2na (Multi One 3) {1,2,3::nat}) []"
-value "start (rexp2na (Multi One 3) {1,2,3::nat})"
- 
+value "accepts (alter_list [atom 1 {1::nat}, atom 2 {2}, atom 3 {3}] {1,2,3::nat})  []"
+value "accepts (rexp2na (Range Zero 1 1) {1,2,3::nat}) []"
 value "accepts (rexp2na (Plus One) {1,2,3::nat}) []"
 value "start (rexp2na (Multi (Atom 1) 1) {1,2,3::nat})"
 value "next (rexp2na (Multi (Atom 1) 1) {1,2,3::nat}) 1 [1,3]"
-
-
 (******************************************************)
 (*                       atom                         *)
 (******************************************************)
@@ -135,7 +135,6 @@ lemma fin_atom: "(fin (atom a vs) q) = (q = [3])"
 
 lemma start_atom: "start (atom a vs) = [2]"
   by(simp add:atom_def)
-
 
 lemma in_step_atom_Some[simp]:
  "(p,q) : step (atom a vs) b = (p=[2] \<and> q=[3] \<and> b=a \<and> a : vs)"
@@ -346,16 +345,6 @@ lemma accepts_inter:
   apply simp  
 by (metis (no_types, opaque_lifting) append_eq_conv_conj inter_steps_from_left_right inter_steps_left inter_steps_right list.sel(1) list.sel(3) steps.simps(2))
 
-  
-
-
-(******************************************************)
-(*                       range                        *)
-(******************************************************)
-  
-lemma accepts_range:"accepts (range A m n) w = (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w = concat us \<and> m \<le>length us & length us \<le> n)"
-  sorry
-
 (******************************************************)
 (*                      conc                          *)
 (******************************************************)
@@ -524,8 +513,8 @@ lemma steps_plusI: "\<And>p. (p,q) : steps A w \<Longrightarrow> (p,q) \<in> ste
   apply (induct "w")
   apply simp
   apply simp
-  apply (blast intro: step_plusI)
-done
+  thm relcomp.simps
+  by (meson relcomp.simps step_plusI)
 
 lemma step_plus_conv[iff]:
  "\<And>A. (p,r): step (plus A) a = 
@@ -587,7 +576,7 @@ lemma accepts_plus[iff]:
  (\<exists>us. us \<noteq> [] \<and> w = concat us \<and> (\<forall>u \<in> set us. accepts A u))"
   apply (rule iffI)
   apply (simp add: accepts_conv_steps)
-  apply (clarify)
+   apply (clarify)
   apply (drule start_steps_plusD)
   apply (clarify)
   apply (rule_tac x = "us@[v]" in exI)
@@ -632,10 +621,13 @@ lemma Neg_toNotNone:"\<And>A B q. (p, q) \<in> step (neg A B) a \<Longrightarrow
    apply(simp add:step_def neg_def) 
   done 
  
-(*lemma accepts_neg:
+lemma accepts_neg:
  "accepts (rexp2na (Neg r) vs) w = ((\<exists>us. (\<forall>u \<in> set us. accepts (dot vs) u) \<and> w = concat us) \<and> \<not> accepts (rexp2na r vs) w)"
-  sorry*)
+  sorry
 
+(******************************************************)
+(*                       multi                        *)
+(******************************************************)
 lemma accptes_multi_Zero:
 "accepts (multi r 0 vs) w =  (w = [])"
   by simp
@@ -646,51 +638,41 @@ lemma accptes_multi_SucN:
   apply simp 
   apply (simp add: accepts_conc)
   by (metis accepts_conc multi.simps(2))
-  
 
-
-(******************************************************)
-(*                       multi                        *)
-(******************************************************)
-lemma start_multi[simp]:"\<And>A. start (multi1 A n) = 1 # start A"
-  apply(simp add:multi1_def)
-  done
-
-lemma fin_multi[iff]:"\<And>A. fin (multi1 A n) q= (hd q = n \<and> fin A (tl q))"
-  apply(simp add:multi1_def)
-  done
-
-lemma step_multi[iff]:"\<And>A. (p, q) \<in> step A a = (\<exists>r. (r#p, r#q) \<in> step (multi1 A n) a)"
-  apply(simp add:multi1_def step_def)
-  by (simp add: image_iff)
+lemma accpet_step:"accepts A w1 \<Longrightarrow> (\<exists>us. (\<forall>u\<in>set us. accepts A u) \<and> w2 = concat us \<and> length us = m) \<Longrightarrow> 
+                                    (\<exists>us. (\<forall>u\<in>set us. accepts A u) \<and> w1 @ w2 = concat us \<and> length us = Suc m)"
+  apply(induct w2)
+  apply simp apply auto  
+  apply (metis append_self_conv concat.simps(2) concat_eq_Nil_conv length_Cons set_ConsD)
+  by (metis concat.simps(2) length_Cons set_ConsD)
  
-lemma "\<And>p. (p, q) \<in> steps A w = (\<exists>r. (r#p, r#q) \<in> steps (multi1 A n) w)"
-  apply(induct w)
-  apply simp
-  apply simp
-  apply force
- 
-lemma t1:"r \<noteq> One  \<Longrightarrow> accepts (multi1 (rexp2na r vs) n) w = (\<exists>us. (\<forall>x\<in>set us. accepts (rexp2na r vs) x) \<and> w = concat us \<and> length us = n)"
-  apply(rule iffI)
-   apply(simp add:accepts_conv_steps)
-   apply clarify
-
-  sorry
-
-
 lemma accepts_multi:
-"accepts (rexp2na (Multi r m) vs) w =  (\<exists>us. (\<forall>u \<in> set us. accepts (rexp2na r vs) u) \<and> w = concat us \<and> length us = m)"
-  apply(case_tac "r = One")
-   apply simp 
-   apply(induct m)
-    apply simp
-   apply simp 
-  apply (metis append.right_neutral concat.simps(2) concat_eq_Nil_conv length_Cons)
-   apply(induct m)
-   apply simp
-  apply simp
-  apply(simp add:t1)
+"accepts (multi A m vs) w =  (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w = concat us \<and> length us = m)"
+  apply(rule iffI)
+  subgoal 
+  apply(induct m arbitrary:w) 
+  apply simp 
+  subgoal for m apply (simp add:accepts_conc) apply clarify 
+  by (simp add: accpet_step)
   done
+  apply(induct m arbitrary:w) apply simp apply clarify
+  by (smt (verit, ccfv_threshold) accptes_multi_SucN concat.simps(2) insertCI length_Suc_conv list.simps(15))
+
+(******************************************************)
+(*                       range                        *)
+(******************************************************)
+
+
+lemma accepts_range:"
+accepts (range1 A m n vs) w = (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w = concat us \<and> m \<le> length us & length us \<le> n)"
+  apply(rule iffI)
+  apply(induct n)
+  subgoal apply (simp add:range1_def) apply auto apply(induct m) apply simp subgoal apply(rule disjE) apply auto by (simp add: accepts_conv_steps)
+  subgoal for m apply auto done
+  apply(induct m) apply simp apply auto 
+  by (simp add: accepts_conv_steps)
+subgoal for n apply (simp add:range1_def) apply(induct m) apply  (simp add: accepts_conv_steps) sledgehammer
+
 
 
 (******************************************************)
@@ -721,9 +703,12 @@ lemma accepts_rexp2na:
   apply (simp add: accepts_star in_star_iff_concat subset_iff Ball_def) 
   apply (simp add: accepts_dot)             
   subgoal for r w by auto   
-     apply (simp add: accepts_conc Regular_Set.conc_def accepts_star in_star_iff_concat subset_iff Ball_def) 
-  
-  apply (simp add:accepts_inter)
-  (*apply (simp add:accepts_range in_range_iff_concat  subset_iff Ball_def) *)
-  by (metis accepts_epsilon accepts_neg accepts_or rexp2na.simps(8))
- end
+  apply (simp add: accepts_conc Regular_Set.conc_def accepts_star in_star_iff_concat subset_iff Ball_def) 
+  defer 1
+  defer 1
+  apply (simp add:accepts_inter) 
+  apply(simp add:accepts_multi)  
+    apply (meson concat_n_times multi_x_times subset_code(1))
+   apply (simp add:accepts_range in_range_iff_concat  subset_iff Ball_def)   
+  apply blast
+  end
