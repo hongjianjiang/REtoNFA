@@ -562,52 +562,52 @@ lemma accepts_plus[iff]:
 (*                       neg                          *)
 (******************************************************)
 lemma fin_neg[iff]:
-"\<And>A. fin (neg A) q = (q = [] \<or> \<not> (fin A (take (hd q) (tl q))))"
+"\<And>A B. fin (neg A B) q = (q \<noteq> [] \<and> \<not> fin A (take (hd q) (tl q)) \<and> fin B (drop (hd q) (tl q)))"
   apply(simp add:neg_def list.case_eq_if)
   done
 
 lemma start_neg[iff]:
-"\<And>A. start (neg A) = length (start A) # start A"
+"\<And>A B. start (neg A B) = length (start A) # start A @ start B"
   apply(simp add:neg_def)
   done
 
 lemma step_A_neg:
-"\<And>A. (p, q) \<in> step A a \<Longrightarrow> (length p # p, length q # q) \<in> step (neg A) a"
+"\<And>A B. (p, q) \<in> step A a \<and> (p1, q1) \<in> step B a  \<Longrightarrow> (length p # p @ p1, length q # q @ q1) \<in> step (neg A B) a"
   apply(simp add:step_def neg_def)
   by auto
 
 lemma empty_trans_neg:
-"\<And>A. next A a p = {} \<Longrightarrow> (length p # p, []) \<in> step (neg A) a"
+"\<And>A B. next A a p = {} \<and> (p1, q) \<in> step B a \<Longrightarrow> (length p # p @ p1, 0# q) \<in> step (neg A B) a"
   apply(simp add:neg_def step_def)
   done
 
-lemma emp2empInneg:
-"\<And>A. ([], q) \<in> step (neg A) a \<Longrightarrow> q = []"
+lemma neg_to_later_step:
+"\<And>A B. (p, q) \<in> step (neg A B) a \<Longrightarrow> (drop (hd p) (tl p), drop (hd q) (tl q)) \<in> step B a"
   apply(simp add:neg_def step_def)
+  subgoal for aa ab
+  apply(case_tac "aa a (take (hd p) (tl p)) = {}")
+  prefer 2
+  apply simp 
+  apply force
+  apply simp 
+  by fastforce
   done
 
-lemma step_A_neg_steps:
-"\<And>A p. (p, q) \<in> steps A w \<Longrightarrow> (length p # p, length q # q) \<in> steps (neg A) w"
+lemma neg_to_later_steps:
+"\<And>A B p. (p, q) \<in> steps (neg A B) w \<Longrightarrow> (drop (hd p) (tl p), drop (hd q) (tl q)) \<in> steps B w"
   apply(induct w)
   apply simp
   apply simp
-  by (meson relcomp.simps step_A_neg)
-
-lemma empty_neg_steps:
-"\<And>A. ([], q) \<in> steps (neg A) w \<Longrightarrow> q = []"
-  apply(induct w)
-  apply simp
-  apply simp
-  by (metis emp2empInneg relcompEpair)
-
+  using neg_to_later_step 
+  by fastforce
 
 lemma accepts_neg:
  "accepts (rexp2na (Neg r) vs) w = ((\<exists>us. (\<forall>u \<in> set us. accepts (dot vs) u) \<and> w = concat us) \<and> \<not> accepts (rexp2na r vs) w)"
   apply (simp add: accepts_conv_steps)
-  apply(induct w)
+  apply (induct w)
   apply simp 
-  apply (metis empty_iff list.set(1))
-  sorry
+  apply (metis RegExp2NA.star_def accepts_conv_steps accepts_epsilon empty_iff empty_set fin_start_or steps_epsilon)
+  sledgehammer
 
 (******************************************************)
 (*                       multi                        *)
@@ -651,35 +651,33 @@ lemma zeroNrange: "accepts (range A m 0 vs) w \<Longrightarrow> (w = [])"
   apply(induct m) apply simp
   by (simp add: accepts_conv_steps)
 
-lemma tt:"(\<exists>us. (\<forall>x\<in>set us. accepts r x) \<and> w1 = concat us \<and> length us = Suc 0) \<Longrightarrow> accepts r w1"
-  by (metis append.right_neutral concat.simps(1) concat.simps(2) insert_iff length_0_conv length_Suc_conv list.simps(15))
-
-lemma tt1:"\<exists>us. Ball (set us) (accepts A) \<and> w = concat us \<and> m \<le> length us \<and> length us \<le> Suc n \<Longrightarrow> 
-(\<exists>us. Ball (set us) (accepts A) \<and> w = concat us \<and> m \<le> length us \<and> length us \<le> n) \<or> (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w = concat us \<and> length us = Suc n)"
-  using le_Suc_eq by blast
-
 lemma alter_Suc_n_range[simp]:
 "\<And>w. accepts (range A m (Suc n) vs) w = accepts (range A m n vs) w \<or> accepts (multi A (Suc n) vs) w"
   apply(case_tac "m > Suc n") 
-   apply (simp add: range_def)
-  apply(case_tac "m = Suc n") apply(simp add:range_def) 
-  using accepts_conv_steps apply force
+  apply (simp add: range_def)
+  apply(case_tac "m = Suc n")
+  apply(simp add:range_def) 
+  using accepts_conv_steps 
+  apply force
   apply(case_tac "m < Suc n") 
-   prefer 2 
-   apply simp 
+  prefer 2 
   apply simp 
-  apply(simp add:range_def) apply auto
+  apply simp 
+  apply(simp add:range_def) 
+  apply auto
   done
 
-lemma range_mltn:"m < n \<Longrightarrow> accepts (RegExp2NA.range A m n vs) w \<or> accepts (multi A (Suc n) vs) w \<Longrightarrow>  accepts (RegExp2NA.range A m (Suc n) vs) w"
-apply(case_tac "m > Suc n") 
-   apply (simp add: range_def)
-  apply(case_tac "m = Suc n") apply(simp add:range_def) 
+lemma range_mltn:"m < n \<Longrightarrow> accepts (range A m n vs) w \<or> accepts (multi A (Suc n) vs) w \<Longrightarrow>  accepts (range A m (Suc n) vs) w"
+  apply(case_tac "m > Suc n") 
+  apply (simp add: range_def)
+  apply(case_tac "m = Suc n")
+  apply(simp add:range_def) 
   apply(case_tac "m < Suc n") 
-   prefer 2 
-   apply simp 
+  prefer 2 
   apply simp 
-  apply(simp add:range_def) apply auto
+  apply simp 
+  apply(simp add:range_def) 
+  apply auto
   done
 
 lemma case_unhold_range: "m > n \<Longrightarrow> \<not> accepts (range r m n vs) w"
@@ -687,7 +685,7 @@ lemma case_unhold_range: "m > n \<Longrightarrow> \<not> accepts (range r m n vs
   apply (simp add: accepts_conv_steps)
   done
 
-lemma range_n_eqs:"accepts (RegExp2NA.range A n n vs) w = accepts (multi A n vs) w" 
+lemma range_n_eqs:"accepts (range A n n vs) w = accepts (multi A n vs) w" 
   apply(simp add:range_def)
   done
 
@@ -713,8 +711,8 @@ accepts (range A m n vs) w = (\<exists>us. (\<forall>u \<in> set us. accepts A u
     apply simp 
     subgoal for n w
     proof -
-      assume a1:"\<And>w. \<lbrakk>accepts (RegExp2NA.range A m n vs) w; m < n\<rbrakk> \<Longrightarrow> \<exists>us. Ball (set us) (accepts A) \<and> w = concat us \<and> m \<le> length us \<and> length us \<le> n"
-      assume a2:"accepts (RegExp2NA.range A m (Suc n) vs) w"
+      assume a1:"\<And>w. \<lbrakk>accepts (range A m n vs) w; m < n\<rbrakk> \<Longrightarrow> \<exists>us. Ball (set us) (accepts A) \<and> w = concat us \<and> m \<le> length us \<and> length us \<le> n"
+      assume a2:"accepts (range A m (Suc n) vs) w"
       assume a3:"m < Suc n"
       from a2 have c1:"accepts (range A m n vs) w \<or> accepts (multi A (Suc n) vs) w" 
         using alter_Suc_n_range 
@@ -744,10 +742,10 @@ accepts (range A m n vs) w = (\<exists>us. (\<forall>u \<in> set us. accepts A u
     apply simp 
     subgoal for n w  
     proof -
-      assume a1:"\<And>w. \<lbrakk>\<exists>us. Ball (set us) (accepts A) \<and> w = concat us \<and> m \<le> length us \<and> length us \<le> n; m < n\<rbrakk> \<Longrightarrow> accepts (RegExp2NA.range A m n vs) w"
+      assume a1:"\<And>w. \<lbrakk>\<exists>us. Ball (set us) (accepts A) \<and> w = concat us \<and> m \<le> length us \<and> length us \<le> n; m < n\<rbrakk> \<Longrightarrow> accepts (range A m n vs) w"
       assume a2:"\<exists>us. Ball (set us) (accepts A) \<and> w = concat us \<and> m \<le> length us \<and> length us \<le> Suc n" 
       assume a3:"m < Suc n"
-      show "accepts (RegExp2NA.range A m (Suc n) vs) w"
+      show "accepts (range A m (Suc n) vs) w"
       proof -
         from a2 have "(\<exists>us. Ball (set us) (accepts A) \<and> w = concat us \<and> m \<le> length us \<and> length us \<le> n) \<or> (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w = concat us \<and> length us = Suc n)"
           using le_Suc_eq 
