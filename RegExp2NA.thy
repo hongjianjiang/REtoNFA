@@ -55,15 +55,6 @@ definition
     \<lambda>s. case s of [] \<Rightarrow> False | left # s \<Rightarrow> fl (take left s) \<and> fr (drop  left  s)))"
 
 definition
-range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a bitsNA" where
-  "range = (\<lambda>(q, vl, d, f) m n.
-    (0#q, vl,
-    \<lambda>a s. case s of [] \<Rightarrow> {} | 
-                    left # s \<Rightarrow>((left) ## (d a s)) \<union> (if (f s) then (left + 1) ## d a q else {}),
-     \<lambda>s. case s of [] \<Rightarrow> False |
-        left # s \<Rightarrow> if m = 0 then s = q else left \<ge> (m - 1) \<and> left \<le> (n - 1) \<and> f s))"
-
-definition
   conc :: "'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
 "conc = (\<lambda>(ql,vl1, dl,fl)(qr,vl2, dr,fr).
    (2#ql,vl1 \<union> vl2,
@@ -87,7 +78,8 @@ definition
   neg :: "'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
 "neg= (\<lambda>(ql,vl1,dl,fl) (qr,vl2,dr,fr).
    ([length ql] @ ql @ qr, vl2,
-    \<lambda>a s. if dl a (take (hd s) (tl s)) = {} then 0 ## (dr a (drop (hd s) (tl s))) else mapLR (dl a (take (hd s) (tl s))) (dr a (drop (hd s) (tl s))),
+    \<lambda>a s. if dl a (take (hd s) (tl s)) = {} then 0 ## (dr a (drop (hd s) (tl s))) 
+    else mapLR (dl a (take (hd s) (tl s))) (dr a (drop (hd s) (tl s))),
     \<lambda>s. case s of [] \<Rightarrow> False | left # s \<Rightarrow> \<not> fl (take left s) \<and> fr (drop left s)))"
 
 primrec multi ::"'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where 
@@ -95,9 +87,8 @@ primrec multi ::"'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a set \<Rightarrow> 
   "multi r (Suc n) vs = conc r (multi r n vs)"
 
 
-
-definition range1 :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
-"range1 A n m vs = fold (or) (map (\<lambda>a. multi A a vs) [n+1..<m+1]) (multi A n vs)"
+definition range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
+"range A n m vs = (if n > m then ([], vs ,\<lambda>a s. {}, \<lambda>s. False) else fold (or) (map (\<lambda>a. multi A a vs) [n+1..<m+1]) (multi A n vs))"
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero          vs = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -110,11 +101,16 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Ques r)      vs = or (rexp2na r vs) (epsilon vs)" |
   "rexp2na (Plus r)      vs = conc (rexp2na r vs) (star vs (rexp2na r vs))" |
   "rexp2na (Inter r s)   vs = inter (rexp2na r vs) (rexp2na s vs)" |
-  "rexp2na (Range r n m) vs = range1 (rexp2na r vs) n m vs" |
+  "rexp2na (Range r n m) vs = range (rexp2na r vs) n m vs" |
   "rexp2na (Neg r)       vs = neg (rexp2na r vs) (star vs (dot vs))"|
   "rexp2na (Multi r n)   vs = multi (rexp2na r vs) n vs"
   
 declare split_paired_all[simp] 
+
+value "accepts (rexp2na ((Atom 1)) {1,2,3::nat}) [4]"
+
+value "start (rexp2na ((Atom 1)) {1,2,3::nat})"
+value "next (rexp2na ((Atom 1)) {1,2,3::nat}) 1 [2]"
 
 value "accepts (rexp2na (Range (Atom 1) 2 4) {1,2,3::nat}) [1,1,1,1]"
 value "accepts (rexp2na (Plus One) {1,2,3::nat}) []"
@@ -655,26 +651,47 @@ lemma accepts_multi:
 (*                       range                        *)
 (******************************************************)
 
+lemma zeroNrange: "accepts (range A m 0 vs) w \<Longrightarrow> (w = [])"
+  apply(unfold range_def)
+  apply(induct m) apply simp
+  by (simp add: accepts_conv_steps)
+
+lemma tt:"(\<exists>us. (\<forall>x\<in>set us. accepts r x) \<and> w1 = concat us \<and> length us = Suc 0) \<Longrightarrow> accepts r w1"
+  by (metis append.right_neutral concat.simps(1) concat.simps(2) insert_iff length_0_conv length_Suc_conv list.simps(15))
+
+
+lemma accptes_range_SucN:
+"accepts (range r m (Suc n) vs) w = (\<exists>w1 w2. (\<exists>us. (\<forall>u \<in> set us. accepts r u) \<and> w1 = concat us \<and> length us = (Suc n)) \<and> accepts ((range r m n) vs) w2 \<and> w = w1 \<or> w =  w2)"
+  apply(induct n)
+  subgoal 
+    apply(rule iffI)
+     apply auto[1]
+    apply(case_tac "m>1") 
+    apply (simp add:range_def) 
+    apply (simp add: accepts_conv_steps) 
+    sorry
+  sorry
+
+lemma case_unhold_range: "m > n \<Longrightarrow> \<not> accepts (range r m n vs) w"
+  apply (simp add:range_def)
+  apply (simp add: accepts_conv_steps)
+  done
+
+lemma range_eqs:"accepts (range A n n vs) w = accepts (multi A n vs) w"
+  apply(simp add:range_def)
+  done
 
 lemma accepts_range:"
-accepts (range1 A m n vs) w = (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w = concat us \<and> m \<le> length us & length us \<le> n)"
+accepts (range A m n vs) w = (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w = concat us \<and> m \<le> length us & length us \<le> n)"
   apply(rule iffI)
-  apply(induct n arbitrary: w)
-  subgoal apply (simp add:range1_def)
-    apply auto 
-     apply(induct m) 
-      apply simp subgoal 
-      apply(rule disjE) 
-        apply auto 
-      by (simp add: accepts_conv_steps)
-  subgoal for m apply auto done
-  apply(induct m) apply simp apply auto 
-  by (simp add: accepts_conv_steps)
-  subgoal for n w
-    apply(induct m)
-    subgoal apply (simp add:range1_def)
-
-
+  apply(case_tac "m > n") 
+  using case_unhold_range apply blast
+   apply(case_tac "m = n")
+    apply simp
+    apply (metis accepts_multi order_refl range_eqs)
+  apply(case_tac "m < n") apply simp prefer 2 apply simp apply(induct n) apply simp 
+   apply (meson Suc_less_eq accptes_range_SucN case_unhold_range)
+  by (metis Suc_le_mono accptes_range_SucN case_unhold_range le_Suc_eq le_eq_less_or_eq)
 
 (******************************************************)
 (*                       star                         *)
