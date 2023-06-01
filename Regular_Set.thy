@@ -1,5 +1,6 @@
-(*  Author: Tobias Nipkow, Alex Krauss, Christian Urban  *)
-
+(*  Author:     Hongjian Jiang
+    Copyright   2023 RHEINLAND-PFÄLZISCHE TECHNISCHE UNIVERSITÄT KAISERSLAUTERN-LANDAU
+*)
 section "Regular sets"
 
 theory Regular_Set

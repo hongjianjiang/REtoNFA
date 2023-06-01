@@ -1,10 +1,5 @@
-(*  Author:     Tobias Nipkow
-    Copyright   1998 TUM
-
-Is there an optimal order of arguments for `next'?
-Currently we can have laws like `delta A (a#w) = delta A w o delta A a'
-Otherwise we could have `acceps A == fin A o delta A (start A)'
-and use foldl instead of foldl2.
+(*  Author:     Hongjian Jiang
+    Copyright   2023 RHEINLAND-PFÄLZISCHE TECHNISCHE UNIVERSITÄT KAISERSLAUTERN-LANDAU
 *)
 
 section "Projection functions for automata"

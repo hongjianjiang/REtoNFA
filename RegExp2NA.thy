@@ -1,5 +1,5 @@
 (*  Author:     Hongjian Jiang
-    Copyright   2023 TUK
+    Copyright   2023 RHEINLAND-PFÄLZISCHE TECHNISCHE UNIVERSITÄT KAISERSLAUTERN-LANDAU
 *)
 
 section "From regular expressions directly to nondeterministic automata"
@@ -581,13 +581,38 @@ lemma step_A_neg:
   apply(simp add:step_def neg_def)
   by auto
 
+lemma empty_trans_neg:
+"\<And>A. next A a p = {} \<Longrightarrow> (length p # p, []) \<in> step (neg A) a"
+  apply(simp add:neg_def step_def)
+  done
 
- 
+lemma emp2empInneg:
+"\<And>A. ([], q) \<in> step (neg A) a \<Longrightarrow> q = []"
+  apply(simp add:neg_def step_def)
+  done
+
+lemma step_A_neg_steps:
+"\<And>A p. (p, q) \<in> steps A w \<Longrightarrow> (length p # p, length q # q) \<in> steps (neg A) w"
+  apply(induct w)
+  apply simp
+  apply simp
+  by (meson relcomp.simps step_A_neg)
+
+lemma empty_neg_steps:
+"\<And>A. ([], q) \<in> steps (neg A) w \<Longrightarrow> q = []"
+  apply(induct w)
+  apply simp
+  apply simp
+  by (metis emp2empInneg relcompEpair)
+
 
 lemma accepts_neg:
  "accepts (rexp2na (Neg r) vs) w = ((\<exists>us. (\<forall>u \<in> set us. accepts (dot vs) u) \<and> w = concat us) \<and> \<not> accepts (rexp2na r vs) w)"
   apply (simp add: accepts_conv_steps)
-  
+  apply(induct w)
+  apply simp 
+  apply (metis empty_iff list.set(1))
+  sorry
 
 (******************************************************)
 (*                       multi                        *)
@@ -786,10 +811,10 @@ lemma accepts_rexp2na:
   apply (simp add: accepts_conc Regular_Set.conc_def accepts_star in_star_iff_concat subset_iff Ball_def) 
   apply (simp add:accepts_range in_range_iff_concat  subset_iff Ball_def)   
   apply blast
-  apply(simp add:accepts_neg)
+  apply (simp add:accepts_neg)
   apply (smt (verit) accepts_dot accepts_neg in_star_iff_concat rexp2na.simps(12) subset_code(1))
   apply (simp add:accepts_inter) 
-  apply(simp add:accepts_multi)  
+  apply (simp add:accepts_multi)  
   apply (meson concat_n_times multi_x_times subset_code(1))
   done
 end

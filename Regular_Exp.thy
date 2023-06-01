@@ -1,5 +1,6 @@
-(*  Author: Tobias Nipkow *)
-
+(*  Author:     Hongjian Jiang
+    Copyright   2023 RHEINLAND-PFÄLZISCHE TECHNISCHE UNIVERSITÄT KAISERSLAUTERN-LANDAU
+*)
 section "Regular expressions"
 
 theory Regular_Exp

@@ -1,5 +1,5 @@
-(*  Author:     Tobias Nipkow
-    Copyright   1998 TUM
+(*  Author:     Hongjian Jiang
+    Copyright   2023 RHEINLAND-PFÄLZISCHE TECHNISCHE UNIVERSITÄT KAISERSLAUTERN-LANDAU
 *)
 
 section "Nondeterministic automata"
@@ -47,6 +47,4 @@ by(simp add: delta_conv_steps accepts_def)
 abbreviation
   Cons_syn :: "'a \<Rightarrow> 'a list set \<Rightarrow> 'a list set" (infixr "##" 65) where
   "x ## S \<equiv> Cons x ` S"
-
-
 end
