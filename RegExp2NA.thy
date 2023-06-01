@@ -86,7 +86,6 @@ primrec multi ::"'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a set \<Rightarrow> 
   "multi r 0 vs = epsilon vs"|
   "multi r (Suc n) vs = conc r (multi r n vs)"
 
-
 definition range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
 "range A n m vs = (if n > m then ([], vs ,\<lambda>a s. {}, \<lambda>s. False) else fold (or) (map (\<lambda>a. multi A a vs) [n+1..<m+1]) (multi A n vs))"
 
@@ -107,15 +106,6 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   
 declare split_paired_all[simp] 
 
-value "accepts (rexp2na ((Atom 1)) {1,2,3::nat}) [4]"
-
-value "start (rexp2na ((Atom 1)) {1,2,3::nat})"
-value "next (rexp2na ((Atom 1)) {1,2,3::nat}) 1 [2]"
-
-value "accepts (rexp2na (Range (Atom 1) 2 4) {1,2,3::nat}) [1,1,1,1]"
-value "accepts (rexp2na (Plus One) {1,2,3::nat}) []"
-value "start (rexp2na (Multi (Atom 1) 1) {1,2,3::nat})"
-value "next (rexp2na (Multi (Atom 1) 1) {1,2,3::nat}) 1 [1,3]"
 (******************************************************)
 (*                       atom                         *)
 (******************************************************)
@@ -659,23 +649,54 @@ lemma zeroNrange: "accepts (range A m 0 vs) w \<Longrightarrow> (w = [])"
 lemma tt:"(\<exists>us. (\<forall>x\<in>set us. accepts r x) \<and> w1 = concat us \<and> length us = Suc 0) \<Longrightarrow> accepts r w1"
   by (metis append.right_neutral concat.simps(1) concat.simps(2) insert_iff length_0_conv length_Suc_conv list.simps(15))
 
+lemma tt1:"\<exists>us. Ball (set us) (accepts A) \<and> w = concat us \<and> m \<le> length us \<and> length us \<le> Suc n \<Longrightarrow> 
+(\<exists>us. Ball (set us) (accepts A) \<and> w = concat us \<and> m \<le> length us \<and> length us \<le> n) \<or> (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w = concat us \<and> length us = Suc n)"
+  using le_Suc_eq by blast
 
-lemma accptes_range_SucN:
-"accepts (range r m (Suc n) vs) w = (\<exists>w1 w2. (\<exists>us. (\<forall>u \<in> set us. accepts r u) \<and> w1 = concat us \<and> length us = (Suc n)) \<and> accepts ((range r m n) vs) w2 \<and> w = w1 \<or> w =  w2)"
-  apply(induct n)
-  subgoal 
-    apply(rule iffI)
-     apply auto[1]
-    apply(case_tac "m>1") 
-    apply (simp add:range_def) 
-    apply (simp add: accepts_conv_steps) 
-    sorry
-  sorry
+lemma alter_Suc_n_range[simp]:
+"\<And>w. accepts (range A m (Suc n) vs) w = accepts (range A m n vs) w \<or> accepts (multi A (Suc n) vs) w"
+  apply(case_tac "m > Suc n") 
+   apply (simp add: range_def)
+  apply(case_tac "m = Suc n") apply(simp add:range_def) 
+  using accepts_conv_steps apply force
+  apply(case_tac "m < Suc n") 
+   prefer 2 
+   apply simp 
+  apply simp 
+  apply(simp add:range_def) apply auto
+  done
+
+lemma ttt1:"m < n \<Longrightarrow> accepts (RegExp2NA.range A m n vs) w \<or> accepts (multi A (Suc n) vs) w \<Longrightarrow>  accepts (RegExp2NA.range A m (Suc n) vs) w"
+apply(case_tac "m > Suc n") 
+   apply (simp add: range_def)
+  apply(case_tac "m = Suc n") apply(simp add:range_def) 
+  apply(case_tac "m < Suc n") 
+   prefer 2 
+   apply simp 
+  apply simp 
+  apply(simp add:range_def) apply auto
+  done
 
 lemma case_unhold_range: "m > n \<Longrightarrow> \<not> accepts (range r m n vs) w"
   apply (simp add:range_def)
   apply (simp add: accepts_conv_steps)
   done
+
+lemma n_SucN_eqs:"accepts (RegExp2NA.range A n (Suc n) vs) w = accepts (RegExp2NA.range A n n vs) w \<or> accepts (multi A (Suc n) vs) w" 
+  using alter_Suc_n_range by blast
+
+lemma range_n_eqs:"accepts (RegExp2NA.range A n n vs) w = accepts (multi A n vs) w" 
+  apply(simp add:range_def)
+  done
+
+lemma a3:"accepts (RegExp2NA.range A n (Suc n) vs) w = accepts (multi A n vs) w \<or> accepts (multi A (Suc n) vs) w" 
+  using alter_Suc_n_range 
+  using range_n_eqs by blast
+
+lemma range_forward:"accepts (multi A n vs) w \<or> accepts (multi A (Suc n) vs) w \<Longrightarrow> accepts (range A n (Suc n) vs) w"
+  apply(simp add:range_def) apply(simp add:accepts_conc) 
+  apply(simp add:accepts_multi) 
+  by blast
 
 lemma range_eqs:"accepts (range A n n vs) w = accepts (multi A n vs) w"
   apply(simp add:range_def)
@@ -683,16 +704,70 @@ lemma range_eqs:"accepts (range A n n vs) w = accepts (multi A n vs) w"
 
 lemma accepts_range:"
 accepts (range A m n vs) w = (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w = concat us \<and> m \<le> length us & length us \<le> n)"
-  apply(rule iffI)
-  apply(case_tac "m > n") 
-  using case_unhold_range apply blast
+   apply(rule iffI)
+   apply(case_tac "m > n") 
+   using case_unhold_range apply blast
    apply(case_tac "m = n")
-    apply simp
-    apply (metis accepts_multi order_refl range_eqs)
-  apply(case_tac "m < n") apply simp prefer 2 apply simp apply(induct n) apply simp 
-   apply (meson Suc_less_eq accptes_range_SucN case_unhold_range)
-  by (metis Suc_le_mono accptes_range_SucN case_unhold_range le_Suc_eq le_eq_less_or_eq)
-
+   apply simp
+   apply (metis accepts_multi order_refl range_eqs)
+   apply(case_tac "m < n") 
+   apply simp prefer 2 
+   apply simp 
+   subgoal 
+   apply(induct n arbitrary:w) 
+     apply simp 
+    subgoal for n w
+    proof -
+      assume a1:"\<And>w. \<lbrakk>accepts (RegExp2NA.range A m n vs) w; m < n\<rbrakk> \<Longrightarrow> \<exists>us. Ball (set us) (accepts A) \<and> w = concat us \<and> m \<le> length us \<and> length us \<le> n"
+      assume a2:"accepts (RegExp2NA.range A m (Suc n) vs) w"
+      assume a3:"m < Suc n"
+      from a2 have c1:"accepts (range A m n vs) w \<or> accepts (multi A (Suc n) vs) w" 
+        using alter_Suc_n_range by blast
+      then show "\<exists>us. Ball (set us) (accepts A) \<and> w = concat us \<and> m \<le> length us \<and> length us \<le> Suc n" proof 
+        assume "accepts (range A m n vs) w " thus ?thesis using a1 a3 
+          by (metis accepts_multi dual_order.refl le_SucI less_Suc_eq range_eqs)
+      next 
+        assume "accepts (multi A (Suc n) vs) w" thus ?thesis by (metis a3 accepts_multi le_eq_less_or_eq)
+      qed
+    qed
+    done
+  subgoal 
+    apply(case_tac "m>n")
+     apply linarith
+    apply(case_tac "m=n") apply simp
+    apply (metis accepts_multi le_antisym range_eqs)
+    apply(case_tac "m<n")
+     prefer 2 apply simp
+    apply simp 
+    apply(induct n arbitrary:w)
+     apply simp subgoal for n w  
+    proof -
+      assume a1:"\<And>w. \<lbrakk>\<exists>us. Ball (set us) (accepts A) \<and> w = concat us \<and> m \<le> length us \<and> length us \<le> n; m < n\<rbrakk> \<Longrightarrow> accepts (RegExp2NA.range A m n vs) w"
+      assume a2:"\<exists>us. Ball (set us) (accepts A) \<and> w = concat us \<and> m \<le> length us \<and> length us \<le> Suc n" 
+      assume a3:"m < Suc n"
+      show "accepts (RegExp2NA.range A m (Suc n) vs) w"
+      proof -
+        from a2 have "(\<exists>us. Ball (set us) (accepts A) \<and> w = concat us \<and> m \<le> length us \<and> length us \<le> n) \<or> (\<exists>us. (\<forall>u \<in> set us. accepts A u) \<and> w = concat us \<and> length us = Suc n)"
+          using le_Suc_eq by blast
+        then show ?thesis using a3 apply(case_tac "m = n")  
+           apply simp subgoal proof -
+            assume b1:"(\<exists>us. (\<forall>x\<in>set us. accepts A x) \<and> w = concat us \<and> n \<le> length us \<and> length us \<le> n) \<or>
+     (\<exists>us. (\<forall>u\<in>set us. accepts A u) \<and> w = concat us \<and> length us = Suc n)"
+            assume b2:"m = n"
+            from b1 have "accepts (multi A n vs) w \<or> accepts (multi A (Suc n) vs) w" 
+              using accepts_multi le_antisym by blast
+            then show ?thesis apply(simp add:a3)  
+              apply(simp add:range_def) apply(simp add:accepts_conc) 
+              apply(simp add:accepts_multi) 
+                by blast
+          qed
+          apply(case_tac "m < n") prefer 2 apply simp apply simp 
+          by (metis a1 accepts_multi ttt1)
+      qed
+    qed
+    done
+  done
+       
 (******************************************************)
 (*                       star                         *)
 (******************************************************)
