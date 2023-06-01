@@ -601,6 +601,27 @@ lemma neg_to_later_steps:
   using neg_to_later_step 
   by fastforce
 
+lemma start_neg2star_dot:
+"\<And>A B. (start(neg A B), q) \<in> step (neg A B) a \<Longrightarrow> (start B, drop (hd q) (tl q)) \<in> step B a"
+  apply(simp add:neg_def step_def)
+  subgoal for aa ab ac ad
+    apply(case_tac "ab a aa = {}")
+     prefer 2
+     apply simp 
+     apply fastforce
+    apply simp 
+    by force
+  done
+
+lemma start_neg2star_dots:
+"\<And>A B. (start(neg A B), q) \<in> steps (neg A B) w \<Longrightarrow> (start B, drop (hd q) (tl q)) \<in> steps B w"
+  apply(induct w)
+   apply simp
+   apply force
+  apply simp
+  by (metis append_eq_conv_conj list.sel(1) list.sel(3) neg_to_later_steps steps.simps(2))
+
+
 lemma accepts_neg:
  "accepts (rexp2na (Neg r) vs) w = ((\<exists>us. (\<forall>u \<in> set us. accepts (dot vs) u) \<and> w = concat us) \<and> \<not> accepts (rexp2na r vs) w)"
   apply (simp add: accepts_conv_steps)
