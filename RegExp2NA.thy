@@ -73,21 +73,19 @@ definition
 star :: "'a set \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
   "star vs A = or (epsilon vs) (plus A)"
 
-definition
-neg :: "'a bitsNA \<Rightarrow> 'a bitsNA" where
-  "neg= (\<lambda>(ql,vl1,dl,fl).
-   ([length ql] @ ql, vl1,
-    \<lambda>a s. case s of [] \<Rightarrow> {[]} |
-        left # s \<Rightarrow> if dl a (take left s) = {} then {[]} 
-                    else mapLR1 (dl a (take left s)),
-    \<lambda>s. case s of [] \<Rightarrow> True | left # s \<Rightarrow> \<not> fl (take left s)))"
-
 primrec multi ::"'a bitsNA \<Rightarrow> nat \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where 
   "multi r 0 vs = epsilon vs"|
   "multi r (Suc n) vs = conc r (multi r n vs)"
 
 definition range :: "'a bitsNA \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "range A n m vs = (if n > m then ([], vs ,\<lambda>a s. {}, \<lambda>s. False) else fold (or) (map (\<lambda>a. multi A a vs) [n+1..<m+1]) (multi A n vs))"
+
+definition
+  neg :: "'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
+"neg= (\<lambda>(ql,vl1,dl,fl) (qr,vl2,dr,fr).
+   ([length ql] @ ql @ qr, vl2,
+    \<lambda>a s. if dl a (take (hd s) (tl s)) = {} then 0 ## (dr a (drop (hd s) (tl s))) else mapLR (dl a (take (hd s) (tl s))) (dr a (drop (hd s) (tl s))),
+    \<lambda>s. case s of [] \<Rightarrow> False | left # s \<Rightarrow> \<not> fl (take left s) \<and> fr (drop left s)))"
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero          vs = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -101,13 +99,10 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Plus r)      vs = conc (rexp2na r vs) (star vs (rexp2na r vs))" |
   "rexp2na (Inter r s)   vs = inter (rexp2na r vs) (rexp2na s vs)" |
   "rexp2na (Range r n m) vs = range (rexp2na r vs) n m vs" |
-  "rexp2na (Neg r)       vs = neg (rexp2na r vs)"|
+  "rexp2na (Neg r)       vs = neg (rexp2na r vs) (star vs (dot vs))"|
   "rexp2na (Multi r n)   vs = multi (rexp2na r vs) n vs"
   
 declare split_paired_all[simp] 
-
-value "start (rexp2na (Neg (Atom 1)) {1,2,3::nat})"
-value "accepts (rexp2na (Neg (Atom 1)) {1,2,3::nat}) [1]"
 
 (******************************************************)
 (*                       atom                         *)

@@ -63,7 +63,7 @@ lemma conc_epsilon[simp]: shows "{[]} @@ A = A" and "A @@ {[]} = A"
 by (simp_all add:conc_def)
 
 lemma conc_assoc: "(A @@ B) @@ C = A @@ (B @@ C)"
-by (auto elim!: concE) (simp only: append_assoc[symmetric] concI)
+  by (smt (z3) Collect_cong append.assoc concE concI conc_def)
 
 lemma conc_Un_distrib:
 shows "A @@ (B \<union> C) = A @@ B \<union> A @@ C"
@@ -337,5 +337,5 @@ apply(rule_tac x="0" in exI)
 apply(auto)
 apply(rule_tac x="Suc n" in exI)
 apply(auto)
-  done
+done
 end
