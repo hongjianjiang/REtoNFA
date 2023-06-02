@@ -84,8 +84,19 @@ definition
   neg :: "'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
 "neg= (\<lambda>(ql,vl1,dl,fl) (qr,vl2,dr,fr).
    ([length ql] @ ql @ qr, vl2,
-    \<lambda>a s. if dl a (take (hd s) (tl s)) = {} then 0 ## (dr a (drop (hd s) (tl s))) else mapLR (dl a (take (hd s) (tl s))) (dr a (drop (hd s) (tl s))),
+    \<lambda>a s. if dl a (take (hd s) (tl s)) = {} 
+          then 0 ## (dr a (drop (hd s) (tl s))) 
+          else mapLR (dl a (take (hd s) (tl s))) (dr a (drop (hd s) (tl s))),
     \<lambda>s. case s of [] \<Rightarrow> False | left # s \<Rightarrow> \<not> fl (take left s) \<and> fr (drop left s)))"
+
+definition 
+neg1 ::"'a bitsNA \<Rightarrow> 'a bitsNA" where
+"neg1 = (\<lambda>(q,v,d,f). 
+        (length q # q, v, 
+        \<lambda>a s. case s of [] \<Rightarrow>  {[]} | 
+                   left # s \<Rightarrow>  if d a s = {} then {[]} else mapLR1 (d a s), 
+        \<lambda>s. case s of [] \<Rightarrow> True |
+                      left # s \<Rightarrow> \<not> f s))"
 
 primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na Zero          vs = ([], vs ,\<lambda>a s. {}, \<lambda>s. False)" |
@@ -99,7 +110,7 @@ primrec rexp2na :: " 'a rexp \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
   "rexp2na (Plus r)      vs = conc (rexp2na r vs) (star vs (rexp2na r vs))" |
   "rexp2na (Inter r s)   vs = inter (rexp2na r vs) (rexp2na s vs)" |
   "rexp2na (Range r n m) vs = range (rexp2na r vs) n m vs" |
-  "rexp2na (Neg r)       vs = neg (rexp2na r vs) (star vs (dot vs))"|
+  "rexp2na (Neg r)       vs = neg1 (rexp2na r vs)"|
   "rexp2na (Multi r n)   vs = multi (rexp2na r vs) n vs"
   
 declare split_paired_all[simp] 
@@ -620,15 +631,23 @@ lemma start_neg2star_dots:
    apply force
   apply simp
   by (metis append_eq_conv_conj list.sel(1) list.sel(3) neg_to_later_steps steps.simps(2))
+ 
 
+(******************************************************)
+(*                       neg1                         *)
+(******************************************************)
+lemma fin_neg1[iff]: "fin (neg1 A) q = (q= [] \<or> \<not> fin A (tl q))"
+  apply(simp add:neg1_def)
+  by (smt (verit, best) case_prod_conv fin_def list.case_eq_if prod.sel(2) prod_cases4)
 
-lemma accepts_neg:
- "accepts (rexp2na (Neg r) vs) w = ((\<exists>us. (\<forall>u \<in> set us. accepts (dot vs) u) \<and> w = concat us) \<and> \<not> accepts (rexp2na r vs) w)"
-  apply (simp add: accepts_conv_steps)
-  apply (induct w)
-  apply simp 
-  apply (metis RegExp2NA.star_def accepts_conv_steps accepts_epsilon empty_iff empty_set fin_start_or steps_epsilon)
-  sledgehammer
+lemma start_neg1[iff]:"start (neg1 A) = (length (start A)) # (start A)"
+  apply (simp add:neg1_def)
+  by (smt (verit) case_prod_conv prod.sel(1) prod_cases4 start_def)
+
+lemma "\<And>A. (p, q) \<in> step A a \<Longrightarrow> ((length p # p, length q # q) \<in> step (neg1 A) a)"
+  apply(simp add:step_def neg1_def)
+   sledgehammer
+
 
 (******************************************************)
 (*                       multi                        *)
