@@ -22,13 +22,13 @@ fun mapLR1 ::"nat list set  \<Rightarrow> nat list set" where
 definition
   "atom"  :: "'a \<Rightarrow> 'a set \<Rightarrow> 'a bitsNA" where
 "atom a vs = ([2],vs,
-            \<lambda>b s. if s=[2] \<and> b=a \<and> a : vs then {[3]} else {},
-            \<lambda>s. s=[3])"
+            \<lambda>b s. if s=[2] \<and> b=a \<and> a : vs then {[3]} else {[1]},
+            \<lambda>s. case s of [] \<Rightarrow> False | left#s \<Rightarrow> (left#s) = [3])"
 
 definition 
   dot ::  "'a set \<Rightarrow> 'a bitsNA" where
 "dot vs=([2], vs,
-            \<lambda>b s. if s=[2] \<and> b \<in> vs  then {[3]} else {},
+            \<lambda>b s. if s=[2] \<and> b \<in> vs then {[3]} else {[1]},
             \<lambda>s. s=[3])"
 
 definition
@@ -44,7 +44,7 @@ definition
 
 definition
   epsilon :: "'a set \<Rightarrow> 'a bitsNA" where
-"epsilon vs= ([],vs,\<lambda>a s. {}, \<lambda>s. s=[])"
+"epsilon vs= ([],vs,\<lambda>a s. {[1]}, \<lambda>s. s=[])"
 
 definition
   inter :: " 'a bitsNA \<Rightarrow> 'a bitsNA \<Rightarrow> 'a bitsNA" where
@@ -118,33 +118,41 @@ declare split_paired_all[simp]
 (******************************************************)
 (*                       atom                         *)
 (******************************************************)
-lemma fin_atom: "(fin (atom a vs) q) = (q = [3])"
-  by(simp add:atom_def)
+lemma fin_atom: "(fin (atom a vs) q) = (if q = [] then False else q = [3])"
+  apply(simp add:atom_def)
+  by (simp add: list.case_eq_if)
 
 lemma start_atom: "start (atom a vs) = [2]"
   by(simp add:atom_def)
 
 lemma in_step_atom_Some[simp]:
- "(p,q) : step (atom a vs) b = (p=[2] \<and> q=[3] \<and> b=a \<and> a : vs)"
+ "(p,q) : step (atom a vs) b = (if p=[2] \<and> b=a \<and> a : vs then q=[3] else q = [1])"
   by (simp add: atom_def step_def)
+
+lemma no_empty_atoms: "([Suc 0], [3]) \<notin> steps (atom a vs) w"
+  apply(induct w)
+  apply simp 
+  apply simp 
+  by force
 
 lemma False_False_in_steps_atom:
  "([3],[3]) : steps (atom a vs) w = (w = [])"
   apply (induct "w")
   apply simp
   apply (simp add: relcomp_unfold)
+  apply (simp add:no_empty_atoms)
 done
 
 lemma start_fin_in_steps_atom:
  "(start (atom a vs), [3]) : steps (atom a vs) w = (w = [a] \<and> a : vs)"
   apply (induct "w")
   apply (simp add: start_atom)
-  apply (simp add: False_False_in_steps_atom relcomp_unfold start_atom)  apply auto
-done
+  apply (simp add: False_False_in_steps_atom relcomp_unfold start_atom) 
+by (metis False_False_in_steps_atom no_empty_atoms)
 
 lemma accepts_atom:
  "accepts (atom a vs) w = (w = [a] \<and> a : vs)"
-  by (simp add: accepts_conv_steps start_fin_in_steps_atom fin_atom)
+  by (metis accepts_conv_steps fin_atom list.discI start_fin_in_steps_atom)
 
 (******************************************************)
 (*                       dot                          *)
@@ -156,15 +164,21 @@ lemma start_dot: "start (dot vs) = [2]"
   by(simp add:dot_def)
 
 lemma in_step_dot_Some[simp]:
- "(p,q) : step (dot vs) b= (p=[2] \<and> q=[3] \<and> b \<in> vs)"
+ "(p,q) : step (dot vs) b= (if p=[2] \<and> b \<in> vs then q=[3] else q = [Suc 0])"
 by (simp add: dot_def step_def)
 
+lemma no_empty_dots:"([Suc 0], [3]) \<notin> steps (dot vs) w"
+  apply(induct w)
+  apply simp
+  apply simp
+  by force
 
 lemma False_False_in_steps_dot:
  "([3],[3]) : steps (dot vs) w = (w = [])"
   apply (induct "w")
   apply simp
   apply (simp add: relcomp_unfold)
+  apply (simp add:no_empty_dots)
 done
 
 lemma start_fin_in_steps_do:
@@ -173,8 +187,7 @@ lemma start_fin_in_steps_do:
   apply (simp add: start_dot)
   apply force
   apply (simp add: False_False_in_steps_dot relcomp_unfold start_dot) 
-  apply auto
-done
+  by (smt (verit) False_False_in_steps_dot image_iff list.inject no_empty_dots)
 
 lemma accepts_dot:  "accepts (dot vs) w = (w \<in> ((\<lambda>x. [x]) ` vs))"
   by (simp add: accepts_conv_steps fin_dot start_fin_in_steps_do)
@@ -469,15 +482,32 @@ lemma accepts_conc:
 (*                     epsilon                        *)
 (******************************************************)
 
-lemma step_epsilon[simp]: "step (epsilon vs) a = {}"
+lemma step_epsilon[simp]: "(p, q) \<in> step (epsilon vs) a = (q = [Suc 0])"
   by(simp add:epsilon_def step_def)
 
-lemma steps_epsilon: "((p,q) : steps (epsilon vs) w) = (w=[] \<and> p=q)"
-  by (induct "w") auto
+lemma no_empty_epsilon: "([Suc 0], []) \<notin> steps (epsilon vs) w"
+  apply(induct w)
+  apply simp
+  apply simp
+  by force
+
+lemma steps_epsilon: "\<And>p. ((p,q) : steps (epsilon vs) w) = (if w \<noteq> [] then q = [Suc 0] else q = p)"
+  apply(induct w)
+  apply simp
+  apply blast
+  apply simp
+  apply(case_tac "w = []")
+  apply simp 
+  apply simp
+  by (simp add: relcomp.simps)
+
 
 lemma accepts_epsilon[iff]: "accepts (epsilon vs) w = (w = [])"
   apply (simp add: steps_epsilon accepts_conv_steps)
   apply (simp add: epsilon_def)
+  apply(case_tac "w = []")
+  apply simp 
+  apply simp
   done
 
 (******************************************************)
@@ -644,11 +674,44 @@ lemma start_neg1[iff]:"start (neg1 A) = (length (start A)) # (start A)"
   apply (simp add:neg1_def)
   by (smt (verit) case_prod_conv prod.sel(1) prod_cases4 start_def)
 
-lemma "\<And>A. (p, q) \<in> step A a \<Longrightarrow> ((length p # p, length q # q) \<in> step (neg1 A) a)"
+lemma step_A_neg1:
+"\<And>A. (p, q) \<in> step A a \<Longrightarrow> ((length p # p, length q # q) \<in> step (neg1 A) a)"
   apply(simp add:step_def neg1_def)
-   sledgehammer
+  by blast
 
+lemma step_neg1_A:"\<And>A. (p, q) \<in> step (neg1 A) a \<Longrightarrow> (if p = [] then q = [] else if next A a (tl p) = {} then q = [] else (tl p, tl q) \<in> step A a)"
+  apply(simp add:step_def neg1_def)
+  subgoal for ab
+    apply(case_tac "p = []")
+    apply simp  
+    apply simp
+    apply(case_tac "ab a (tl p) = {}")
+    apply simp
+    apply (simp add: list.case_eq_if)
+    apply simp 
+    by (smt (verit, ccfv_threshold) append.simps(1) list.case_eq_if list.distinct(1) list.sel(3) mapLR1.simps mem_Collect_eq tl_append2)
+  done
 
+lemma steps_A_neg1:
+"\<And>A p. (p, q) \<in> steps A w \<Longrightarrow> ((length p # p, length q # q) \<in> steps (neg1 A) w)"
+  apply(induct w)
+  apply simp
+  apply simp 
+  by (meson relcomp.simps step_A_neg1)
+
+lemma empty_trans_neg1:"\<And>A. (p, q) \<in> steps (neg1 A) w \<Longrightarrow> p = [] \<Longrightarrow> q = []"
+  apply(induct w)
+   apply simp
+  apply simp
+  using step_neg1_A by fastforce
+                                                                       
+lemma "accepts (neg1 A) w = (\<not> accepts A w)"      
+  apply(induct w)                    
+  apply (simp add: accepts_conv_steps)    
+  apply (simp add: accepts_conv_steps)    
+  sledgehammer                        
+ 
+  
 (******************************************************)
 (*                       multi                        *)
 (******************************************************)

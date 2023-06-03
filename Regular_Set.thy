@@ -41,7 +41,7 @@ definition star :: "'a lang \<Rightarrow> 'a lang" where
 definition range :: "'a lang \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a lang " where
 "range A m n= (if m \<le> n then (\<Union>i\<in>{m..n}. A ^^ i) else {})"
 
-(*hide_const (open) lang_pow*)
+hide_const (open) lang_pow
 
 subsection\<open>@{term "(@@)"}\<close>
 
